@@ -1,0 +1,27 @@
+{
+  "cli": {
+    "version": ">= 16.19.3",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "pnpm": "9.15.4",
+      "env": {
+        "APP_VARIANT": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "pnpm": "9.15.4"
+    },
+    "production": {
+      "autoIncrement": true,
+      "pnpm": "9.15.4"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

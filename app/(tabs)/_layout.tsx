@@ -34,6 +34,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="agents"
+        options={{
+          title: 'AI Agents',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="support-agent" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',

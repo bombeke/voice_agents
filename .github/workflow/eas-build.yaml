@@ -1,0 +1,56 @@
+name: EAS Build
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+env:
+  PNPM_VERSION: 9
+
+jobs:
+  build:
+    name: Install and build
+    runs-on: ubuntu-latest
+    outputs:
+      pnpm_cache_key: ${{ steps.cache.outputs.cache-primary-key }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Cache pnpm store
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build on EAS
+        run: eas build --platform all --profile development --non-interactive --no-wait
+
+      # -------------------------
+      # Upload artifacts (optional)
+      # -------------------------
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-dev-client
+          path: dist/**
+          if-no-files-found: ignore
+      # Add OTA updates    
+      #- name: Publish update to EAS
+      #  run: eas update --branch dev --message "CI auto-publish"
