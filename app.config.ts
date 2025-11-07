@@ -1,5 +1,7 @@
-{
-  "expo": {
+import { ConfigContext, ExpoConfig } from 'expo/config';
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+    ...config,
     "name": "voice-agents",
     "slug": "voice-agents",
     "version": "1.0.0",
@@ -63,9 +65,9 @@
     },
     "extra": {
       "router": {},
-      "eas": {
-        "projectId": "d1ba06a7-8e54-4cc7-abe2-6be9c680f040"
-      }
+      "eas": {},
+      "URL": process.env.URL,
+      "PROJECT_ID": process.env.PROJECT_ID,
+      "API_TOKEN": process.env.API_TOKEN,
     }
-  }
-}
+  });

@@ -1,5 +1,5 @@
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
-import React, { ReactNode, useState } from 'react';
+import { ReactNode, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -54,8 +54,8 @@ export const GenericCall =(): ReactNode | Promise<ReactNode> =>{
           Status: {connected ? 'Connected' : 'Not connected'}
         </Text>
       </View>
-      <Middle call={call} extension={extension} setExtension={setExtension} />
-      {client && <Bottom call={call} client={client} extension={extension} />}
+      <Middle client={client} call={call} extension={extension} setExtension={setExtension} />
+      
     </KeyboardAvoidingView>
   );
 }
@@ -64,10 +64,12 @@ export const Middle =({
   call,
   extension,
   setExtension,
+  client
 }: {
   call: any;
   extension: string;
   setExtension: (_: string) => void;
+  client: Relay | null
 }) => {
   if (call) {
     return (
@@ -97,14 +99,14 @@ export const Middle =({
     return (
       <>
         <View style={styles.wrapperMiddle}>
-          <Text className='text-xl font-bold text-blue-500'>Enter a number:</Text>
+          <Text style={styles.tel}>Enter a number:</Text>
           <TextInput
             style={styles.textInput}
             textAlign={'center'}
             onChangeText={extension => setExtension(extension)}
             value={extension}
           />
-          
+          {client && <Bottom call={call} client={client} extension={extension} />}
         </View>
         <AssetCall/>
       </>
@@ -222,13 +224,11 @@ export const Bottom =({
   else {
     return (
       <View style={styles.wrapperBottom}>
-        <View style={styles.wrapperBottomRow}>
           <TouchableOpacity
             style={[styles.button, {backgroundColor: Colors.green}]}
             onPress={makeCall}>
             <Icon name="phone" size={25} color="#FFFFFF" />
           </TouchableOpacity>
-        </View>
       </View>
     );
   }
@@ -245,16 +245,19 @@ const styles = StyleSheet.create({
   },
   wrapperMiddle: {
     flex: 2,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     borderColor: '#000',
     borderTopWidth: 1,
+    paddingRight: 8
   },
   wrapperBottom: {
     flex: 0.5,
     borderColor: '#000',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+    padding: 8
   },
   wrapperBottomRow: {
     flex: 0.5,
@@ -264,9 +267,14 @@ const styles = StyleSheet.create({
   },
   textInput: {
     height: 40,
-    width: '80%',
+    width: 180,
     borderColor: 'gray',
     borderWidth: 1,
+    borderRadius: 4,
+    padding: 8
+  },
+  tel:{
+    paddingRight: 8
   },
   welcome: {
     fontSize: 20,
@@ -283,7 +291,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 100,
     height: 40,
-    width: '20%',
+    width: 120,
   },
   buttonText: {
     textAlign: 'center',
