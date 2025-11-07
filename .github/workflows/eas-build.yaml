@@ -40,8 +40,14 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Build on EAS
-        run: eas build --platform android --profile development --non-interactive --no-wait
+      - name: Build Web & Android
+        run: |
+          echo "Building Web..."
+          npx expo prebuild --clean
+          npx eas build --platform web --profile development --non-interactive --no-wait
+
+          echo "Building Android..."
+          eas build --platform android --profile development --non-interactive --no-wait
 
       # -------------------------
       # Upload artifacts (optional)
