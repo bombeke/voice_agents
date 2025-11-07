@@ -32,13 +32,15 @@ jobs:
           key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+          packager: pnpm
+          patch-watchers: false
 
       - name: Build on EAS
         run: eas build --platform android --profile development --non-interactive --no-wait
