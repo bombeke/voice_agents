@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bitcode": false
+      "bitcode": false,
+      "bundleIdentifier": "org.bombeke.voiceagents"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +29,7 @@
         "android.permission.WAKE_LOCK",
         "android.permission.BLUETOOTH"
       ],
-      "package": "com.talexie.voiceagents"
+      "package": "org.bombeke.voiceagents"
     },
     "web": {
       "bundler": "metro",
