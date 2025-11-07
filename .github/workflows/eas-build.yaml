@@ -41,7 +41,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build on EAS
-        run: eas build --platform all --profile development --non-interactive --no-wait
+        run: eas build --platform all --non-interactive --no-wait
 
       # -------------------------
       # Upload artifacts (optional)
