@@ -6,14 +6,14 @@ on:
       - main
       - master
 env:
-  PNPM_VERSION: 9
+  PNPM_VERSION: 9.15.4
 
 jobs:
   build:
     name: Install and build
     runs-on: ubuntu-latest
-    outputs:
-      pnpm_cache_key: ${{ steps.cache.outputs.cache-primary-key }}
+    #outputs:
+    #  pnpm_cache_key: ${{ steps.cache.outputs.cache-primary-key }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,12 +24,12 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: Cache pnpm store
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+      #- name: Cache pnpm store
+      #  id: cache
+      #  uses: actions/cache@v4
+      #  with:
+      #    path: ~/.pnpm-store
+      #    key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install
@@ -41,8 +41,11 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
           packager: pnpm
           patch-watchers: false
+
       - name: Clean autolinking cache
-        run: rm -rf android/app/build/generated
+        run: |
+          rm -rf android
+          expo prebuild --clean
 
       - name: Build on EAS
         run: eas build --platform android --profile development --non-interactive --no-wait
