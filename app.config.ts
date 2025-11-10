@@ -65,7 +65,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     "extra": {
       "router": {},
-      "eas": {},
+      "eas": {
+        "projectId": "d1ba06a7-8e54-4cc7-abe2-6be9c680f040"
+      },
       "URL": process.env.URL,
       "PROJECT_ID": process.env.PROJECT_ID,
       "API_TOKEN": process.env.API_TOKEN,
