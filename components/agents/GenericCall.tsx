@@ -12,9 +12,10 @@ import {
 import Colors from '../ui/Colors';
 
 import { Relay } from '@signalwire/react-native';
-import { RTCView } from 'react-native-webrtc-web-shim';
+//import { RTCView } from 'react-native-webrtc-web-shim';
 import useRelayClient from '../../hooks/useRelayClient';
 import { AssetCall } from './AssetCall';
+import { CallRTCView } from './CallRTCView';
 
 export const GenericCall =(): ReactNode | Promise<ReactNode> =>{
 
@@ -74,24 +75,26 @@ export const Middle =({
   if (call) {
     return (
       <View style={styles.wrapperMiddle}>
-        { call?.localStream && (
+        { /*call?.localStream && (
           <RTCView
             mirror={false}
             objectFit="contain"
             stream={ call?.localStream }
             style={{width: '100%', height: '100%'}}
             zOrder={1}
-          />
-        )}
-        { call?.remoteStream && (
+          />)*/
+          call?.localStream && (<CallRTCView callStream={call?.localStream} />)
+        }
+        { /*call?.remoteStream && (
           <RTCView
             mirror={false}
             objectFit="contain"
             stream={ call?.remoteStream }
             style={{width: '100%', height: '100%'}}
             zOrder={1}
-          />
-        )}
+          />)*/
+          call?.remoteStream && (<CallRTCView callStream={call?.remoteStream} />)
+        }
       </View>
     );
   } 
