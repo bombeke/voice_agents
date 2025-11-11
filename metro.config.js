@@ -3,7 +3,18 @@ const { withNativeWind } = require('nativewind/metro');
 const path = require("path");
  
 const config = getDefaultConfig(__dirname)
+config.resolver.sourceExts = [
+  ...defaultConfig.resolver.sourceExts,
+  'ts',
+  'tsx',
+  'js',
+  'jsx',
+  'mjs',
+  'cjs'
+];
 config.transformer.unstable_allowRequireContext = true;
+defaultConfig.resolver.unstable_enableSymlinks = true;
+defaultConfig.resolver.unstable_enablePackageExports = true;
 config.transformer.getTransformOptions = async () => ({
   transform: {
     experimentalImportSupport: false,
