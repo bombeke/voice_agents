@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import Colors from '../ui/Colors';
 
-import useRelayClient from '@/hooks/useRelayClient';
 import { Relay } from '@signalwire/react-native';
 import { RTCView } from 'react-native-webrtc-web-shim';
+import useRelayClient from '../../hooks/useRelayClient';
 import { AssetCall } from './AssetCall';
 
 export const GenericCall =(): ReactNode | Promise<ReactNode> =>{

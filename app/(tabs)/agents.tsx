@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Searchbar } from 'react-native-paper';
 
-import { AssetCall } from '@/components/agents/AssetCall';
-import H5PViewer from '@/components/H5pViewer';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { AssetCall } from '../../components/agents/AssetCall';
+import H5PViewer from '../../components/H5pViewer';
+import ParallaxScrollView from '../../components/ParallaxScrollView';
+import { ThemedText } from '../../components/ThemedText';
+import { ThemedView } from '../../components/ThemedView';
 
 export default function AgentsScreen() {
     const [searchQuery, setSearchQuery] = useState('');

@@ -1,8 +1,8 @@
-import { useSipApi } from '@/hooks/useSipApiCall';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Component, ReactNode, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
+import { useSipApi } from '../../hooks/useSipApiCall';
 
 
 const calls = [

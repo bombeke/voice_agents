@@ -1,6 +1,6 @@
-import { AGENT_PROJECT_ID } from '@/constants/Config';
 import { ISignalWireOptions, Relay } from '@signalwire/react-native';
 import { useEffect, useState } from 'react';
+import { AGENT_PROJECT_ID } from '../constants/Config';
 import { getAuthToken } from './useSipApiCall';
 
 export default function useRelayClient(

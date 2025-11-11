@@ -1,5 +1,5 @@
-import { AGENT_PROJECT_ID, AGENT_TOKEN, AGENT_URL } from '@/constants/Config';
 import axios from 'axios';
+import { AGENT_PROJECT_ID, AGENT_TOKEN, AGENT_URL } from '../constants/Config';
 
 const API_BASE: string = `https://${AGENT_URL}/api/laml/2010-04-01/Accounts`;
 
