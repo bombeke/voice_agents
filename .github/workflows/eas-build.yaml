@@ -9,6 +9,9 @@ on:
 
 env:
   PNPM_VERSION: 9.15.4
+  URL: ${{ vars.URL }}
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+  API_TOKEN: ${{ secrets.API_TOKEN }}
 
 jobs:
   build:
@@ -21,7 +24,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20.18.x
-          cache: pnpm
 
       - name: Install pnpm
         uses: pnpm/action-setup@v3
