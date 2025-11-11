@@ -13,7 +13,7 @@ export const makeSipCall = async (from: string, to: string) => {
     }),
     {
       auth: {
-        username: AGENT_PROJECT_ID
+        username: AGENT_PROJECT_ID,
         password: AGENT_TOKEN
       }
     }
