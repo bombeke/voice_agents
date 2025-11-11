@@ -4,7 +4,7 @@ const path = require("path");
  
 const config = getDefaultConfig(__dirname)
 config.resolver.sourceExts = [
-  ...defaultConfig.resolver.sourceExts,
+  ...config.resolver.sourceExts,
   'ts',
   'tsx',
   'js',
@@ -13,8 +13,8 @@ config.resolver.sourceExts = [
   'cjs'
 ];
 config.transformer.unstable_allowRequireContext = true;
-defaultConfig.resolver.unstable_enableSymlinks = true;
-defaultConfig.resolver.unstable_enablePackageExports = true;
+config.resolver.unstable_enableSymlinks = true;
+config.resolver.unstable_enablePackageExports = true;
 config.transformer.getTransformOptions = async () => ({
   transform: {
     experimentalImportSupport: false,
