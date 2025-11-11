@@ -1,33 +1,25 @@
+// metro.config.js
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require('nativewind/metro');
+const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
- 
-const config = getDefaultConfig(__dirname)
-config.resolver.sourceExts = [
-  ...config.resolver.sourceExts,
-  'ts',
-  'tsx',
-  'js',
-  'jsx',
-  'mjs',
-  'cjs'
-];
-config.transformer.unstable_allowRequireContext = true;
-config.resolver.unstable_enableSymlinks = true;
-config.resolver.unstable_enablePackageExports = true;
-config.transformer.getTransformOptions = async () => ({
-  transform: {
-    experimentalImportSupport: false,
-    inlineRequires: false
-  }
-});
-config.resolver.extraNodeModules = {
-  ...config.resolver.extraNodeModules,
-  '@': __dirname, // this makes @ point to project root
+
+const config = getDefaultConfig(__dirname);
+
+// Fix aliases
+config.resolver.alias = {
+  ...config.resolver.alias,
+  "@": path.resolve(__dirname),
 };
 
-config.watchFolders = [
-  __dirname, // include root for module resolution
+// Preserve default extensions (don't append duplicates)
+config.resolver.sourceExts = [
+  "ts", "tsx", "js", "jsx", "json"
 ];
 
-module.exports = withNativeWind(config, { input: './app/global.css' })
+// Required for NativeWind + Expo SDK 53
+config.transformer.unstable_allowRequireContext = true;
+
+// CI-friendly symlinks (safe)
+config.resolver.unstable_enableSymlinks = true;
+
+module.exports = withNativeWind(config, { input: "./app/global.css" });

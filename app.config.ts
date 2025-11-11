@@ -10,9 +10,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "scheme": "voiceagents",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    experiments: {
-      typedRoutes: true
-    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
@@ -41,7 +41,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
