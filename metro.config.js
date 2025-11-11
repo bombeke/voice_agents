@@ -10,8 +10,13 @@ config.transformer.getTransformOptions = async () => ({
     inlineRequires: false
   }
 });
-config.resolver.alias = {
-  "@": path.resolve(__dirname)
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  '@': __dirname, // this makes @ point to project root
 };
- 
+
+config.watchFolders = [
+  __dirname, // include root for module resolution
+];
+
 module.exports = withNativeWind(config, { input: './app/global.css' })
