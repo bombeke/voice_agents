@@ -10,6 +10,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "scheme": "voiceagents",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    experiments: {
+      typedRoutes: true
+    },
     "ios": {
       "supportsTablet": true,
       "bitcode": false,

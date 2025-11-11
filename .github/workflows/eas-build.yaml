@@ -12,7 +12,8 @@ env:
   URL: ${{ secrets.URL }}
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
   API_TOKEN: ${{ secrets.API_TOKEN }}
-
+  CI: true
+  
 jobs:
   build:
     name: Install and build
