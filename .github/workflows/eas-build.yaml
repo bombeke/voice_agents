@@ -72,7 +72,7 @@ jobs:
 
       - name: Build Release APK
         working-directory: android
-        run: ./gradlew assembleRelease -x bundleReleaseJsAndAssets
+        run: ./gradlew assembleRelease
 
       #- name: Upload Release APK
       #  uses: actions/upload-artifact@v4
@@ -82,7 +82,10 @@ jobs:
       #    if-no-files-found: error
 
 
-
+      - name: Create preview
+        uses: expo/expo-github-action/preview@v8
+        with:
+          command: eas update --auto
 
 
       - name: Upload build artifacts
