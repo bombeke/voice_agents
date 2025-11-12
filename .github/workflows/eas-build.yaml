@@ -61,8 +61,8 @@ jobs:
       - name: Clean & regenerate native project
         run: npx expo prebuild --clean
 
-      #- name: Build on EAS (Android)
-      #  run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
+      - name: Build on EAS (Android)
+        run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
 
       #- name: Build apk
       #  run: npx expo run:android --variant release
@@ -74,19 +74,12 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease
 
-      #- name: Upload Release APK
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: app-release-apk
-      #    path: android/app/build/outputs/apk/release/app-release.apk
-      #    if-no-files-found: error
-
-
-      - name: Create preview
-        uses: expo/expo-github-action/preview@v8
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
         with:
-          command: eas update --auto
-
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
