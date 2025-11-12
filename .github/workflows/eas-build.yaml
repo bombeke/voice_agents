@@ -31,8 +31,7 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: Fix Hermes executable permissions
-        run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+
 
       # Set up Java & Android SDK
       - name: Set up JDK 17 (required for RN 0.75+)
@@ -57,6 +56,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Fix Hermes executable permissions
+        run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+        
       - name: Build Release APK
         working-directory: android
         run: ./gradlew assembleDebug
