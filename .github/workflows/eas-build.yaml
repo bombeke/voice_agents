@@ -72,9 +72,6 @@ jobs:
 
       - name: Build Release APK
         working-directory: android
-        env:
-          NODE_PATH: ${{ github.workspace }}/node_modules
-          PATH: ${{ github.workspace }}/node_modules/.bin:$PATH
         run: ./gradlew assembleRelease -x bundleReleaseJsAndAssets
 
       #- name: Upload Release APK
