@@ -50,7 +50,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
           packager: pnpm
           patch-watchers: false
-          expo-version: 54.0.23
+          expo-version: latest
   
     
       - name: Install dependencies
@@ -58,7 +58,7 @@ jobs:
 
       - name: Fix Hermes executable permissions
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
-        
+
       - name: Build Release APK
         working-directory: android
         run: ./gradlew assembleDebug
