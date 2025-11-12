@@ -31,21 +31,8 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-          packager: pnpm
-          patch-watchers: false
       - name: Fix Hermes executable permissions
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
-      # Prebuild clean for SDK 53 compatibility
-      - name: Clean & regenerate native project
-        run: npx expo prebuild --clean
 
       # Set up Java & Android SDK
       - name: Set up JDK 17 (required for RN 0.75+)
@@ -54,9 +41,25 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: pnpm
+          patch-watchers: false
+          expo-version: 54.0.23
+  
+    
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Build Release APK
         working-directory: android
-        run: ./gradlew assembleRelease --warning-mode all
+        run: ./gradlew assembleDebug
 
       #- name: Upload Release APK
       #  uses: actions/upload-artifact@v4
@@ -64,6 +67,9 @@ jobs:
       #    name: app-release-apk
       #    path: android/app/build/outputs/apk/release/app-release.apk
       #    if-no-files-found: error
+
+      - name: Clean & regenerate native project
+        run: npx expo prebuild --clean
 
       - name: Build on EAS (Android)
         run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
