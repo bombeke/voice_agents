@@ -95,6 +95,9 @@ importers:
       react-native-get-random-values:
         specifier: ^2.0.0
         version: 2.0.0(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))
+      react-native-incall-manager:
+        specifier: ^4.2.1
+        version: 4.2.1(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))
       react-native-paper:
         specifier: 5.14.5
         version: 5.14.5(react-native-safe-area-context@5.6.2(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -4475,6 +4478,11 @@ packages:
     resolution: {integrity: sha512-wx7/aPqsUIiWsG35D+MsUJd8ij96e3JKddklSdrdZUrheTx89gPtz3Q2yl9knBArj5u26Cl23T88ai+Q0vypdQ==}
     peerDependencies:
       react-native: '>=0.81'
+
+  react-native-incall-manager@4.2.1:
+    resolution: {integrity: sha512-HTdtzQ/AswUbuNhcL0gmyZLAXo8VqBO7SIh+BwbeeM1YMXXlR+Q2MvKxhD4yanjJPeyqMfuRhryCQCJhPlsdAw==}
+    peerDependencies:
+      react-native: '>=0.40.0'
 
   react-native-is-edge-to-edge@1.2.1:
     resolution: {integrity: sha512-FLbPWl/MyYQWz+KwqOZsSyj2JmLKglHatd3xLZWskXOpRaio4LfEDEz8E/A6uD8QoTHW6Aobw1jbEwK7KMgR7Q==}
@@ -10760,6 +10768,10 @@ snapshots:
   react-native-get-random-values@2.0.0(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)):
     dependencies:
       fast-base64-decode: 1.0.0
+      react-native: 0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)
+
+  react-native-incall-manager@4.2.1(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)):
+    dependencies:
       react-native: 0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)
 
   react-native-is-edge-to-edge@1.2.1(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
