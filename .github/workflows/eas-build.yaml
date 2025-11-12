@@ -30,6 +30,7 @@ jobs:
         uses: pnpm/action-setup@v3
         with:
           version: ${{ env.PNPM_VERSION }}
+          run_install: true
 
       # Set up Java & Android SDK
       - name: Set up JDK 17 (required for RN 0.75+)
@@ -62,13 +63,17 @@ jobs:
 
       - name: Build on EAS (Android)
         run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
-        
-      - name: Build apk
-        run: npx expo run:android --variant release
 
-      #- name: Build Release APK
-      # working-directory: android
-      #  run: ./gradlew assembleRelease
+      #- name: Build apk
+      #  run: npx expo run:android --variant release
+
+      - name: Build Release APK
+        working-directory: android
+        env:
+          NODE_PATH: ${{ github.workspace }}/node_modules
+          PATH: ${{ github.workspace }}/node_modules/.bin:$PATH
+          PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+        run: env && ./gradlew assembleRelease
 
       #- name: Upload Release APK
       #  uses: actions/upload-artifact@v4
