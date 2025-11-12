@@ -27,8 +27,8 @@ importers:
         specifier: ^1
         version: 1.5.0
       '@signalwire/react-native':
-        specifier: ^1.1.0-alpha.4
-        version: 1.1.0-alpha.4
+        specifier: ^1.0.4
+        version: 1.0.4(@react-native-async-storage/async-storage@1.24.0(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)))
       axios:
         specifier: 1.10.0
         version: 1.10.0
@@ -1398,8 +1398,10 @@ packages:
   '@signalwire/js@1.5.0':
     resolution: {integrity: sha512-TdadiCKqc99mU4+4TAvVNoaCbU7RrMi/lcL5tRKdwta5+AJmM4/gIiq2SKgm/YsNl2zXP6PcAyMhDe4+Dr+Wsg==}
 
-  '@signalwire/react-native@1.1.0-alpha.4':
-    resolution: {integrity: sha512-DWDtAe1eApKC9ExuoubZQ+3zgpAF06e9s51Z3tTG99t2JG91zwwqaLQCMlDhjs6eV/eEcsc6Kbfk8Vi0PjkTvQ==}
+  '@signalwire/react-native@1.0.4':
+    resolution: {integrity: sha512-H01+Zk3HLDoG6fGCZB682e65CoXtzVA3ONe268wrN+cwNYIYzWKrD0Ah6CsNyu2ASPiJbYdR6Kqg4IIVUlptWQ==}
+    peerDependencies:
+      '@react-native-async-storage/async-storage': ^1.16.0
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -7241,8 +7243,9 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@signalwire/react-native@1.1.0-alpha.4':
+  '@signalwire/react-native@1.0.4(@react-native-async-storage/async-storage@1.24.0(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)))':
     dependencies:
+      '@react-native-async-storage/async-storage': 1.24.0(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))
       execa: 1.0.0
       fs-extra: 7.0.1
       listr: 0.14.3
