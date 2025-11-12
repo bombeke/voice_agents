@@ -3,7 +3,6 @@ import { StyleSheet } from 'react-native';
 
 import { Button } from '@react-navigation/elements';
 import { useRouter } from 'expo-router';
-import { HelloWave } from '../../components/HelloWave';
 import ParallaxScrollView from '../../components/ParallaxScrollView';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -21,7 +20,6 @@ export default function HomeScreen() {
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Bombeke Beyond Data Platform</ThemedText>
-        <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedView style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
