@@ -31,8 +31,6 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
-
-
       # Set up Java & Android SDK
       - name: Set up JDK 17 (required for RN 0.75+)
         uses: actions/setup-java@v4
@@ -59,9 +57,12 @@ jobs:
       - name: Fix Hermes executable permissions
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
 
+      - name: Clean & regenerate native project
+        run: npx expo prebuild --clean
+        
       - name: Build Release APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
 
       #- name: Upload Release APK
       #  uses: actions/upload-artifact@v4
@@ -70,8 +71,7 @@ jobs:
       #    path: android/app/build/outputs/apk/release/app-release.apk
       #    if-no-files-found: error
 
-      - name: Clean & regenerate native project
-        run: npx expo prebuild --clean
+
 
       - name: Build on EAS (Android)
         run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
