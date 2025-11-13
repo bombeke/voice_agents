@@ -111,8 +111,11 @@ importers:
         specifier: ^0.21.0
         version: 0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react-native-webrtc:
-        specifier: ^124.0.6
-        version: 124.0.7(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))
+        specifier: 124.0.6
+        version: 124.0.6(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))
+      react-native-webrtc-web-shim:
+        specifier: ^1.0.7
+        version: 1.0.7(react-native-web@0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-native-webrtc@124.0.6(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)))(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       tailwindcss:
         specifier: ^4.1.17
         version: 4.1.17
@@ -4524,8 +4527,16 @@ packages:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
 
-  react-native-webrtc@124.0.7:
-    resolution: {integrity: sha512-gnXPdbUS8IkKHq9WNaWptW/yy5s6nMyI6cNn90LXdobPVCgYSk6NA2uUGdT4c4J14BRgaFA95F+cR28tUPkMVA==}
+  react-native-webrtc-web-shim@1.0.7:
+    resolution: {integrity: sha512-RyoNs3LHbm0O8+mIIb+MA6p3AVaczAZQmIDUeT766KL2svTbPGE3QDlAU4teRkZPSfb/WsZ1W6JFaLXoIKg18w==}
+    peerDependencies:
+      react: '>=16'
+      react-native: '>=0.6'
+      react-native-web: '>=0.14'
+      react-native-webrtc: '*'
+
+  react-native-webrtc@124.0.6:
+    resolution: {integrity: sha512-5GviOGK19vujT7sGvSYdZE+bBlh0KC9g1JLharzajpCDVrNdCSpYxveOJUINSRevLsmL12FgNJJgnTjFKn7Aqw==}
     peerDependencies:
       react-native: '>=0.60.0'
 
@@ -10835,7 +10846,14 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  react-native-webrtc@124.0.7(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)):
+  react-native-webrtc-web-shim@1.0.7(react-native-web@0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-native-webrtc@124.0.6(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)))(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+      react-native: 0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)
+      react-native-web: 0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react-native-webrtc: 124.0.6(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))
+
+  react-native-webrtc@124.0.6(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)):
     dependencies:
       base64-js: 1.5.1
       debug: 4.3.4

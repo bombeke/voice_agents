@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, SafeAreaView, StatusBar, View } from "react-native";
-import { mediaDevices, RTCView } from "react-native-webrtc";
+import { mediaDevices, RTCView } from "react-native-webrtc-web-shim";
 
 export const CallRTCView = ({ callStream }: any)=> {
   const [stream, setStream] = useState<any>(null);
