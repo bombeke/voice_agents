@@ -1,49 +1,42 @@
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { FontAwesome } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 
-import { HapticTab } from '../../components/HapticTab';
-import { IconSymbol } from '../../components/ui/IconSymbol';
-import TabBarBackground from '../../components/ui/TabBarBackground';
-import { Colors } from '../../constants/Colors';
-import { useColorScheme } from '../../hooks/useColorScheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+    <Tabs screenOptions={{ headerShown: true }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Home",
+          tabBarIcon: () => <FontAwesome name="home" size={18} />,
         }}
       />
       <Tabs.Screen
-        name="agents"
+        name="agents/index"
         options={{
-          title: 'AI Agents',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="support-agent" color={color} />,
+          title: "AI Agents",
+          tabBarIcon: () => <FontAwesome name="user" size={18} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="poles/index"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "AI Poles",
+          tabBarIcon: () => <FontAwesome name="camera" size={18} />,
+        }}
+      />
+      <Tabs.Screen
+        name="sanitation/index"
+        options={{
+          title: "AI Sanitation",
+          tabBarIcon: () => <FontAwesome name="recycle" size={18} />,
+        }}
+      />
+      <Tabs.Screen
+        name="roads/index"
+        options={{
+          title: "AI Roads",
+          tabBarIcon: () => <FontAwesome name="road" size={18} />,
         }}
       />
     </Tabs>
