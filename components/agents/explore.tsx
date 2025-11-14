@@ -1,8 +1,8 @@
+import { GenericCall } from '@/components/agents/GenericCall';
+import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 import { StyleSheet } from 'react-native';
-import { GenericCall } from '../../components/agents/GenericCall';
-import ParallaxScrollView from '../../components/ParallaxScrollView';
-import { ThemedText } from '../../components/ThemedText';
-import { ThemedView } from '../../components/ThemedView';
 
 export default function TabTwoScreen() {
   return (

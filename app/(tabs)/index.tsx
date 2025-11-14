@@ -5,11 +5,11 @@ export default function HomeScreen() {
     <ScrollView contentContainerStyle={{ padding: 16 }} className="bg-white">
       <View className="gap-4">
         <Text className="text-3xl font-bold text-primary">
-          Welcome to AI Field Toolkit
+          BYOD Environment AI Toolkit
         </Text>
         <Text className="text-base">
-          This demo app showcases AI Agents management, pole capture & a simple
-          demo ML flow, sanitation reporting forms and roads & traffic assets.
+          Manage AI Agents for Disease Surveillance and Response, Pole defects and pollution, 
+          sanitation and roads & traffic reporting.
         </Text>
       </View>
     </ScrollView>
