@@ -56,13 +56,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # ❗️ Free up system space
-      - name: Cleanup system to free disk space
-        run: |
-          docker system prune -af || true
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
+      #- name: Cleanup system to free disk space
+      #  run: |
+      #    docker system prune -af || true
+      #    sudo rm -rf /usr/share/dotnet
+      #    sudo rm -rf /opt/ghc
+      #    sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      #    df -h
 
       - name: Fix Hermes executable permissions
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
@@ -70,8 +70,8 @@ jobs:
       - name: Clean & regenerate native project
         run: npx expo prebuild --clean
 
-      #- name: Build on EAS (Android)
-      #  run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
+      - name: Build on EAS (Android)
+        run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
 
       #- name: Build apk
       #  run: npx expo run:android --variant release
