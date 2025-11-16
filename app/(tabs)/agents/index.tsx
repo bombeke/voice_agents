@@ -37,7 +37,7 @@ export default function AgentsIndex() {
             </Link>
           </View>
         )}
-        ListEmptyComponent={() => <Text>No agents yet — create one.</Text>}
+        ListEmptyComponent={() => <Text>No agents yet. Create an agent.</Text>}
       />
     </View>
   );

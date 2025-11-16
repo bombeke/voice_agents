@@ -1,18 +1,489 @@
+import { PressableButton } from '@/components/PressableButton';
+import { CONTENT_SPACING, CONTROL_BUTTON_SIZE, MAX_ZOOM_FACTOR, SAFE_AREA_PADDING, SCREEN_HEIGHT, SCREEN_WIDTH } from '@/constants/Camera';
+import { AnimatedCamera } from '@/hooks/AnimatedCamera';
+import { useIsForeground } from '@/hooks/useIsForeground';
+import { usePinchGesture } from '@/hooks/usePinchGesture';
+import { usePreferredCameraDevice } from '@/hooks/usePreferredCameraDevice';
+import CaptureButton from '@/views/CaptureButton';
+import { StatusBarBlurBackground } from '@/views/StatusBarBlurBackground';
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import IonIcon from '@expo/vector-icons/Ionicons';
+import MaterialIcon from '@expo/vector-icons/MaterialCommunityIcons';
 import {
-    CameraMode,
-    CameraType,
-    CameraView,
-    useCameraPermissions,
+  CameraMode,
+  CameraType,
+  CameraView,
+  useCameraPermissions,
 } from "expo-camera";
 import { Image } from "expo-image";
-import { useRef, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { GestureResponderEvent } from 'react-native';
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Button } from "tamagui";
+import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
+import { GestureDetector, PinchGestureHandler, TapGestureHandler } from 'react-native-gesture-handler';
+import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { CameraProps, CameraRuntimeError, PhotoFile, VideoFile } from 'react-native-vision-camera';
+import {
+  Camera,
+  runAtTargetFps,
+  useCameraDevice,
+  useCameraFormat,
+  useCameraPermission,
+  useFrameProcessor,
+  useLocationPermission,
+  useMicrophonePermission,
+} from 'react-native-vision-camera';
+import { Button, Spinner, XStack, YStack } from 'tamagui';
+import { useResizePlugin } from 'vision-camera-resize-plugin';
 
-export default function CapturePoles() {
+const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera)
+Reanimated.addWhitelistedNativeProps({
+  zoom: true,
+})
+
+
+function tensorToString(tensor: Tensor): string {
+  return `\n  - ${tensor.dataType} ${tensor.name}[${tensor.shape}]`
+}
+function modelToString(model: TensorflowModel): string {
+  return (
+    `TFLite Model (${model.delegate}):\n` +
+    `- Inputs: ${model.inputs.map(tensorToString).join('')}\n` +
+    `- Outputs: ${model.outputs.map(tensorToString).join('')}`
+  )
+}
+
+export function CameraPage(): React.ReactElement {
+  const camera = useRef<Camera>(null)
+  const [isCameraInitialized, setIsCameraInitialized] = useState(false)
+  const microphone = useMicrophonePermission()
+  const location = useLocationPermission()
+  const zoom = useSharedValue(1)
+  const isPressingButton = useSharedValue(false)
+  const router = useRouter();
+  const params = useLocalSearchParams<{ path?: string; type?: 'photo' | 'video' }>();
+  const [isFocussed,setIsFocused] = useState<boolean>(false);
+
+  // check if camera page is active
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen is focused');
+      setIsFocused(true)
+      return () => {
+        setIsFocused(false)
+        console.log('Screen is unfocused');
+      };
+    }, [])
+  );
+  const isForeground = useIsForeground()
+  const isActive = isFocussed && isForeground
+
+  const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back')
+  const [enableHdr, setEnableHdr] = useState(false)
+  const [flash, setFlash] = useState<'off' | 'on'>('off')
+  const [enableNightMode, setEnableNightMode] = useState(false)
+
+  // camera device settings
+  const [preferredDevice] = usePreferredCameraDevice()
+  let device = useCameraDevice(cameraPosition)
+
+  if (preferredDevice != null && preferredDevice.position === cameraPosition) {
+    // override default device with the one selected by the user in settings
+    device = preferredDevice
+  }
+
+  const [targetFps, setTargetFps] = useState(60)
+
+  const screenAspectRatio = SCREEN_HEIGHT / SCREEN_WIDTH
+  const format = useCameraFormat(device, [
+    { fps: targetFps },
+    { videoAspectRatio: screenAspectRatio },
+    { videoResolution: 'max' },
+    { photoAspectRatio: screenAspectRatio },
+    { photoResolution: 'max' },
+  ])
+
+  const fps = Math.min(format?.maxFps ?? 1, targetFps)
+
+  const supportsFlash = device?.hasFlash ?? false
+  const supportsHdr = format?.supportsPhotoHdr
+  const supports60Fps = useMemo(() => device?.formats.some((f) => f.maxFps >= 60), [device?.formats])
+  const canToggleNightMode = device?.supportsLowLightBoost ?? false
+
+  //#region Animated Zoom
+  const minZoom = device?.minZoom ?? 1
+  const maxZoom = Math.min(device?.maxZoom ?? 1, MAX_ZOOM_FACTOR)
+  const pinchGesture = usePinchGesture(zoom, minZoom, maxZoom);
+
+  const cameraAnimatedProps = useAnimatedProps<CameraProps>(() => {
+    const z = Math.max(Math.min(zoom.value, maxZoom), minZoom)
+    return {
+      zoom: z,
+    }
+  }, [maxZoom, minZoom, zoom])
+  //#endregion
+
+  //#region Callbacks
+  const setIsPressingButton = useCallback(
+    (_isPressingButton: boolean) => {
+      isPressingButton.value = _isPressingButton
+    },
+    [isPressingButton],
+  )
+  const onError = useCallback((error: CameraRuntimeError) => {
+    console.error(error)
+  }, [])
+  const onInitialized = useCallback(() => {
+    console.log('Camera initialized!')
+    setIsCameraInitialized(true)
+  }, [])
+  const onMediaCaptured = useCallback(
+    (media: PhotoFile | VideoFile, type: 'photo' | 'video') => {
+      console.log(`Media captured! ${JSON.stringify(media)}`)
+      router.push({
+        pathname: '/poles',
+        params: { path: media.path, type: type },
+      });
+    },
+    [],
+  )
+  const onFlipCameraPressed = useCallback(() => {
+    setCameraPosition((p) => (p === 'back' ? 'front' : 'back'))
+  }, [])
+  const onFlashPressed = useCallback(() => {
+    setFlash((f) => (f === 'off' ? 'on' : 'off'))
+  }, [])
+  //#endregion
+
+  //#region Tap Gesture
+  const onFocusTap = useCallback(
+    ({ nativeEvent: event }: GestureResponderEvent) => {
+      if (!device?.supportsFocus) return
+      camera.current?.focus({
+        x: event.locationX,
+        y: event.locationY,
+      })
+    },
+    [device?.supportsFocus],
+  )
+  const onDoubleTap = useCallback(() => {
+    onFlipCameraPressed()
+  }, [onFlipCameraPressed])
+  //#endregion
+
+  //#region Effects
+  useEffect(() => {
+    // Reset zoom to it's default everytime the `device` changes.
+    zoom.value = device?.neutralZoom ?? 1
+  }, [zoom, device])
+  //#endregion
+
+
+  useEffect(() => {
+    const f =
+      format != null
+        ? `(${format.photoWidth}x${format.photoHeight} photo / ${format.videoWidth}x${format.videoHeight}@${format.maxFps} video @ ${fps}fps)`
+        : undefined
+    console.log(`Camera: ${device?.name} | Format: ${f}`)
+  }, [device?.name, format, fps])
+
+  useEffect(() => {
+    location.requestPermission()
+  }, [location])
+  const model = useTensorflowModel(require('../../../assets/yolo11n_float16.tflite'))
+  const actualModel = model.state === 'loaded' ? model.model : undefined
+
+  useEffect(() => {
+    if (actualModel == null) return
+    console.log(`Model loaded! Shape:\n${modelToString(actualModel)}]`)
+  }, [actualModel])
+
+  const { resize } = useResizePlugin()
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet'
+    if (actualModel == null) {
+      // model is still loading...
+      return
+    }
+    runAtTargetFps(10, () => {
+      'worklet'
+      console.log(`${frame.timestamp}: ${frame.width}x${frame.height} ${frame.pixelFormat} Frame (${frame.orientation})`)
+      const resized = resize(frame, {
+        scale: {
+          width: 320,
+          height: 320,
+        },
+        pixelFormat: 'rgb',
+        dataType: 'uint8',
+      })
+      const result = actualModel.runSync([resized])
+      const num_detections = result[3]?.[0] ?? 0
+      console.log('Result: ' + num_detections)
+    })
+  }, [])
+
+  const videoHdr = format?.supportsVideoHdr && enableHdr
+  const photoHdr = format?.supportsPhotoHdr && enableHdr && !videoHdr
+
+  return (
+    <View style={styles.container}>
+      {device != null ? (
+        <GestureDetector gesture={pinchGesture}>
+          <Reanimated.View onTouchEnd={onFocusTap} style={StyleSheet.absoluteFill}>
+            <TapGestureHandler onEnded={onDoubleTap} numberOfTaps={2}>
+              <AnimatedCamera
+                style={StyleSheet.absoluteFill}
+                device={device}
+                isActive={isActive}
+                ref={camera}
+                onInitialized={onInitialized}
+                onError={onError}
+                onStarted={() => console.log('Camera started!')}
+                onStopped={() => console.log('Camera stopped!')}
+                onPreviewStarted={() => console.log('Preview started!')}
+                onPreviewStopped={() => console.log('Preview stopped!')}
+                onOutputOrientationChanged={(o) => console.log(`Output orientation changed to ${o}!`)}
+                onPreviewOrientationChanged={(o) => console.log(`Preview orientation changed to ${o}!`)}
+                onUIRotationChanged={(degrees) => console.log(`UI Rotation changed: ${degrees}°`)}
+                format={format}
+                fps={fps}
+                photoHdr={photoHdr}
+                videoHdr={videoHdr}
+                photoQualityBalance="quality"
+                lowLightBoost={device.supportsLowLightBoost && enableNightMode}
+                enableZoomGesture={false}
+                animatedProps={cameraAnimatedProps}
+                exposure={0}
+                enableFpsGraph={true}
+                outputOrientation="device"
+                photo={true}
+                video={true}
+                audio={microphone.hasPermission}
+                enableLocation={location.hasPermission}
+                frameProcessor={frameProcessor}
+              />
+            </TapGestureHandler>
+          </Reanimated.View>
+        </GestureDetector>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.text}>Your phone does not have a Camera.</Text>
+        </View>
+      )}
+
+      <CaptureButton
+        style={styles.captureButton}
+        camera={camera as any}
+        onMediaCaptured={onMediaCaptured}
+        cameraZoom={zoom}
+        minZoom={minZoom}
+        maxZoom={maxZoom}
+        flash={supportsFlash ? flash : 'off'}
+        enabled={isCameraInitialized && isActive}
+        setIsPressingButton={setIsPressingButton}
+      />
+
+      <StatusBarBlurBackground />
+
+      <View style={styles.rightButtonRow}>
+        <PressableButton style={styles.button} onPress={onFlipCameraPressed} disabledOpacity={0.4}>
+          <IonIcon name="camera-reverse" color="white" size={24} />
+        </PressableButton>
+        {supportsFlash && (
+          <PressableButton style={styles.button} onPress={onFlashPressed} disabledOpacity={0.4}>
+            <IonIcon name={flash === 'on' ? 'flash' : 'flash-off'} color="white" size={24} />
+          </PressableButton>
+        )}
+        {supports60Fps && (
+          <PressableButton style={styles.button} onPress={() => setTargetFps((t) => (t === 30 ? 60 : 30))}>
+            <Text style={styles.text}>{`${targetFps}\nFPS`}</Text>
+          </PressableButton>
+        )}
+        {supportsHdr && (
+          <PressableButton style={styles.button} onPress={() => setEnableHdr((h) => !h)}>
+            <MaterialIcon name={enableHdr ? 'hdr' : 'hdr-off'} color="white" size={24} />
+          </PressableButton>
+        )}
+        {canToggleNightMode && (
+          <PressableButton style={styles.button} onPress={() => setEnableNightMode(!enableNightMode)} disabledOpacity={0.4}>
+            <IonIcon name={enableNightMode ? 'moon' : 'moon-outline'} color="white" size={24} />
+          </PressableButton>
+        )}
+        <PressableButton style={styles.button} onPress={
+          () => null //router.navigate('Devices')
+          }>
+          <IonIcon name="settings-outline" color="white" size={24} />
+        </PressableButton>
+        <PressableButton style={styles.button} onPress={() => null
+         //router.navigate('CodeScannerPage')
+         }>
+          <IonIcon name="qr-code-outline" color="white" size={24} />
+        </PressableButton>
+      </View>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  captureButton: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: SAFE_AREA_PADDING.paddingBottom,
+  },
+  button: {
+    marginBottom: CONTENT_SPACING,
+    width: CONTROL_BUTTON_SIZE,
+    height: CONTROL_BUTTON_SIZE,
+    borderRadius: CONTROL_BUTTON_SIZE / 2,
+    backgroundColor: 'rgba(140, 140, 140, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rightButtonRow: {
+    position: 'absolute',
+    right: SAFE_AREA_PADDING.paddingRight,
+    top: SAFE_AREA_PADDING.paddingTop,
+  },
+  text: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  CameraContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cameraContainer: StyleSheet.absoluteFillObject,
+  camera: StyleSheet.absoluteFillObject,
+  shutterContainer: {
+    position: "absolute",
+    bottom: 44,
+    left: 0,
+    width: "100%",
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 30,
+  },
+  shutterBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 5,
+    borderColor: "white",
+    width: 85,
+    height: 85,
+    borderRadius: 45,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shutterBtnInner: {
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+  },
+
+})
+
+export default function CameraPage2() {
+  const camera = useRef<Camera>(null);
+  const device = useCameraDevice('back');
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const zoom = useSharedValue(1);
+  const [isRecording, setIsRecording] = useState(false);
+  const [detectedObjects, setDetectedObjects] = useState([]);
+
+  useEffect(() => {
+    requestPermission();
+  }, []);
+
+  if (!device) return <Spinner />;
+
+  if (!hasPermission) {
+    return (
+      <YStack justify="center" verticalAlign="center" flex={1} gap="$4">
+        <Text>Camera permission is required</Text>
+        <Button onPress={requestPermission}>Grant Permission</Button>
+      </YStack>
+    );
+  }
+
+  const startRecording = async () => {
+    setIsRecording(true);
+    try {
+      const video = await camera.current?.startRecording({
+        onRecordingFinished: (video) => console.log('Video saved', video),
+        onRecordingError: (err) => console.error(err),
+      });
+    } catch (err) {
+      console.error(err);
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    await camera.current?.stopRecording();
+    setIsRecording(false);
+  };
+
+  const onDoubleTap = async () => {
+    console.log('Flip Camera');
+    // TODO: Flip camera
+  };
+
+  return (
+    <SafeAreaView className={`flex-1 bg-black`}>
+      <View className={`flex-1`}>
+        <PinchGestureHandler>
+          <TapGestureHandler numberOfTaps={2} onActivated={onDoubleTap}>
+            <ReanimatedCamera
+              ref={camera}
+              className={`flex-1`}
+              device={device}
+              isActive={true}
+              enableZoomGesture
+              video={true}
+              photo={true}
+            />
+          </TapGestureHandler>
+        </PinchGestureHandler>
+      </View>
+
+      <XStack justify="center" verticalAlign="center" p="$4" gap="$4" bg="rgba(0,0,0,0.4)">
+        <Button size="$5" onPress={isRecording ? stopRecording : startRecording}>
+          {isRecording ? 'Stop' : 'Record'}
+        </Button>
+      </XStack>
+
+      {detectedObjects.length > 0 && (
+        <YStack position="absolute" gap="$4"  p="$2" bg="$backgroundPress" className="border-radius-2">
+          <Text className="font-700">Detected</Text>
+          {detectedObjects.map((obj: any, i) => (
+            <Text key={i}>{obj.label}</Text>
+          ))}
+        </YStack>
+      )}
+    </SafeAreaView>
+  );
+}
+
+
+
+export const CapturePoles =()=> {
   const [permission, requestPermission] = useCameraPermissions();
   const ref = useRef<CameraView>(null);
   const [uri, setUri] = useState<string | null>(null);
@@ -149,7 +620,7 @@ export default function CapturePoles() {
     </View>
   );
 }
-
+/*
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -185,3 +656,4 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
 });
+*/
