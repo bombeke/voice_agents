@@ -55,14 +55,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # ❗️ Free up system space
+      - name: Cleanup system to free disk space
+        run: |
+          docker system prune -af || true
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
       - name: Fix Hermes executable permissions
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
 
       - name: Clean & regenerate native project
         run: npx expo prebuild --clean
 
-      - name: Build on EAS (Android)
-        run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
+      #- name: Build on EAS (Android)
+      #  run: eas build --platform android --profile development --non-interactive --no-wait --clear-cache
 
       #- name: Build apk
       #  run: npx expo run:android --variant release
@@ -73,7 +82,6 @@ jobs:
       - name: Build Release APK
         working-directory: android
         run: |
-          ./gradlew clean
           ./gradlew assembleRelease
 
       - name: Upload Release APK
@@ -83,9 +91,9 @@ jobs:
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: ignore
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: expo-dev-client
-          path: dist/**
-          if-no-files-found: ignore
+    #  - name: Upload build artifacts
+    #    uses: actions/upload-artifact@v4
+    #    with:
+    #      name: expo-dev-client
+    #      path: dist/**
+    #      if-no-files-found: ignore
