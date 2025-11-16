@@ -39,8 +39,8 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      #- name: Setup Android SDK
+      #  uses: android-actions/setup-android@v3
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -82,6 +82,7 @@ jobs:
       - name: Build Release APK
         working-directory: android
         run: |
+          ./gradlew clean
           ./gradlew assembleRelease
 
       - name: Upload Release APK
