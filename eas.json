@@ -6,7 +6,7 @@
 
   "build": {
     "development": {
-      "developmentClient": true,
+      "developmentClient": false,
       "distribution": "internal",
       "pnpm": "9.15.4",
       "environment": "development",
