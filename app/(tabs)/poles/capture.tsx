@@ -6,29 +6,20 @@ import { usePinchGesture } from '@/hooks/usePinchGesture';
 import { usePreferredCameraDevice } from '@/hooks/usePreferredCameraDevice';
 import CaptureButton from '@/views/CaptureButton';
 import { StatusBarBlurBackground } from '@/views/StatusBarBlurBackground';
-import AntDesign from "@expo/vector-icons/AntDesign";
-import Feather from "@expo/vector-icons/Feather";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import IonIcon from '@expo/vector-icons/Ionicons';
-import MaterialIcon from '@expo/vector-icons/MaterialCommunityIcons';
-import {
-  CameraMode,
-  CameraType,
-  CameraView,
-  useCameraPermissions,
-} from "expo-camera";
-import { Image } from "expo-image";
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import IonIcon from "@expo/vector-icons/Ionicons";
+import MaterialIcon from "@expo/vector-icons/MaterialIcons";
+import { useFocusEffect } from '@react-navigation/native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GestureResponderEvent } from 'react-native';
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { GestureResponderEvent, StyleSheet, Text, View } from "react-native";
 import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
-import { GestureDetector, PinchGestureHandler, TapGestureHandler } from 'react-native-gesture-handler';
+import { GestureDetector, TapGestureHandler } from 'react-native-gesture-handler';
 import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import type { CameraProps, CameraRuntimeError, PhotoFile, VideoFile } from 'react-native-vision-camera';
 import {
   Camera,
+  CameraProps,
+  CameraRuntimeError,
+  PhotoFile,
   runAtTargetFps,
   useCameraDevice,
   useCameraFormat,
@@ -36,9 +27,10 @@ import {
   useFrameProcessor,
   useLocationPermission,
   useMicrophonePermission,
+  VideoFile
 } from 'react-native-vision-camera';
-import { Button, Spinner, XStack, YStack } from 'tamagui';
-import { useResizePlugin } from 'vision-camera-resize-plugin';
+import { Button, YStack } from 'tamagui';
+import { useResizePlugin } from "vision-camera-resize-plugin";
 
 const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera)
 Reanimated.addWhitelistedNativeProps({
@@ -57,10 +49,11 @@ function modelToString(model: TensorflowModel): string {
   )
 }
 
-export function CameraPage(): React.ReactElement {
+ export default function CameraPage(): React.ReactElement {
   const camera = useRef<Camera>(null)
   const [isCameraInitialized, setIsCameraInitialized] = useState(false)
   const microphone = useMicrophonePermission()
+  const { hasPermission, requestPermission } = useCameraPermission()
   const location = useLocationPermission()
   const zoom = useSharedValue(1)
   const isPressingButton = useSharedValue(false)
@@ -201,6 +194,10 @@ export function CameraPage(): React.ReactElement {
     if (actualModel == null) return
     console.log(`Model loaded! Shape:\n${modelToString(actualModel)}]`)
   }, [actualModel])
+  useEffect(() => {
+    requestPermission();
+  }, []);
+
 
   const { resize } = useResizePlugin()
   const frameProcessor = useFrameProcessor((frame) => {
@@ -229,14 +226,23 @@ export function CameraPage(): React.ReactElement {
   const videoHdr = format?.supportsVideoHdr && enableHdr
   const photoHdr = format?.supportsPhotoHdr && enableHdr && !videoHdr
 
+
+  if (!hasPermission) {
+    return (
+      <YStack justify="center" verticalAlign="center" flex={1} gap="$4">
+        <Text>Camera permission is required</Text>
+        <Button onPress={requestPermission}>Grant Permission</Button>
+      </YStack>
+    );
+  }
   return (
     <View style={styles.container}>
       {device != null ? (
         <GestureDetector gesture={pinchGesture}>
-          <Reanimated.View onTouchEnd={onFocusTap} style={StyleSheet.absoluteFill}>
+          <Reanimated.View onTouchEnd={onFocusTap} style={styles.cameraContainer}>
             <TapGestureHandler onEnded={onDoubleTap} numberOfTaps={2}>
               <AnimatedCamera
-                style={StyleSheet.absoluteFill}
+                style={styles.cameraContainer}
                 device={device}
                 isActive={isActive}
                 ref={camera}
@@ -363,12 +369,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  CameraContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   cameraContainer: StyleSheet.absoluteFillObject,
   camera: StyleSheet.absoluteFillObject,
   shutterContainer: {
@@ -399,90 +399,9 @@ const styles = StyleSheet.create({
 
 })
 
-export default function CameraPage2() {
-  const camera = useRef<Camera>(null);
-  const device = useCameraDevice('back');
-  const { hasPermission, requestPermission } = useCameraPermission();
-  const zoom = useSharedValue(1);
-  const [isRecording, setIsRecording] = useState(false);
-  const [detectedObjects, setDetectedObjects] = useState([]);
-
-  useEffect(() => {
-    requestPermission();
-  }, []);
-
-  if (!device) return <Spinner />;
-
-  if (!hasPermission) {
-    return (
-      <YStack justify="center" verticalAlign="center" flex={1} gap="$4">
-        <Text>Camera permission is required</Text>
-        <Button onPress={requestPermission}>Grant Permission</Button>
-      </YStack>
-    );
-  }
-
-  const startRecording = async () => {
-    setIsRecording(true);
-    try {
-      const video = await camera.current?.startRecording({
-        onRecordingFinished: (video) => console.log('Video saved', video),
-        onRecordingError: (err) => console.error(err),
-      });
-    } catch (err) {
-      console.error(err);
-      setIsRecording(false);
-    }
-  };
-
-  const stopRecording = async () => {
-    await camera.current?.stopRecording();
-    setIsRecording(false);
-  };
-
-  const onDoubleTap = async () => {
-    console.log('Flip Camera');
-    // TODO: Flip camera
-  };
-
-  return (
-    <SafeAreaView className={`flex-1 bg-black`}>
-      <View className={`flex-1`}>
-        <PinchGestureHandler>
-          <TapGestureHandler numberOfTaps={2} onActivated={onDoubleTap}>
-            <ReanimatedCamera
-              ref={camera}
-              className={`flex-1`}
-              device={device}
-              isActive={true}
-              enableZoomGesture
-              video={true}
-              photo={true}
-            />
-          </TapGestureHandler>
-        </PinchGestureHandler>
-      </View>
-
-      <XStack justify="center" verticalAlign="center" p="$4" gap="$4" bg="rgba(0,0,0,0.4)">
-        <Button size="$5" onPress={isRecording ? stopRecording : startRecording}>
-          {isRecording ? 'Stop' : 'Record'}
-        </Button>
-      </XStack>
-
-      {detectedObjects.length > 0 && (
-        <YStack position="absolute" gap="$4"  p="$2" bg="$backgroundPress" className="border-radius-2">
-          <Text className="font-700">Detected</Text>
-          {detectedObjects.map((obj: any, i) => (
-            <Text key={i}>{obj.label}</Text>
-          ))}
-        </YStack>
-      )}
-    </SafeAreaView>
-  );
-}
 
 
-
+/*
 export const CapturePoles =()=> {
   const [permission, requestPermission] = useCameraPermissions();
   const ref = useRef<CameraView>(null);
@@ -620,7 +539,11 @@ export const CapturePoles =()=> {
     </View>
   );
 }
-/*
+
+function useResizePlugin(): { resize: any; } {
+  throw new Error('Function not implemented.');
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

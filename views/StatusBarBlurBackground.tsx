@@ -13,7 +13,7 @@ const StatusBarBlurBackgroundImpl = ({ style, ...props }: BlurViewProps): React.
 
   return (
     <BlurView
-      style={[styles(insets.top).statusBarBackground, style]}
+      style={[styles(insets.top)?.statusBarBackground, style]}
       intensity={25} 
       tint="light"  
       {...props}
@@ -23,7 +23,7 @@ const StatusBarBlurBackgroundImpl = ({ style, ...props }: BlurViewProps): React.
 
 export const StatusBarBlurBackground = React.memo(StatusBarBlurBackgroundImpl)
 
-const styles =(top: any) => StyleSheet.create({
+const styles =(top: number = 10) => StyleSheet.create({
   statusBarBackground: {
     position: 'absolute',
     top: 0,

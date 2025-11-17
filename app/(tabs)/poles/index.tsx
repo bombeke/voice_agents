@@ -1,5 +1,6 @@
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import MapView from 'react-native-maps';
 import { Button } from "tamagui";
 
 export default function PolesIndex() {
@@ -10,9 +11,21 @@ export default function PolesIndex() {
         <Button>Capture Pole</Button>
       </Link>
       <Text className="mt-4">
-        Demo pole detection flow uses the camera and a simulated ML inference
-        on-device.
+        Pole Distribution
       </Text>
+      <View style={styles.container}>
+        <MapView style={styles.map} />
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+});
