@@ -70,8 +70,8 @@ jobs:
       - name: Clean & regenerate native project
         run: npx expo prebuild --clean
 
-      - name: Build on EAS (Android)
-        run: eas build --platform android --profile development --non-interactive --no-wait
+     # - name: Build on EAS (Android)
+      #  run: eas build --platform android --profile development --non-interactive --no-wait
 
       #- name: Build apk
       #  run: npx expo run:android --variant release
