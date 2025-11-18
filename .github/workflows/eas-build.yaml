@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - master
+      - dev
 
 env:
   PNPM_VERSION: 9.15.4
