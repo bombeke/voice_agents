@@ -1,6 +1,5 @@
 import { Link } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
-import MapView from 'react-native-maps';
+import { Text, View } from "react-native";
 import { Button } from "tamagui";
 
 export default function PolesIndex() {
@@ -13,19 +12,6 @@ export default function PolesIndex() {
       <Text className="mt-4">
         Pole Distribution
       </Text>
-      <View style={styles.container}>
-        <MapView style={styles.map} />
-      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-});
