@@ -79,7 +79,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           "enableCoreMLDelegate": true,
           "enableAndroidGpuLibraries": ["libOpenCL-pixel.so", "libGLES_mali.so"]
         }
-      ]
+      ],
+      "react-native-maps"
     ],
     "experiments": {
       "typedRoutes": true
