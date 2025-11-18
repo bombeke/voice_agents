@@ -7,7 +7,7 @@ import { Button, Input } from "tamagui";
 export default function CreateAgent() {
   const router = useRouter();
   const { control, handleSubmit } = useForm({
-    defaultValues: { name: "", description: "" },
+    defaultValues: { name: "", description: "", phonenumber: ""},
   });
 
   const onSubmit = async (data: any) => {
@@ -39,6 +39,17 @@ export default function CreateAgent() {
         render={({ field: { onChange, value } }) => (
           <Input
             placeholder="Short description"
+            value={value}
+            onChangeText={onChange}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="phonenumber"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            placeholder="Agent Telephone"
             value={value}
             onChangeText={onChange}
           />

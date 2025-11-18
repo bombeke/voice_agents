@@ -79,6 +79,7 @@ function modelToString(model: TensorflowModel): string {
   const [enableHdr, setEnableHdr] = useState(false)
   const [flash, setFlash] = useState<'off' | 'on'>('off')
   const [enableNightMode, setEnableNightMode] = useState(false)
+  const [cameraResults, setCameraResults] = useState<any[]>([]);
 
   // camera device settings
   const [preferredDevice] = usePreferredCameraDevice()
@@ -127,9 +128,11 @@ function modelToString(model: TensorflowModel): string {
     },
     [isPressingButton],
   )
+
   const onError = useCallback((error: CameraRuntimeError) => {
     console.error(error)
   }, [])
+
   const onInitialized = useCallback(() => {
     console.log('Camera initialized!')
     setIsCameraInitialized(true)
@@ -194,6 +197,7 @@ function modelToString(model: TensorflowModel): string {
     if (actualModel == null) return
     console.log(`Model loaded! Shape:\n${modelToString(actualModel)}]`)
   }, [actualModel])
+
   useEffect(() => {
     requestPermission();
   }, []);
@@ -218,6 +222,7 @@ function modelToString(model: TensorflowModel): string {
         dataType: 'uint8',
       })
       const result = actualModel.runSync([resized])
+      setCameraResults(result);
       const num_detections = result[3]?.[0] ?? 0
       console.log('Result: ' + num_detections)
     })
@@ -330,6 +335,9 @@ function modelToString(model: TensorflowModel): string {
           <IonIcon name="qr-code-outline" color="white" size={24} />
         </PressableButton>
       </View>
+      <View>
+        { cameraResults }
+      </View>
     </View>
   )
 }
@@ -337,7 +345,8 @@ function modelToString(model: TensorflowModel): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    //backgroundColor: 'black',
+    backgroundColor: "#fff",
   },
   captureButton: {
     position: 'absolute',
