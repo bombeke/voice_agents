@@ -9,6 +9,9 @@ export default function PolesIndex() {
       <Link href="/poles/capture" asChild>
         <Button>Capture Pole</Button>
       </Link>
+      <Link href="/poles/maps" asChild>
+        <Button>Dashboard Maps</Button>
+      </Link>
       <Text className="mt-4">
         Pole Distribution
       </Text>

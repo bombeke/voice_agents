@@ -80,7 +80,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           "enableAndroidGpuLibraries": ["libOpenCL-pixel.so", "libGLES_mali.so"]
         }
       ],
-      "react-native-maps"
+      "react-native-maps",
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": {
       "typedRoutes": true

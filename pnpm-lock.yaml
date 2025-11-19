@@ -11,6 +11,9 @@ importers:
       '@config-plugins/react-native-webrtc':
         specifier: ^13.0.0
         version: 13.0.0(expo@54.0.23)
+      '@maplibre/maplibre-react-native':
+        specifier: ^10.4.0
+        version: 10.4.0(@expo/config-plugins@54.0.2)(@types/geojson@7946.0.16)(@types/react@19.1.17)(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@react-native-async-storage/async-storage':
         specifier: 1.24.0
         version: 1.24.0(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))
@@ -1011,6 +1014,22 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@maplibre/maplibre-react-native@10.4.0':
+    resolution: {integrity: sha512-ytcToYqRYtl02p44ffzOhiNs7omdPCOZqWOGTA+aom/Cp8q18rb2FxtIFHfUZdiIzUVXFoO2ruOiPznLbTzR+Q==}
+    peerDependencies:
+      '@expo/config-plugins': '>=7'
+      '@types/geojson': ^7946.0.0
+      '@types/react': '>=16.6.1'
+      react: '>=16.6.1'
+      react-native: '>=0.59.9'
+    peerDependenciesMeta:
+      '@expo/config-plugins':
+        optional: true
+      '@types/geojson':
+        optional: true
+      '@types/react':
+        optional: true
 
   '@motionone/animation@10.18.0':
     resolution: {integrity: sha512-9z2p5GFGCm0gBsZbi8rVMOAJCtw1WqBTIPw3ozk06gDvZInBPIsQcHgYogEJ4yuHJ+akuW8g1SEIOpTOvYs8hw==}
@@ -2078,6 +2097,24 @@ packages:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
 
+  '@turf/distance@7.3.0':
+    resolution: {integrity: sha512-8FXmJxL8s80v7ZRRgCGNK6ufVlehhsBRxlV2rBiMQTC4nWfYNGVV42OFf17HlK2Mlbllv3Cp1jY3Ecu7fOdjxg==}
+
+  '@turf/helpers@7.3.0':
+    resolution: {integrity: sha512-5kWdgwI6e2vGbkt2qOD+Z2BiKQ7dfKN/PtWRLCpvzyOO59rk19R53CHi8nUT/Y1vQLgWmT6eNpiKwsWwPZGIdg==}
+
+  '@turf/invariant@7.3.0':
+    resolution: {integrity: sha512-AmDFmdhpbLZv0zlI4EF4bVFE0iYmKcOBI2m8DTcFFUQDRusgjc+NLCnX1RIENfYyeI2FKHg84E9vSt6XytUDvw==}
+
+  '@turf/length@7.3.0':
+    resolution: {integrity: sha512-vZjSEPC5lM3tBB7RaiXVujvSe62jxaAHYl9E+yd4Egcv/zOKkFlK26j+1mtSyDwKE/r7nE4gd34KpT9k889vjA==}
+
+  '@turf/meta@7.3.0':
+    resolution: {integrity: sha512-fTLqdQqRm8qA2zHHUbBMY++YT9LDQejLG7OD70XF2dwg9nPiF9mUxO7nrsDp2IY8vNmH9OTAiMtlIjb0ssYccg==}
+
+  '@turf/nearest-point-on-line@7.3.0':
+    resolution: {integrity: sha512-IqwvZ/IuFXE30tsOYs+aoSKpLz1RljqIW0FJZb9OVcZzvbhv+R1nUCh95zzPTlNtifRuHkreKVBUYzLNlsC6Sg==}
+
   '@tybys/wasm-util@0.10.0':
     resolution: {integrity: sha512-VyyPYFlOMNylG45GoAe0xDoLwWuowvf92F9kySqzYh8vmYm7D2u4iUJKa1tOUpS70Ku13ASrOkS4ScXFsTaCNQ==}
 
@@ -2888,6 +2925,10 @@ packages:
 
   dayjs@1.11.19:
     resolution: {integrity: sha512-t5EcLVS6QPBNqM2z8fakk/NKel+Xzshgt8FFKAn+qwlD1pzZWxh0nVCrvFK7ZDb6XucZeF9z8C7CBWTRIVApAw==}
+
+  debounce@2.2.0:
+    resolution: {integrity: sha512-Xks6RUDLZFdz8LIdR6q0MTH44k7FikOmnh5xkSjMig6ch45afc8sjTjRQf3P6ax8dMgcQrYO/AR2RGWURrruqw==}
+    engines: {node: '>=18'}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -7342,6 +7383,20 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  '@maplibre/maplibre-react-native@10.4.0(@expo/config-plugins@54.0.2)(@types/geojson@7946.0.16)(@types/react@19.1.17)(react-native@0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@turf/distance': 7.3.0
+      '@turf/helpers': 7.3.0
+      '@turf/length': 7.3.0
+      '@turf/nearest-point-on-line': 7.3.0
+      debounce: 2.2.0
+      react: 19.1.0
+      react-native: 0.81.4(@babel/core@7.28.0)(@react-native-community/cli@14.1.0(typescript@5.8.3))(@types/react@19.1.17)(react@19.1.0)
+    optionalDependencies:
+      '@expo/config-plugins': 54.0.2
+      '@types/geojson': 7946.0.16
+      '@types/react': 19.1.17
+
   '@motionone/animation@10.18.0':
     dependencies:
       '@motionone/easing': 10.18.0
@@ -9088,6 +9143,46 @@ snapshots:
 
   '@tootallnate/once@2.0.0': {}
 
+  '@turf/distance@7.3.0':
+    dependencies:
+      '@turf/helpers': 7.3.0
+      '@turf/invariant': 7.3.0
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/helpers@7.3.0':
+    dependencies:
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/invariant@7.3.0':
+    dependencies:
+      '@turf/helpers': 7.3.0
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/length@7.3.0':
+    dependencies:
+      '@turf/distance': 7.3.0
+      '@turf/helpers': 7.3.0
+      '@turf/meta': 7.3.0
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/meta@7.3.0':
+    dependencies:
+      '@turf/helpers': 7.3.0
+      '@types/geojson': 7946.0.16
+
+  '@turf/nearest-point-on-line@7.3.0':
+    dependencies:
+      '@turf/distance': 7.3.0
+      '@turf/helpers': 7.3.0
+      '@turf/invariant': 7.3.0
+      '@turf/meta': 7.3.0
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
   '@tybys/wasm-util@0.10.0':
     dependencies:
       tslib: 2.8.1
@@ -10036,6 +10131,8 @@ snapshots:
 
   dayjs@1.11.19:
     optional: true
+
+  debounce@2.2.0: {}
 
   debug@2.6.9:
     dependencies:
