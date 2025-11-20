@@ -122,8 +122,7 @@ function modelToString(model: TensorflowModel): string {
   //#endregion
 
   //#region Callbacks
-  const setIsPressingButton = useCallback(
-    (_isPressingButton: boolean) => {
+  const setIsPressingButton = useCallback((_isPressingButton: boolean) => {
       isPressingButton.value = _isPressingButton
     },
     [isPressingButton],
@@ -134,22 +133,20 @@ function modelToString(model: TensorflowModel): string {
   }, [])
 
   const onInitialized = useCallback(() => {
-    console.log('Camera initialized!')
     setIsCameraInitialized(true)
   }, [])
-  const onMediaCaptured = useCallback(
-    (media: PhotoFile | VideoFile, type: 'photo' | 'video') => {
-      console.log(`Media captured! ${JSON.stringify(media)}`)
-      router.push({
+
+  const onMediaCaptured = useCallback((media: PhotoFile | VideoFile, type: 'photo' | 'video') => {
+      router.navigate({
         pathname: '/poles',
         params: { path: media.path, type: type },
       });
-    },
-    [],
+    },[],
   )
   const onFlipCameraPressed = useCallback(() => {
     setCameraPosition((p) => (p === 'back' ? 'front' : 'back'))
   }, [])
+  
   const onFlashPressed = useCallback(() => {
     setFlash((f) => (f === 'off' ? 'on' : 'off'))
   }, [])
@@ -210,7 +207,7 @@ function modelToString(model: TensorflowModel): string {
       // model is still loading...
       return
     }
-    runAtTargetFps(10, () => {
+    runAtTargetFps(5, () => {
       'worklet'
       console.log(`${frame.timestamp}: ${frame.width}x${frame.height} ${frame.pixelFormat} Frame (${frame.orientation})`)
       const resized = resize(frame, {
@@ -265,10 +262,11 @@ function modelToString(model: TensorflowModel): string {
                 photoHdr={photoHdr}
                 videoHdr={videoHdr}
                 photoQualityBalance="quality"
-                lowLightBoost={device.supportsLowLightBoost && enableNightMode}
+                //lowLightBoost={device.supportsLowLightBoost && enableNightMode}
+                lowLightBoost={device.supportsLowLightBoost || true }
                 enableZoomGesture={false}
                 animatedProps={cameraAnimatedProps}
-                exposure={0}
+                exposure={5}
                 enableFpsGraph={true}
                 outputOrientation="device"
                 photo={true}
