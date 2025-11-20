@@ -21,7 +21,7 @@ import { type Camera, type PhotoFile, type VideoFile } from 'react-native-vision
 const START_RECORDING_DELAY = 200;
 const BORDER_WIDTH = CAPTURE_BUTTON_SIZE * 0.1;
 
-interface Props extends ViewProps {
+export interface CaptureButtonProps extends ViewProps {
   camera: React.RefObject<Camera> | null;
   onMediaCaptured: (media: PhotoFile | VideoFile, type: 'photo' | 'video') => void;
   minZoom: number;
@@ -32,7 +32,7 @@ interface Props extends ViewProps {
   setIsPressingButton: (isPressingButton: boolean) => void;
 }
 
-const CaptureButton: React.FC<Props> = ({
+const CaptureButton: React.FC<CaptureButtonProps> = ({
   camera,
   onMediaCaptured,
   minZoom,

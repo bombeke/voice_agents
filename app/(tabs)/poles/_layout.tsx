@@ -5,7 +5,7 @@ export default function PolesTabsLayout() {
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="capture" />
-      <Stack.Screen name="maps" />
+      <Stack.Screen name="maps" options={{ headerShown: false }} />
     </Stack>
   );
 }

@@ -5,7 +5,6 @@ import { useIsForeground } from '@/hooks/useIsForeground';
 import { usePinchGesture } from '@/hooks/usePinchGesture';
 import { usePreferredCameraDevice } from '@/hooks/usePreferredCameraDevice';
 import CaptureButton from '@/views/CaptureButton';
-import { StatusBarBlurBackground } from '@/views/StatusBarBlurBackground';
 import IonIcon from "@expo/vector-icons/Ionicons";
 import MaterialIcon from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from '@react-navigation/native';
@@ -273,7 +272,7 @@ function modelToString(model: TensorflowModel): string {
                 video={true}
                 audio={microphone.hasPermission}
                 enableLocation={location.hasPermission}
-                frameProcessor={frameProcessor}
+                //frameProcessor={frameProcessor}
               />
             </TapGestureHandler>
           </Reanimated.View>
@@ -296,7 +295,9 @@ function modelToString(model: TensorflowModel): string {
         setIsPressingButton={setIsPressingButton}
       />
 
-      <StatusBarBlurBackground />
+      {
+        //<StatusBarBlurBackground /> 
+      }
 
       <View style={styles.rightButtonRow}>
         <PressableButton style={styles.button} onPress={onFlipCameraPressed} disabledOpacity={0.4}>
@@ -323,7 +324,7 @@ function modelToString(model: TensorflowModel): string {
           </PressableButton>
         )}
         <PressableButton style={styles.button} onPress={
-          () => null //router.navigate('Devices')
+          () => router.navigate('/poles') //router.navigate('Devices')
           }>
           <IonIcon name="settings-outline" color="white" size={24} />
         </PressableButton>
