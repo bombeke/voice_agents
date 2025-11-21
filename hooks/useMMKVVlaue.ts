@@ -1,11 +1,11 @@
-import { useMMKV } from "@/components/MmkvContext";
+import { useMMKVStorage } from "@/components/MmkvContext";
 import { useEffect, useState } from "react";
 
 export function useMMKVValue<T = string>(
   key: string,
   defaultValue?: T
 ) {
-  const storage = useMMKV();
+  const storage = useMMKVStorage();
   const [value, setValue] = useState<T>(
     storage.getString(key) as T ?? defaultValue as T
   );
