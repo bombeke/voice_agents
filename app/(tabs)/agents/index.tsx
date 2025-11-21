@@ -1,3 +1,4 @@
+import { useMMKVValue } from "@/hooks/useMMKVVlaue";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
@@ -6,6 +7,7 @@ import { Button, Text as GText, View } from "tamagui";
 
 export default function AgentsIndex() {
   const [agents, setAgents] = useState<any[]>([]);
+  const [data,_] = useMMKVValue('data','')
 
   useEffect(() => {
     (async () => {
@@ -39,6 +41,9 @@ export default function AgentsIndex() {
         )}
         ListEmptyComponent={() => <Text>No agents yet. Create an agent.</Text>}
       />
+      <View>
+        <Text>{ data} </Text>
+      </View>
     </View>
   );
 }

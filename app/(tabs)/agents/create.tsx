@@ -1,3 +1,4 @@
+import { useMMKVValue } from "@/hooks/useMMKVVlaue";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
@@ -6,6 +7,7 @@ import { Button, Input } from "tamagui";
 
 export default function CreateAgent() {
   const router = useRouter();
+  const [_, setData] = useMMKVValue('data','');
   const { control, handleSubmit } = useForm({
     defaultValues: { name: "", description: "", phonenumber: ""},
   });
@@ -16,6 +18,7 @@ export default function CreateAgent() {
     const list = raw ? JSON.parse(raw) : [];
     list.push({ id, ...data });
     await AsyncStorage.setItem("agents", JSON.stringify(list));
+    setData(JSON.stringify(list));
     router.push("/agents");
   };
 
