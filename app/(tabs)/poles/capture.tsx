@@ -136,10 +136,12 @@ function modelToString(model: TensorflowModel): string {
   }, [])
 
   const onMediaCaptured = useCallback((media: PhotoFile | VideoFile, type: 'photo' | 'video') => {
-      router.navigate({
-        pathname: '/poles',
+      /*router.navigate({
+        pathname: '/poles/media',
         params: { path: media.path, type: type },
       });
+      */
+      router.navigate('/poles/media');
     },[],
   )
   const onFlipCameraPressed = useCallback(() => {
