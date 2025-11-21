@@ -1,39 +1,44 @@
-import { CircleLayer, MapView, ShapeSource, SymbolLayer } from "@maplibre/maplibre-react-native";
+import { usePhotoGeoJSON } from "@/hooks/useGeoJsonHooks";
+import { Camera, CircleLayer, MapView, ShapeSource, SymbolLayer } from "@maplibre/maplibre-react-native";
 
 export default function DashboardMaps() {
+  const geojson: any = usePhotoGeoJSON('photos');
   return (
     <MapView 
       style={{ flex: 1 }}
       mapStyle={`https://tiles.openfreemap.org/styles/liberty`}
     >
+            <Camera
+              zoomLevel={14}
+              centerCoordinate={[
+                geojson.features[0]?.geometry.coordinates[0],
+                geojson.features[0]?.geometry.coordinates[1],
+              ]}
+            />
       
-  <ShapeSource
-    id="photos"
-    shape={geojson}
-    cluster={true}
-    clusterRadius={50}
-  >
-    <CircleLayer
-      id="photo-points"
-      sourceID="photos"
-      paint={{
-        "circle-radius": 6,
-        "circle-color": "#FF6600"
-      }}
-    />
-
-    <SymbolLayer
-      id="clusters"
-      filter={['has', 'point_count']}
-      paint={{
-        'text-color': '#000'
-      }}
-      layout={{
-        'text-field': '{point_count_abbreviated}',
-        'text-size': 14
-      }}
-    />
-  </ShapeSource>
+            <ShapeSource id="photos" shape={geojson}>
+              {/* Point markers */}
+              <CircleLayer
+                id="photoPoints"
+                style={{
+                  circleRadius: 6,
+                  circleColor: "rgba(0,122,255,0.9)",
+                  circleStrokeWidth: 2,
+                  circleStrokeColor: "#ffffff",
+                }}
+              />
+      
+              {/* Optional: show thumbnail */}
+              <SymbolLayer
+                id="photoIcons"
+                style={{
+                  textField: ["get", "created"],
+                  textSize: 10,
+                  textColor: "#000",
+                  iconSize: 0.0001, // use if you add an icon
+                }}
+              />
+              </ShapeSource>
   </MapView>
   );
 }
