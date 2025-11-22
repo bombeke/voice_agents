@@ -21,6 +21,8 @@ export const MMKVProvider = ({
 
 export const useMMKVStorage =()=> {
   const ctx = useContext(MMKVContext);
-  if (!ctx) throw new Error("useMMKV must be used inside <MMKVProvider>");
+  if (!ctx) {
+    return null;
+  };
   return ctx;
 }

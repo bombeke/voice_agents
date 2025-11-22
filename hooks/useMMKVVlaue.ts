@@ -6,20 +6,28 @@ export function useMMKVValue<T = string>(
   defaultValue?: T
 ) {
   const storage = useMMKVStorage();
-  const [value, setValue] = useState<T>(
-    storage.getString(key) as T ?? defaultValue as T
-  );
+  const [value, setValue] = useState<T>( defaultValue as T);
 
   useEffect(() => {
-    const unsub = storage.addOnValueChangedListener((changedKey) => {
-      if (changedKey === key) {
-        const v = storage.getString(key) as T;
-        setValue(v ?? defaultValue!);
+    if(storage) {
+      const v = storage.getString(key) as T;
+      setValue(v ?? defaultValue!);
+      const unsub = storage.addOnValueChangedListener((changedKey) => {
+        if (changedKey === key) {
+          const v = storage.getString(key) as T;
+          setValue(v ?? defaultValue!);
+        }
+      });
+
+      return () => unsub.remove();
+    }
+  }, [key, storage, defaultValue]);
+
+  return [
+    value, 
+    (v: T) => {
+        if(!storage) return;
+        storage.set(key, v as any)
       }
-    });
-
-    return () => unsub.remove();
-  }, [key]);
-
-  return [value, (v: T) => storage.set(key, v as any)] as const;
+    ] as const;
 }

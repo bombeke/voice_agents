@@ -1,24 +1,26 @@
 import { geoTagsToGeoJSON } from "@/hooks/useGeoJsonHooks";
 import { Camera, CircleLayer, MapView, ShapeSource, SymbolLayer } from "@maplibre/maplibre-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMMKVStorage } from "./MmkvContext";
 
 export default function ImageGeoMap() {
   const [geojson, setGeojson] = useState<any>(null);
   const storage = useMMKVStorage();
 
+  const refresh =()=> useCallback(() => {
+    setGeojson(geoTagsToGeoJSON());
+  },[]);
+
   useEffect(() => {
     refresh();
     // Listen for MMKV changes
-    const listener = storage.addOnValueChangedListener((key: string) => {
-      if (key === "geotags") refresh();
-    });
-    return () => listener.remove();
-  }, []);
-
-  function refresh() {
-    setGeojson(geoTagsToGeoJSON());
-  }
+    if(storage){
+      const listener = storage.addOnValueChangedListener((key: string) => {
+        if (key === "geotags") refresh();
+      });
+      return () => listener.remove();
+    }
+  }, [storage, refresh]);
 
   if (!geojson) return null;
 
