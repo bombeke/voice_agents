@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "slug": "voice-agents",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/poleicon.png",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -50,6 +50,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+	[
+        "expo-build-properties",
+        {
+          "android": {
+            "buildToolsVersion": "36.0.0"
+          }
+        }
+      ],
       "expo-router",
       "expo-asset",
       "@config-plugins/react-native-webrtc",

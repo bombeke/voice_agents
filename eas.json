@@ -10,6 +10,10 @@
       "distribution": "internal",
       "pnpm": "9.15.4",
       "environment": "development",
+      "android": {
+	"ndk": "26.3.11579264",
+	"buildType": "apk"
+      },
       "env": {
         "APP_VARIANT": "development"
       }
