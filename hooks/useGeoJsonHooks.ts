@@ -3,19 +3,34 @@ import { useEffect, useState } from "react";
 import { useMMKVStorage } from "@/components/MmkvContext";
 import { getGeoTags } from "@/services/storage/Storage";
 import { nanoid } from "nanoid";
+import { useMMKVValue } from "./useMMKVVlaue";
 
 export function usePhotoGeoJSON(db: any) {
+  const [data, setData] = useMMKVValue('photos',[]);
+  const [photos,setPhotos] = useState<any[]>([]);
   const [geojson, setGeojson] = useState({ type: "FeatureCollection", features: [] });
 
+  useEffect(()=>{
+    if(db?.photos){
+      setPhotos(db?.photos || [])
+    }
+    else{
+      setPhotos(JSON.parse(data as any))
+    }
+  })
+
   useEffect(() => {
-    if(db?.photos && Array.isArray(db?.photos)){
-      const sub = db?.photos?.find().$.subscribe((docs: any) => {
+
+    if(photos && Array.isArray(photos)){
+      /*const sub = photos?.find().$.subscribe((docs: any) => {
           if (docs) setGeojson(toGeoJSON(docs as any));
         });
 
       return () => sub.unsubscribe();
+      */
+     setGeojson(toGeoJSON(photos as any))
     }
-  }, [db]);
+  }, [photos]);
 
   return geojson;
 }
@@ -40,17 +55,19 @@ export function toGeoJSON(docs: any) {
 export async function saveGeoPhoto(db: any, { uri, lat, lng }: any) {
   const id = nanoid();
   const storage = useMMKVStorage();
-  // store inside MMKV fast lookups or offline cache
-  storage.set(`photo:${id}`, JSON.stringify({ uri, lat, lng }));
+  if(storage){
+    // store inside MMKV fast lookups or offline cache
+    storage.set(`photo:${id}`, JSON.stringify({ uri, lat, lng }));
 
-  // store in RxDB for sync + map rendering
-  await db.photos.insert({
-    id,
-    uri,
-    latitude: lat,
-    longitude: lng,
-    createdAt: new Date().toISOString()
-  });
+    // store in RxDB for sync + map rendering
+    await db.photos.insert({
+      id,
+      uri,
+      latitude: lat,
+      longitude: lng,
+      createdAt: new Date().toISOString()
+    });
+  }
 }
 
 

@@ -12,6 +12,9 @@ export default function PolesIndex() {
       <Link href="/poles/maps" asChild>
         <Button>Dashboard Maps</Button>
       </Link>
+      <Link href="/poles/camera" asChild>
+        <Button>Camera</Button>
+      </Link>
       <Text className="mt-4">
         Pole Distribution
       </Text>

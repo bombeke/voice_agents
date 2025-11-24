@@ -141,8 +141,11 @@ function modelToString(model: TensorflowModel): string {
         params: { path: media.path, type: type },
       });
       */
-      router.navigate('/poles/media');
-    },[],
+      if(isCameraInitialized){
+        console.log("Camera_media called:",media,'type:',type);
+        return router.navigate('/poles/media');
+      }
+    },[isCameraInitialized],
   )
   const onFlipCameraPressed = useCallback(() => {
     setCameraPosition((p) => (p === 'back' ? 'front' : 'back'))
@@ -243,9 +246,13 @@ function modelToString(model: TensorflowModel): string {
   return (
     <View style={styles.container}>
       {device != null ? (
-        <GestureDetector gesture={pinchGesture}>
+        <>
+        {
+          /*<GestureDetector gesture={pinchGesture}>
           <Reanimated.View onTouchEnd={onFocusTap} style={styles.cameraContainer}>
             <TapGestureHandler onEnded={onDoubleTap} numberOfTaps={2}>
+            */
+           }
               <AnimatedCamera
                 style={styles.cameraContainer}
                 device={device}
@@ -278,9 +285,13 @@ function modelToString(model: TensorflowModel): string {
                 enableLocation={location.hasPermission}
                 //frameProcessor={frameProcessor}
               />
-            </TapGestureHandler>
-          </Reanimated.View>
-        </GestureDetector>
+          </>
+          { /*
+              </TapGestureHandler>
+            </Reanimated.View>
+          </GestureDetector>
+          */
+          }
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.text}>Your phone does not have a Camera.</Text>
@@ -332,8 +343,9 @@ function modelToString(model: TensorflowModel): string {
           }>
           <IonIcon name="settings-outline" color="white" size={24} />
         </PressableButton>
-        <PressableButton style={styles.button} onPress={() => null
+        <PressableButton style={styles.button} onPress={() => router.navigate('/poles/media')
          //router.navigate('CodeScannerPage')
+          
          }>
           <IonIcon name="qr-code-outline" color="white" size={24} />
         </PressableButton>

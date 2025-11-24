@@ -1,59 +1,93 @@
 import { ExifTags, readAsync } from '@lodev09/react-native-exify';
 import { nanoid } from 'nanoid/non-secure';
 import { useRef } from 'react';
+import { Alert, TouchableOpacity, View } from 'react-native';
 import Animated, { SharedValue, useAnimatedProps } from 'react-native-reanimated';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { useMMKVValue } from './useMMKVVlaue';
 
-// Create the animated component
+// Animated vision-camera
 const AnimatedCamera = Animated.createAnimatedComponent(Camera as any);
 
-// Animated props for the Camera (example for animated `zoom`)
-const useAnimatedCameraProps = (zoomValue: SharedValue<number>) =>
+// Animated props
+export const useAnimatedCameraProps = (zoomValue: SharedValue<number>) =>
   useAnimatedProps(() => ({
     zoom: zoomValue.value,
   }));
 
-export { AnimatedCamera, useAnimatedCameraProps };
+export { AnimatedCamera };
 
 
+//export function CameraCapture({ onSaved }: any) {
+export function CameraCapture() {
+  const [data, setData] = useMMKVValue('photos',[]);
+  const camRef = useRef<Camera>(null);
+  const device = useCameraDevice('back');
 
-export function CameraCapture({ onSaved }: any) {
-const camRef = useRef<Camera>(null);
-const device = useCameraDevice('back')
+  async function take() {
+    try {
+      const photo: any = await camRef.current?.takePhoto();
+      if (!photo) return;
 
+      const exif: ExifTags | undefined = await readAsync(photo.path);
 
-async function take() {
-const photo: any = await camRef?.current?.takePhoto();
-// photo.path is file path
-const exif: ExifTags | undefined = await readAsync(photo?.path);
-const lat = toDecimal(exif?.GPSLatitude, exif?.GPSLatitudeRef);
-const lng = toDecimal(exif?.GPSLongitude, exif?.GPSLongitudeRef);
-const id = nanoid();
+      const lat = toDecimal(exif?.GPSLatitude, exif?.GPSLatitudeRef);
+      const lng = toDecimal(exif?.GPSLongitude, exif?.GPSLongitudeRef);
+      const id = nanoid();
 
+      const doc = {
+        id,
+        uri: photo.path,
+        latitude: lat,
+        longitude: lng,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        deviceId: 'device-1',
+      };
 
-const doc = { id, uri: photo?.path, latitude: lat, longitude: lng, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deviceId: 'device-1' };
+      //onSaved?.(doc);
+      const d = data.push(doc);
+      setData(JSON.stringify(data));
+    } catch (err) {
+      console.error('Failed to take photo:', err);
+      Alert.alert('Camera Error',"Failed to take photo")
+    }
+  }
 
+  if (!device) return null;
 
-// Save to rxdb and mmkv via higher-level handler (passed into component) or send event
-onSaved && onSaved(doc);
-}
-
-if (!device) return null;
-
-return (
-    <Camera 
-        ref={camRef} style={{ flex: 1 }}  
+  return (
+    <View style={{ flex: 1 }}>
+      <Camera
+        ref={camRef}
+        style={{ flex: 1 }}
         device={device}
-        photo={true} 
-        isActive={true} 
+        photo={true}
+        isActive={true}
       />
+
+      {/* Capture button */}
+      <TouchableOpacity
+        onPress={take}
+        style={{
+          position: 'absolute',
+          bottom: 40,
+          alignSelf: 'center',
+          width: 70,
+          height: 70,
+          borderRadius: 35,
+          backgroundColor: 'white',
+        }}
+      />
+    </View>
   );
 }
 
 
-function toDecimal(dms:any, ref:any) {
-if (!dms) return null;
-const parts = dms.map(parseFloat);
-const dec = parts[0] + parts[1] / 60 + parts[2] / 3600;
-return (ref === 'S' || ref === 'W') ? -dec : dec;
+// Convert DMS EXIF to decimal degrees
+function toDecimal(dms: any, ref: any) {
+  if (!dms) return null;
+  const parts = dms.map(parseFloat);
+  const dec = parts[0] + parts[1] / 60 + parts[2] / 3600;
+  return ref === 'S' || ref === 'W' ? -dec : dec;
 }
