@@ -1,6 +1,6 @@
 import { CAPTURE_BUTTON_SIZE } from '@/constants/Camera';
 import React, { useCallback, useRef } from 'react';
-import { StyleSheet, View, ViewProps } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, ViewProps } from 'react-native';
 import {
   Gesture,
   GestureDetector,
@@ -54,6 +54,7 @@ const CaptureButton: React.FC<CaptureButtonProps> = ({
 
   //#region Capture Logic
   const takePhoto = useCallback(async () => {
+    Alert.alert("Taking Photo now")
     if (camera?.current == null) throw new Error('Camera ref is null!');
     const photo = await camera.current.takePhoto({ flash, enableShutterSound: false });
     onMediaCaptured(photo, 'photo');
@@ -162,7 +163,20 @@ const CaptureButton: React.FC<CaptureButtonProps> = ({
       <Reanimated.View {...props} style={[buttonStyle, style]}>
         <View style={styles.flex}>
           <Reanimated.View style={[styles.shadow, shadowStyle]} />
-          <View style={styles.button} />
+          <View style={styles.button}>
+            <TouchableOpacity
+              onPress={takePhoto}
+              style={{
+                position: 'absolute',
+                bottom: 40,
+                alignSelf: 'center',
+                width: 70,
+                height: 70,
+                borderRadius: 35,
+                backgroundColor: 'white',
+              }}
+            />
+          </View>
         </View>
       </Reanimated.View>
     </GestureDetector>

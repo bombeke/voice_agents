@@ -12,7 +12,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureResponderEvent, StyleSheet, Text, View } from "react-native";
 //import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
-import { GestureDetector, TapGestureHandler } from 'react-native-gesture-handler';
 import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
 import {
   Camera,
@@ -123,9 +122,7 @@ function modelToString(model: TensorflowModel): string {
   //#region Callbacks
   const setIsPressingButton = useCallback((_isPressingButton: boolean) => {
       isPressingButton.value = _isPressingButton
-    },
-    [isPressingButton],
-  )
+    },[isPressingButton])
 
   const onError = useCallback((error: CameraRuntimeError) => {
     console.error(error)
@@ -145,8 +142,7 @@ function modelToString(model: TensorflowModel): string {
         console.log("Camera_media called:",media,'type:',type);
         return router.navigate('/poles/media');
       }
-    },[isCameraInitialized],
-  )
+    },[isCameraInitialized])
   const onFlipCameraPressed = useCallback(() => {
     setCameraPosition((p) => (p === 'back' ? 'front' : 'back'))
   }, [])
@@ -246,13 +242,6 @@ function modelToString(model: TensorflowModel): string {
   return (
     <View style={styles.container}>
       {device != null ? (
-        <>
-        {
-          /*<GestureDetector gesture={pinchGesture}>
-          <Reanimated.View onTouchEnd={onFocusTap} style={styles.cameraContainer}>
-            <TapGestureHandler onEnded={onDoubleTap} numberOfTaps={2}>
-            */
-           }
               <AnimatedCamera
                 style={styles.cameraContainer}
                 device={device}
@@ -285,13 +274,6 @@ function modelToString(model: TensorflowModel): string {
                 enableLocation={location.hasPermission}
                 //frameProcessor={frameProcessor}
               />
-          </>
-          { /*
-              </TapGestureHandler>
-            </Reanimated.View>
-          </GestureDetector>
-          */
-          }
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.text}>Your phone does not have a Camera.</Text>
