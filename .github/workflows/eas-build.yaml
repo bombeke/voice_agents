@@ -150,19 +150,20 @@ jobs:
 
       #- name: Pre-bundle JS
       #  run: npx expo export --experimental-bundle --platform android
-      - name: Ensure android/gradle.properties values (increase JVM)
-        run: |
-          # Append or replace recommended JVM args and flags (idempotent)
-          FILE=android/gradle.properties
-          grep -q "org.gradle.jvmargs" $FILE || echo "org.gradle.jvmargs=-Xmx6g -Dfile.encoding=UTF-8 -XX:+UseParallelGC" >> $FILE
-          grep -q "org.gradle.workers.max" $FILE || echo "org.gradle.workers.max=2" >> $FILE
-          grep -q "android.enableR8.fullMode" $FILE || echo "android.enableR8.fullMode=false" >> $FILE
-          # optional: disable dex in process on CI
-          grep -q "android.enableDexInProcess" $FILE || echo "android.enableDexInProcess=false" >> $FILE
+      #- name: Ensure android/gradle.properties values (increase JVM)
+      #  run: |
+      #    # Append or replace recommended JVM args and flags (idempotent)
+      #    FILE=android/gradle.properties
+      #    grep -q "org.gradle.jvmargs" $FILE || echo "org.gradle.jvmargs=-Xmx6g -Dfile.encoding=UTF-8 -XX:+UseParallelGC" >> $FILE
+      #    grep -q "org.gradle.workers.max" $FILE || echo "org.gradle.workers.max=2" >> $FILE
+      #    grep -q "android.enableR8.fullMode" $FILE || echo "android.enableR8.fullMode=false" >> $FILE
+      #    # optional: disable dex in process on CI
+      #    grep -q "android.enableDexInProcess" $FILE || echo "android.enableDexInProcess=false" >> $FILE
 
       - name: Build Release APK
         working-directory: android
         run: |
+          free -m
           ./gradlew clean assembleRelease --stacktrace --no-daemon
 
       - name: Upload Release APK
