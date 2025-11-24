@@ -1,7 +1,7 @@
 import { MMKVProvider } from '@/components/MmkvContext';
 import { createUserStorage } from '@/services/storage/Storage';
 import { useFonts } from 'expo-font';
-import { Slot, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TamaguiProvider } from 'tamagui';
 import "../global.css";
@@ -27,7 +27,6 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
-          <Slot/>
         </SafeAreaProvider> 
       </MMKVProvider>
     </TamaguiProvider>    
