@@ -8,13 +8,13 @@ export function usePhotoGeoJSON(db: any) {
   const [geojson, setGeojson] = useState({ type: "FeatureCollection", features: [] });
 
   useEffect(() => {
-    const sub = db.photos
-      .find()
-      .$.subscribe((docs: any) => {
-        if (docs) setGeojson(toGeoJSON(docs as any));
-      });
+    if(db?.photos && Array.isArray(db?.photos)){
+      const sub = db?.photos?.find().$.subscribe((docs: any) => {
+          if (docs) setGeojson(toGeoJSON(docs as any));
+        });
 
-    return () => sub.unsubscribe();
+      return () => sub.unsubscribe();
+    }
   }, [db]);
 
   return geojson;
@@ -23,7 +23,7 @@ export function usePhotoGeoJSON(db: any) {
 export function toGeoJSON(docs: any) {
   return {
     type: "FeatureCollection",
-    features: docs.map((doc: any) => ({
+    features: docs?.map((doc: any) => ({
       type: "Feature",
       properties: {
         id: doc.id,

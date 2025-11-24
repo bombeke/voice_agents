@@ -11,7 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GestureResponderEvent, StyleSheet, Text, View } from "react-native";
-import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
+//import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
 import { GestureDetector, TapGestureHandler } from 'react-native-gesture-handler';
 import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
 import {
@@ -36,7 +36,7 @@ Reanimated.addWhitelistedNativeProps({
   zoom: true,
 })
 
-
+/*
 function tensorToString(tensor: Tensor): string {
   return `\n  - ${tensor.dataType} ${tensor.name}[${tensor.shape}]`
 }
@@ -46,7 +46,7 @@ function modelToString(model: TensorflowModel): string {
     `- Inputs: ${model.inputs.map(tensorToString).join('')}\n` +
     `- Outputs: ${model.outputs.map(tensorToString).join('')}`
   )
-}
+}*/
 
  export default function CameraPage(): React.ReactElement {
   const camera = useRef<Camera>(null)
@@ -188,14 +188,16 @@ function modelToString(model: TensorflowModel): string {
   useEffect(() => {
     location.requestPermission()
   }, [location])
-  const model = useTensorflowModel(require('../../../assets/yolo11n_float16.tflite'))
+  
+  
+  /*const model = useTensorflowModel(require('../../../assets/yolo11n_float16.tflite'))
   const actualModel = model.state === 'loaded' ? model.model : undefined
 
   useEffect(() => {
     if (actualModel == null) return
     console.log(`Model loaded! Shape:\n${modelToString(actualModel)}]`)
   }, [actualModel])
-
+  */
   useEffect(() => {
     requestPermission();
   }, []);
@@ -204,10 +206,10 @@ function modelToString(model: TensorflowModel): string {
   const { resize } = useResizePlugin()
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet'
-    if (actualModel == null) {
+   /* if (actualModel == null) {
       // model is still loading...
       return
-    }
+    }*/
     runAtTargetFps(5, () => {
       'worklet'
       console.log(`${frame.timestamp}: ${frame.width}x${frame.height} ${frame.pixelFormat} Frame (${frame.orientation})`)
@@ -219,10 +221,10 @@ function modelToString(model: TensorflowModel): string {
         pixelFormat: 'rgb',
         dataType: 'uint8',
       })
-      const result = actualModel.runSync([resized])
+      /*const result = actualModel.runSync([resized])
       setCameraResults(result);
       const num_detections = result[3]?.[0] ?? 0
-      console.log('Result: ' + num_detections)
+      console.log('Result: ' + num_detections)*/
     })
   }, [])
 

@@ -85,8 +85,8 @@ jobs:
       - name: Clean & regenerate native project
         run: npx expo prebuild --clean
 
-      - name: Build on EAS (Android)
-        run: eas build --platform android --profile development --non-interactive --no-wait --local
+      #- name: Build on EAS (Android)
+      #  run: eas build --platform android --profile development --non-interactive --no-wait --local
 
       #- name: Build apk
       #  run: npx expo run:android --variant release
@@ -106,9 +106,9 @@ jobs:
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: ignore
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: expo-dev-client
-          path: dist/**
-          if-no-files-found: ignore
+      #- name: Upload build artifacts
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: expo-dev-client
+      #    path: dist/**
+      #    if-no-files-found: ignore

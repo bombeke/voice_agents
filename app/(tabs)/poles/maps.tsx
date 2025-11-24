@@ -11,8 +11,8 @@ export default function DashboardMaps() {
             <Camera
               zoomLevel={14}
               centerCoordinate={[
-                geojson.features[0]?.geometry.coordinates[0],
-                geojson.features[0]?.geometry.coordinates[1],
+                geojson.features[0]?.geometry?.coordinates[0],
+                geojson.features[0]?.geometry?.coordinates[1],
               ]}
             />
       
