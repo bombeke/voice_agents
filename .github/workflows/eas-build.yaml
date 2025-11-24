@@ -139,8 +139,8 @@ jobs:
       - name: Fix Hermes executable permissions
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
 
-      #- name: Clean & regenerate native project
-      #  run: npx expo prebuild --clean
+      - name: Clean & regenerate native project
+        run: npx expo prebuild --clean
 
       #- name: Build on EAS (Android)
       #  run: eas build --platform android --profile development --non-interactive --no-wait --local
@@ -163,7 +163,6 @@ jobs:
       - name: Build Release APK
         working-directory: android
         run: |
-          free -m
           ./gradlew clean assembleRelease --stacktrace --no-daemon
 
       - name: Upload Release APK
