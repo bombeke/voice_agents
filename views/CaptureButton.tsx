@@ -51,6 +51,7 @@ export default function CaptureButton({
   style,
   ...props
 }: CaptureButtonProps) {
+  console.log("CAM_ENABLED:",enabled);
   const pressStart = useRef<number | null>(null);
   const isRecording = useRef(false);
 
@@ -106,7 +107,7 @@ export default function CaptureButton({
 
   /** TAP GESTURE (photo vs video) */
   const tapGesture = Gesture.Tap()
-    .enabled(enabled)
+    //.enabled(enabled)
     .maxDuration(600000)
     .onStart(() => {
       const now = Date.now();
@@ -125,7 +126,8 @@ export default function CaptureButton({
 
       if (diff < START_RECORDING_DELAY) {
         takePhoto();
-      } else if (isRecording.current) {
+      } 
+      else if (isRecording.current) {
         stopRecording();
       }
 
@@ -136,7 +138,7 @@ export default function CaptureButton({
 
   /** PAN FOR ZOOM */
   const panGesture = Gesture.Pan()
-    .enabled(enabled)
+    //.enabled(enabled)
     .onBegin((e) => {
       const yMax = e.absoluteY * 0.7;
       const offset = e.absoluteY - yMax;

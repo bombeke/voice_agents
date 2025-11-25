@@ -7,11 +7,11 @@ import { usePreferredCameraDevice } from '@/hooks/usePreferredCameraDevice';
 import CaptureButton from '@/views/CaptureButton';
 import IonIcon from "@expo/vector-icons/Ionicons";
 import MaterialIcon from "@expo/vector-icons/MaterialIcons";
-import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GestureResponderEvent, StyleSheet, Text, View } from "react-native";
+import { Alert, GestureResponderEvent, StyleSheet, Text, View } from "react-native";
 //import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
+import { useIsFocused } from '@react-navigation/core';
 import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
 import {
   Camera,
@@ -57,19 +57,8 @@ function modelToString(model: TensorflowModel): string {
   const isPressingButton = useSharedValue(false)
   const router = useRouter();
   const params = useLocalSearchParams<{ path?: string; type?: 'photo' | 'video' }>();
-  const [isFocussed,setIsFocused] = useState<boolean>(false);
-
-  // check if camera page is active
-  useFocusEffect(
-    useCallback(() => {
-      console.log('Screen is focused');
-      setIsFocused(true)
-      return () => {
-        setIsFocused(false)
-        console.log('Screen is unfocused');
-      };
-    }, [])
-  );
+  const isFocussed = useIsFocused()
+  
   const isForeground = useIsForeground()
   const isActive = isFocussed && isForeground
 
@@ -138,11 +127,10 @@ function modelToString(model: TensorflowModel): string {
         params: { path: media.path, type: type },
       });
       */
-      if(isCameraInitialized){
-        console.log("Camera_media called:",media,'type:',type);
-        return router.navigate('/poles/media');
-      }
-    },[isCameraInitialized])
+      Alert.alert("Taking the Photo","Initiate Capture");
+      return router.navigate('/poles/media');
+    },[router])
+
   const onFlipCameraPressed = useCallback(() => {
     setCameraPosition((p) => (p === 'back' ? 'front' : 'back'))
   }, [])

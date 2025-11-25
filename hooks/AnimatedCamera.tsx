@@ -1,4 +1,5 @@
 import { ExifTags, readAsync } from '@lodev09/react-native-exify';
+import { createAssetAsync } from 'expo-media-library';
 import { nanoid } from 'nanoid/non-secure';
 import { useRef } from 'react';
 import { Alert, TouchableOpacity, View } from 'react-native';
@@ -27,17 +28,18 @@ export function CameraCapture() {
   async function take() {
     try {
       const photo: any = await camRef.current?.takePhoto();
+      
       if (!photo) return;
-
-      const exif: ExifTags | undefined = await readAsync(photo.path);
+      const assetPhoto = await createAssetAsync(photo.path);
+      const exif: ExifTags | undefined = await readAsync(assetPhoto.uri);
 
       const lat = toDecimal(exif?.GPSLatitude, exif?.GPSLatitudeRef);
       const lng = toDecimal(exif?.GPSLongitude, exif?.GPSLongitudeRef);
       const id = nanoid();
 
-      const doc = {
+      const doc: any = {
         id,
-        uri: photo.path,
+        uri: assetPhoto.uri,
         latitude: lat,
         longitude: lng,
         createdAt: new Date().toISOString(),
@@ -46,8 +48,8 @@ export function CameraCapture() {
       };
 
       //onSaved?.(doc);
-      const d = data.push(doc);
-      setData(JSON.stringify(data));
+      data.push(doc);
+      setData(data);
     } catch (err) {
       console.error('Failed to take photo:', err);
       Alert.alert('Camera Error',"Failed to take photo")

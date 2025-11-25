@@ -15,7 +15,7 @@ export function usePhotoGeoJSON(db: any) {
       setPhotos(db?.photos || [])
     }
     else{
-      setPhotos(JSON.parse(data as any))
+      setPhotos(data as any)
     }
   })
 
