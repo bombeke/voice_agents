@@ -1,6 +1,7 @@
 import { CAPTURE_BUTTON_SIZE } from "@/constants/Camera";
 import React, { useCallback, useRef } from "react";
 import {
+  Alert,
   StyleSheet,
   View,
   ViewProps,
@@ -9,9 +10,10 @@ import {
   Gesture,
   GestureDetector,
 } from "react-native-gesture-handler";
-import Reanimated, {
+import Animated, {
   cancelAnimation,
   interpolate,
+  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -46,12 +48,11 @@ export default function CaptureButton({
   maxZoom,
   cameraZoom,
   flash,
-  enabled,
+  enabled = true,
   setIsPressingButton,
   style,
   ...props
 }: CaptureButtonProps) {
-  console.log("CAM_ENABLED:",enabled);
   const pressStart = useRef<number | null>(null);
   const isRecording = useRef(false);
 
@@ -61,23 +62,20 @@ export default function CaptureButton({
 
   /** PHOTO */
   const takePhoto = useCallback(async () => {
+    Alert.alert('Tested')
     if (!camera?.current) return;
     const photo = await camera.current.takePhoto({ flash });
     onMediaCaptured(photo, "photo");
-  }, [camera, onMediaCaptured, flash]);
+  }, [camera, flash, onMediaCaptured]);
 
-  /** START RECORDING  */
+  /** START RECORDING */
   const startRecording = useCallback(() => {
     if (!camera?.current) return;
 
     isRecording.current = true;
     isRecordingAnim.value = true;
 
-    progress.value = withRepeat(
-      withTiming(1, { duration: 15000 }),
-      -1,
-      false
-    );
+    progress.value = withRepeat(withTiming(1, { duration: 15000 }), -1, false);
 
     camera.current.startRecording({
       flash,
@@ -91,7 +89,7 @@ export default function CaptureButton({
         console.error("Recording error:", err);
       },
     });
-  }, [camera, flash, onMediaCaptured]);
+  }, [camera, flash, isRecordingAnim, onMediaCaptured, progress]);
 
   /** STOP RECORDING */
   const stopRecording = useCallback(async () => {
@@ -103,33 +101,27 @@ export default function CaptureButton({
     await camera.current.stopRecording();
     isRecording.current = false;
     cancelAnimation(progress);
-  }, [camera]);
+  }, [camera, isRecordingAnim, progress]);
 
-  /** TAP GESTURE (photo vs video) */
+  /** TAP GESTURE */
   const tapGesture = Gesture.Tap()
-    //.enabled(enabled)
-    .maxDuration(600000)
+    .enabled(enabled)
     .onStart(() => {
       const now = Date.now();
       pressStart.current = now;
+
       isPressing.value = true;
       setIsPressingButton(true);
 
       setTimeout(() => {
-        if (pressStart.current === now) {
-          startRecording();
-        }
-      }, START_RECORDING_DELAY);
+        if (pressStart.current === now) startRecording();
+      }, 200);
     })
     .onEnd(() => {
       const diff = Date.now() - (pressStart.current ?? 0);
 
-      if (diff < START_RECORDING_DELAY) {
-        takePhoto();
-      } 
-      else if (isRecording.current) {
-        stopRecording();
-      }
+      if (diff < 200) takePhoto();
+      else if (isRecording.current) stopRecording();
 
       pressStart.current = null;
       isPressing.value = false;
@@ -138,78 +130,48 @@ export default function CaptureButton({
 
   /** PAN FOR ZOOM */
   const panGesture = Gesture.Pan()
-    //.enabled(enabled)
-    .onBegin((e) => {
-      const yMax = e.absoluteY * 0.7;
-      const offset = e.absoluteY - yMax;
-
-      cameraZoom.offsetY = interpolate(
-        cameraZoom.value,
-        [minZoom, maxZoom],
-        [0, offset],
-        { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-      );
-      cameraZoom.startY = e.absoluteY;
-    })
+    .enabled(enabled)
     .onUpdate((e) => {
-      if (!cameraZoom.offsetY || !cameraZoom.startY) return;
-
-      const yMax = cameraZoom.startY * 0.7;
-      cameraZoom.value = interpolate(
-        e.absoluteY - cameraZoom.offsetY,
-        [yMax, cameraZoom.startY],
-        [maxZoom, minZoom],
+      const delta = e.translationY;
+      const newZoom = interpolate(
+        -delta,
+        [-200, 200],
+        [minZoom, maxZoom],
         { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
       );
+      cameraZoom.value = newZoom;
     });
 
-  /** ANIMATION: outer pulse */
+  /** ANIMATION: pulse */
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: isRecordingAnim.value
       ? withRepeat(withTiming(0.3, { duration: 700 }), -1, true)
       : 0,
-    transform: [
-      {
-        scale: isRecordingAnim.value
-          ? withRepeat(withTiming(1.35, { duration: 700 }), -1, true)
-          : 1,
-      },
-    ],
+    transform: [{
+      scale: isRecordingAnim.value
+        ? withRepeat(withTiming(1.35, { duration: 700 }), -1, true)
+        : 1,
+    }],
   }));
 
-  /** ANIMATION: main button shrink + color */
+  /** ANIMATION: button */
   const buttonAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: withTiming(isRecordingAnim.value ? 0.75 : 1, { duration: 250 }) },
-    ],
+    transform: [{ scale: withTiming(isRecordingAnim.value ? 0.75 : 1) }],
     backgroundColor: isRecordingAnim.value ? "#ff3b30" : "white",
   }));
 
-  /** ANIMATION: recording progress ring */
-  //@ts-ignore
-  const ringAnimatedProps = useAnimatedStyle(() => ({
-     strokeDashoffset: CIRC * (1 - progress.value),
+  /** ANIMATION: ring */
+  const ringAnimatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: CIRC * (1 - progress.value),
   }));
 
   return (
     <GestureDetector gesture={Gesture.Simultaneous(tapGesture, panGesture)}>
-      <Reanimated.View style={[style]} {...props}>
+      <Animated.View style={[styles.wrapper, style]} {...props}>
         <View style={styles.container}>
+          <Animated.View style={[styles.pulse, pulseStyle]} />
 
-          {/* OUTER PULSE */}
-          <Reanimated.View
-            style={[
-              styles.pulse,
-              pulseStyle,
-            ]}
-          />
-
-          {/* RECORDING PROGRESS RING */}
-          <Svg
-            width={RING_SIZE}
-            height={RING_SIZE}
-            style={styles.progressSvg}
-          >
+          <Svg width={RING_SIZE} height={RING_SIZE} style={styles.progressSvg}>
             <Circle
               cx={RING_SIZE / 2}
               cy={RING_SIZE / 2}
@@ -219,8 +181,7 @@ export default function CaptureButton({
               fill="none"
               strokeDasharray={CIRC}
             />
-            
-            <Circle
+            <AnimatedCircle
               cx={RING_SIZE / 2}
               cy={RING_SIZE / 2}
               r={(RING_SIZE - STROKE) / 2}
@@ -228,47 +189,50 @@ export default function CaptureButton({
               strokeWidth={STROKE}
               fill="none"
               strokeDasharray={CIRC}
-              //@ts-ignore
               animatedProps={ringAnimatedProps}
             />
           </Svg>
 
-          {/* MAIN SHUTTER BUTTON */}
-          <Reanimated.View
+          <Animated.View
             style={[
               styles.captureButton,
               { borderWidth: BORDER_WIDTH, borderColor: "white" },
               buttonAnimatedStyle,
             ]}
           />
-
         </View>
-      </Reanimated.View>
+      </Animated.View>
     </GestureDetector>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
+const styles = StyleSheet.create({
+  wrapper: {
+    width: CAPTURE_BUTTON_SIZE + 40,
+    height: CAPTURE_BUTTON_SIZE + 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  container: {
+    width: CAPTURE_BUTTON_SIZE + 40,
+    height: CAPTURE_BUTTON_SIZE + 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   pulse: {
     position: "absolute",
-    width: CAPTURE_BUTTON_SIZE + 10,
-    height: CAPTURE_BUTTON_SIZE + 10,
-    borderRadius: (CAPTURE_BUTTON_SIZE + 10) / 2,
+    width: CAPTURE_BUTTON_SIZE + 20,
+    height: CAPTURE_BUTTON_SIZE + 20,
+    borderRadius: (CAPTURE_BUTTON_SIZE + 20) / 2,
     backgroundColor: "rgba(255,0,0,0.4)",
   },
-
   captureButton: {
     width: CAPTURE_BUTTON_SIZE,
     height: CAPTURE_BUTTON_SIZE,
     borderRadius: CAPTURE_BUTTON_SIZE / 2,
   },
-
   progressSvg: {
     position: "absolute",
   },
