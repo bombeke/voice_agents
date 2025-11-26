@@ -3,6 +3,7 @@ import React, { useCallback, useRef } from "react";
 import {
   Alert,
   StyleSheet,
+  TouchableOpacity,
   View,
   ViewProps,
 } from "react-native";
@@ -171,7 +172,7 @@ export default function CaptureButton({
     strokeDashoffset: CIRC * (1 - progress.value),
   }));
 
-  return (
+  /*return (
     <GestureDetector gesture={Gesture.Simultaneous(tapGesture, panGesture)}>
       <Animated.View style={[styles.wrapper, style]} {...props}>
         <View style={styles.container}>
@@ -208,6 +209,81 @@ export default function CaptureButton({
           />
         </View>
       </Animated.View>
+    </GestureDetector>
+  );*/
+  /** TOUCH BEHAVIOR USING TouchableOpacity */
+  const handlePressIn = () => {
+    if (!enabled) return;
+    const now = Date.now();
+
+    pressStart.current = now;
+    isPressing.value = true;
+    setIsPressingButton(true);
+
+    // long press -> start recording
+    setTimeout(() => {
+      if (pressStart.current === now) startRecording();
+    }, START_RECORDING_DELAY);
+  };
+
+  const handlePressOut = () => {
+    const diff = Date.now() - (pressStart.current ?? 0);
+
+    if (diff < START_RECORDING_DELAY) {
+      takePhoto();
+    } else if (isRecording.current) {
+      stopRecording();
+    }
+
+    pressStart.current = null;
+    isPressing.value = false;
+    setIsPressingButton(false);
+  };
+
+  return (
+    <GestureDetector gesture={panGesture}>
+      <View style={[styles.wrapper, style]} {...props}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          disabled={!enabled}
+        >
+          <View style={styles.container}>
+            <Animated.View style={[styles.pulse, pulseStyle]} />
+
+            <Svg width={RING_SIZE} height={RING_SIZE} style={styles.progressSvg}>
+              <Circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={(RING_SIZE - STROKE) / 2}
+                stroke="rgba(255,0,0,0.3)"
+                strokeWidth={STROKE}
+                fill="none"
+                strokeDasharray={CIRC}
+              />
+              <AnimatedCircle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={(RING_SIZE - STROKE) / 2}
+                stroke="white"
+                strokeWidth={STROKE}
+                fill="none"
+                strokeDasharray={CIRC}
+                animatedProps={ringAnimatedProps}
+              />
+            </Svg>
+
+            <Animated.View
+              style={[
+                styles.captureButton,
+                { borderWidth: BORDER_WIDTH, borderColor: "white" },
+                buttonAnimatedStyle,
+              ]}
+            />
+          </View>
+        </TouchableOpacity>
+      </View>
     </GestureDetector>
   );
 }

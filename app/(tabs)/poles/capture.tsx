@@ -111,6 +111,7 @@ function modelToString(model: TensorflowModel): string {
   //#region Callbacks
   const setIsPressingButton = useCallback((_isPressingButton: boolean) => {
       isPressingButton.value = _isPressingButton
+      return isPressingButton;
     },[isPressingButton])
 
   const onError = useCallback((error: CameraRuntimeError) => {
