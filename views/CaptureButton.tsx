@@ -53,6 +53,7 @@ export default function CaptureButton({
   style,
   ...props
 }: CaptureButtonProps) {
+  console.log("A0XXXX:",enabled)
   const pressStart = useRef<number | null>(null);
   const isRecording = useRef(false);
 
@@ -111,21 +112,26 @@ export default function CaptureButton({
       pressStart.current = now;
 
       isPressing.value = true;
-      setIsPressingButton(true);
-
+      //setIsPressingButton(true);
+      console.log("A1XXXX:")
       setTimeout(() => {
         if (pressStart.current === now) startRecording();
       }, 200);
+      console.log("A2XXXX:")
     })
     .onEnd(() => {
       const diff = Date.now() - (pressStart.current ?? 0);
 
-      if (diff < 200) takePhoto();
-      else if (isRecording.current) stopRecording();
-
+      if (diff < 200) {
+        console.log("A3XXXX:")
+        takePhoto();
+      }
+      else if (isRecording.current) {
+        stopRecording();
+      }
       pressStart.current = null;
       isPressing.value = false;
-      setIsPressingButton(false);
+      //setIsPressingButton(false);
     });
 
   /** PAN FOR ZOOM */
