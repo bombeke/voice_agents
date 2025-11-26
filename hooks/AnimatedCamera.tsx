@@ -5,6 +5,7 @@ import { useRef } from 'react';
 import { Alert, TouchableOpacity, View } from 'react-native';
 import Animated, { SharedValue, useAnimatedProps } from 'react-native-reanimated';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { toDecimal } from './Helpers';
 import { useMMKVValue } from './useMMKVVlaue';
 
 // Animated vision-camera
@@ -28,9 +29,9 @@ export function CameraCapture() {
   async function take() {
     try {
       const photo: any = await camRef.current?.takePhoto();
-      
       if (!photo) return;
       const assetPhoto = await createAssetAsync(photo.path);
+      console.log("B0XXXX:",assetPhoto)
       const exif: ExifTags | undefined = await readAsync(assetPhoto.uri);
 
       const lat = toDecimal(exif?.GPSLatitude, exif?.GPSLatitudeRef);
@@ -83,13 +84,4 @@ export function CameraCapture() {
       />
     </View>
   );
-}
-
-
-// Convert DMS EXIF to decimal degrees
-function toDecimal(dms: any, ref: any) {
-  if (!dms) return null;
-  const parts = dms.map(parseFloat);
-  const dec = parts[0] + parts[1] / 60 + parts[2] / 3600;
-  return ref === 'S' || ref === 'W' ? -dec : dec;
 }

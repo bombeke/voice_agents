@@ -9,10 +9,10 @@ export default function DashboardMaps() {
       mapStyle={`https://tiles.openfreemap.org/styles/liberty`}
     >
             <Camera
-              zoomLevel={14}
+              zoomLevel={3}
               centerCoordinate={[
-                geojson.features[0]?.geometry?.coordinates?.[0] || 0,
-                geojson.features[0]?.geometry?.coordinates?.[1] || 0,
+                geojson.features[0]?.geometry?.coordinates?.[0] || 1,
+                geojson.features[0]?.geometry?.coordinates?.[1] || 32,
               ]}
             />
       

@@ -54,7 +54,7 @@ export default function CaptureButton({
   style,
   ...props
 }: CaptureButtonProps) {
-  console.log("A0XXXX:",enabled)
+  
   const pressStart = useRef<number | null>(null);
   const isRecording = useRef(false);
 
@@ -67,6 +67,7 @@ export default function CaptureButton({
     Alert.alert('Tested')
     if (!camera?.current) return;
     const photo = await camera.current.takePhoto({ flash });
+    console.log("A0XXXX:",photo)
     onMediaCaptured(photo, "photo");
   }, [camera, flash, onMediaCaptured]);
 
