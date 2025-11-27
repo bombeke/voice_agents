@@ -1,5 +1,6 @@
 import { PressableButton } from '@/components/PressableButton'
 import { SAFE_AREA_PADDING } from '@/constants/Camera'
+import { requestSavePermission } from '@/hooks/Helpers'
 import { useIsForeground } from '@/hooks/useIsForeground'
 import { StatusBarBlurBackground } from '@/views/StatusBarBlurBackground'
 import IonIcon from '@expo/vector-icons/Ionicons'
@@ -9,23 +10,11 @@ import { createAssetAsync } from 'expo-media-library'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
 import type { ImageLoadEvent, NativeSyntheticEvent } from 'react-native'
-import { ActivityIndicator, Alert, Image, PermissionsAndroid, Platform, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Alert, Image, StyleSheet, View } from 'react-native'
 import type { OnLoadData, OnVideoErrorData } from 'react-native-video'
 import Video from 'react-native-video'
 
-const requestSavePermission = async (): Promise<boolean> => {
-  // On Android 13 and above, scoped storage is used instead and no permission is needed
-  if (Platform.OS !== 'android' || Platform.Version >= 33) return true
 
-  const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-  if (permission == null) return false
-  let hasPermission = await PermissionsAndroid.check(permission)
-  if (!hasPermission) {
-    const permissionRequestResult = await PermissionsAndroid.request(permission)
-    hasPermission = permissionRequestResult === 'granted'
-  }
-  return hasPermission
-}
 
 type OnLoadImage = NativeSyntheticEvent<ImageLoadEvent>
 const isVideoOnLoadEvent = (event: OnLoadData | OnLoadImage): event is OnLoadData => 'duration' in event && 'naturalSize' in event

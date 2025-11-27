@@ -1,4 +1,6 @@
 import { CAPTURE_BUTTON_SIZE } from "@/constants/Camera";
+import { requestSavePermission } from "@/hooks/Helpers";
+import { createAssetAsync } from "expo-media-library";
 import React, { useCallback, useRef } from "react";
 import {
   Alert,
@@ -68,6 +70,19 @@ export default function CaptureButton({
     if (!camera?.current) return;
     const photo = await camera.current.takePhoto({ flash });
     console.log("A0XXXX:",photo)
+    try {
+      const hasPermission = await requestSavePermission()
+      if (!hasPermission) {
+        Alert.alert('Permission denied!', 'Camera does not have permission to save the media.')
+        return
+      }
+      await createAssetAsync(`file:///${photo.path}`, 'photo')
+      Alert.alert('saved')
+    } 
+    catch (e) {
+      const message = e instanceof Error ? e.message : JSON.stringify(e)
+      Alert.alert('Failed to save!', `An unexpected error occured while trying to save. ${message}`)
+    }
     onMediaCaptured(photo, "photo");
   }, [camera, flash, onMediaCaptured]);
 
