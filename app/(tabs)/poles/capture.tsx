@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, GestureResponderEvent, StyleSheet, Text, View } from "react-native";
 //import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
+import { usePoleDetection } from '@/hooks/usePoleDetection';
 import { useIsFocused } from '@react-navigation/core';
 import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
 import {
@@ -18,17 +19,14 @@ import {
   CameraProps,
   CameraRuntimeError,
   PhotoFile,
-  runAtTargetFps,
   useCameraDevice,
   useCameraFormat,
   useCameraPermission,
-  useFrameProcessor,
   useLocationPermission,
   useMicrophonePermission,
   VideoFile
 } from 'react-native-vision-camera';
 import { Button, YStack } from 'tamagui';
-import { useResizePlugin } from "vision-camera-resize-plugin";
 
 const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera)
 Reanimated.addWhitelistedNativeProps({
@@ -66,7 +64,9 @@ function modelToString(model: TensorflowModel): string {
   const [enableHdr, setEnableHdr] = useState(false)
   const [flash, setFlash] = useState<'off' | 'on'>('off')
   const [enableNightMode, setEnableNightMode] = useState(false)
-  const [cameraResults, setCameraResults] = useState<any[]>([]);
+  //const [cameraResults, setCameraResults] = useState<any[]>([]); 
+  const { cameraResults, frameProcessor } = usePoleDetection();
+
 
   // camera device settings
   const [preferredDevice] = usePreferredCameraDevice()
@@ -128,9 +128,10 @@ function modelToString(model: TensorflowModel): string {
         params: { path: media.path, type: type },
       });
       */
-      Alert.alert("Taking the Photo","Initiate Capture");
-      return router.navigate('/poles/media');
-    },[router])
+      Alert.alert("Taking the Photo",`Initiate Capture${media}XX:${type}`);
+      Alert.alert("Camera results:",`${cameraResults}`);
+      return router.navigate('/poles/maps');
+    },[router,cameraResults])
 
   const onFlipCameraPressed = useCallback(() => {
     setCameraPosition((p) => (p === 'back' ? 'front' : 'back'))
@@ -190,14 +191,15 @@ function modelToString(model: TensorflowModel): string {
     requestPermission();
   }, []);
 
+ 
 
-  const { resize } = useResizePlugin()
+  /*const { resize } = useResizePlugin()
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet'
-   /* if (actualModel == null) {
+   if (actualModel == null) {
       // model is still loading...
       return
-    }*/
+    }
     runAtTargetFps(5, () => {
       'worklet'
       console.log(`${frame.timestamp}: ${frame.width}x${frame.height} ${frame.pixelFormat} Frame (${frame.orientation})`)
@@ -209,12 +211,12 @@ function modelToString(model: TensorflowModel): string {
         pixelFormat: 'rgb',
         dataType: 'uint8',
       })
-      /*const result = actualModel.runSync([resized])
+      const result = actualModel.runSync([resized])
       setCameraResults(result);
       const num_detections = result[3]?.[0] ?? 0
-      console.log('Result: ' + num_detections)*/
+      Alert.alert('Result: ', num_detections)
     })
-  }, [])
+  }, [])*/
 
   const videoHdr = format?.supportsVideoHdr && enableHdr
   const photoHdr = format?.supportsPhotoHdr && enableHdr && !videoHdr
@@ -261,7 +263,7 @@ function modelToString(model: TensorflowModel): string {
                 video={true}
                 audio={microphone.hasPermission}
                 enableLocation={location.hasPermission}
-                //frameProcessor={frameProcessor}
+                frameProcessor={frameProcessor}
               />
       ) : (
         <View style={styles.emptyContainer}>
@@ -322,7 +324,7 @@ function modelToString(model: TensorflowModel): string {
         </PressableButton>
       </View>
       <View>
-        { cameraResults }
+        <Text>Results: { cameraResults }</Text>
       </View>
     </View>
   )

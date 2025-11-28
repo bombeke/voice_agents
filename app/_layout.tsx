@@ -1,4 +1,6 @@
 import { MMKVProvider } from '@/components/MmkvContext';
+import { CachedModelProvider } from '@/components/ModelContext';
+import { useCachedModel } from '@/hooks/useCachedModel';
 import { createUserStorage } from '@/services/storage/Storage';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -14,6 +16,7 @@ export default function RootLayout() {
   });
   const userId = 'mmkv_user_app';
   const storage = createUserStorage(userId);
+  const { model } = useCachedModel();
   
   if (!loaded) {
     return null;
@@ -22,12 +25,14 @@ export default function RootLayout() {
   return (
     <TamaguiProvider config={config}>
       <MMKVProvider storage={storage}>
-        <SafeAreaProvider>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </SafeAreaProvider> 
+        <CachedModelProvider model= { model}>
+          <SafeAreaProvider>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </SafeAreaProvider> 
+        </CachedModelProvider>
       </MMKVProvider>
     </TamaguiProvider>    
   );

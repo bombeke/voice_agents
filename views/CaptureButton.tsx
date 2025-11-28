@@ -66,10 +66,8 @@ export default function CaptureButton({
 
   /** PHOTO */
   const takePhoto = useCallback(async () => {
-    Alert.alert('Tested')
     if (!camera?.current) return;
     const photo = await camera.current.takePhoto({ flash });
-    console.log("A0XXXX:",photo)
     try {
       const hasPermission = await requestSavePermission()
       if (!hasPermission) {
@@ -77,7 +75,6 @@ export default function CaptureButton({
         return
       }
       await createAssetAsync(`file:///${photo.path}`, 'photo')
-      Alert.alert('saved')
     } 
     catch (e) {
       const message = e instanceof Error ? e.message : JSON.stringify(e)
