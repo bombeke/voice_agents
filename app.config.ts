@@ -40,7 +40,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.WAKE_LOCK",
-        "android.permission.BLUETOOTH"
+        "android.permission.BLUETOOTH",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
       ],
       "package": "org.bombeke.voiceagents"
     },
@@ -96,6 +101,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
           "isAccessMediaLocationEnabled": true,
           "granularPermissions": ["audio", "photo"]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          isAndroidForegroundServiceEnabled: true,
+          isAndroidBackgroundServiceEnabled: true,
+          locationAlwaysAndWhenInUsePermission: "Allow ${PRODUCT_NAME) to use your location"
         }
       ]
     ],

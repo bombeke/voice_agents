@@ -24,3 +24,32 @@ export const Colors = {
     tabIconSelected: tintColorDark,
   },
 };
+
+const primary = "#0A7EA4";
+const secondary = "#2D5F7A";
+const accent = "#4CAF50";
+const danger = "#E53935";
+const warning = "#FFB300";
+
+export default {
+  light: {
+    primary,
+    secondary,
+    accent,
+    danger,
+    warning,
+    text: "#1A1A1A",
+    textSecondary: "#666666",
+    background: "#FFFFFF",
+    surface: "#F5F5F5",
+    border: "#E0E0E0",
+    tint: primary,
+    tabIconDefault: "#9E9E9E",
+    tabIconSelected: primary,
+    success: accent,
+    mapCluster: primary,
+    mapClusterBorder: "#FFFFFF",
+    cardBackground: "#FFFFFF",
+    shadow: "#000000",
+  },
+};
