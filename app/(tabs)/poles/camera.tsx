@@ -1,5 +1,5 @@
 import Colors from '@/constants/Colors';
-import { useUtilityPoles } from '@/providers/UtilityStoreProvider';
+//import { useUtilityPoles } from '@/providers/UtilityStoreProvider';
 //import { generateText } from '@rork-ai/toolkit-sdk';
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
@@ -9,13 +9,13 @@ import { router, Stack } from 'expo-router';
 import { Camera, Check, X } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function CameraScreen() {
@@ -25,7 +25,7 @@ export default function CameraScreen() {
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [lastCapture, setLastCapture] = useState<string | null>(null);
   
-  const { addPole, isAddingPole } = useUtilityPoles();
+  //const { addPole, isAddingPole } = useUtilityPoles();
   const cameraRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -101,13 +101,13 @@ export default function CameraScreen() {
         confidence = parsed.confidence || 0;
 
       if (hasPole) {
-        await addPole({
+        /*await addPole({
           latitude: locationResult.coords.latitude,
           longitude: locationResult.coords.longitude,
           timestamp: Date.now(),
           imageUri: photo.uri,
           detectionConfidence: confidence,
-        });
+        });*/
 
         setLastCapture('Utility pole detected and saved!');
         
@@ -221,10 +221,11 @@ export default function CameraScreen() {
                 <TouchableOpacity
                   style={[styles.captureButton, isCapturing && styles.captureButtonActive]}
                   onPress={handleCapture}
-                  disabled={isCapturing || isAddingPole}
+                  disabled={isCapturing} //|| isAddingPole}
                   activeOpacity={0.8}
                 >
-                  {isCapturing || isAddingPole ? (
+                  {isCapturing?// || isAddingPole ?
+                   (
                     <ActivityIndicator size="large" color="#FFFFFF" />
                   ) : (
                     <Camera size={32} color="#FFFFFF" />

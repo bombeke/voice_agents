@@ -9,7 +9,7 @@ import { TamaguiProvider } from 'tamagui';
 import "../global.css";
 import { config } from '../tamagui.config';
 
-import { UtilityPoleProvider } from "@/providers/UtilityStoreProvider";
+//import { UtilityPoleProvider } from "@/providers/UtilityStoreProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -54,7 +54,6 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <UtilityPoleProvider>
         <GestureHandlerRootView style={styles.container}>
     <TamaguiProvider config={config}>
       <MMKVProvider storage={storage}>
@@ -66,7 +65,6 @@ export default function RootLayout() {
       </MMKVProvider>
     </TamaguiProvider>    
      </GestureHandlerRootView>
-      </UtilityPoleProvider>
     </QueryClientProvider>
   );
 }
