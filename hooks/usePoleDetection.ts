@@ -35,6 +35,6 @@ export const usePoleDetection=()=>{
             console.log('POLEResult: ' + num_detections)
             scheduleOnRN(updateCameraResults, result);
         })
-    }, [model])
+    }, [model, updateCameraResults])
     return { cameraResults, frameProcessor }
 }

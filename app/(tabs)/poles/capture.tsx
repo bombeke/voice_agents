@@ -192,7 +192,7 @@ function modelToString(model: TensorflowModel): string {
   }, []);
 
  
-
+  console.log("POLERESULT2:",cameraResults);
   /*const { resize } = useResizePlugin()
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet'
@@ -322,9 +322,6 @@ function modelToString(model: TensorflowModel): string {
          }>
           <IonIcon name="qr-code-outline" color="white" size={24} />
         </PressableButton>
-      </View>
-      <View>
-        <Text>Results: { cameraResults }</Text>
       </View>
     </View>
   )
