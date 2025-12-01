@@ -1,0 +1,180 @@
+name: EAS Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+      - dev
+
+env:
+  PNPM_VERSION: 9.15.4
+  URL: ${{ secrets.URL }}
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+  API_TOKEN: ${{ secrets.API_TOKEN }}
+  CI: true
+  JAVA_OPTS: "-Xmx6g"
+  _JAVA_OPTIONS: "-Xmx6g"
+  JAVA_TOOL_OPTIONS: "-Xmx6g"
+  GRADLE_OPTS: "-Xmx6g"
+
+jobs:
+
+  setup-cache-keys:
+    runs-on: ubuntu-latest
+    outputs:
+      gradle-key: ${{ steps.gradle-key.outputs.key }}
+      #pnpm-key: ${{ steps.pnpm-key.outputs.key }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute cache keys
+        id: gradle-key
+        run: |
+          # include gradle wrapper and gradle.properties checksum for cache invalidation
+          echo "::set-output name=key::gradle-cache-$(sha1sum android/gradle/wrapper/gradle-wrapper.jar android/gradle.properties | sha1sum | awk '{print $1}')"
+      
+      #- name: Compute pnpm key
+      #  id: pnpm-key
+      #  run: |
+      #    if [ -f pnpm-lock.yaml ]; then
+      #      echo "::set-output name=key::pnpm-cache-$(sha1sum pnpm-lock.yaml | awk '{print $1}')"
+      #    else
+      #      echo "::set-output name=key::key::pnpm-cache-nolock"
+      #    fi
+
+  build:
+    name: Install and build
+    needs: setup-cache-keys
+    runs-on: ubuntu-latest
+    env:
+      JAVA_TOOL_OPTIONS: "-Xmx6g"
+      _JAVA_OPTIONS: "-Xmx6g"
+      GRADLE_OPTS: "-Xmx6g"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # when set to "true" but frees about 6 GB
+          tool-cache: true
+          
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          swap-storage: true
+
+
+      # Set up Java & Android SDK
+      - name: Set up JDK 17 (required for RN 0.75+)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: ${{ needs.setup-cache-keys.outputs.gradle-key }}
+          restore-keys: |
+            gradle-cache-
+
+      #- name: Cache pnpm store & node_modules
+      #  uses: actions/cache@v4
+      #  with:
+      #    path: |
+      #      ~/.pnpm-store
+      #      node_modules
+      #    key: ${{ needs.setup-cache-keys.outputs.pnpm-key }}
+      #    restore-keys: |
+      #      pnpm-cache-
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.x
+          #cache: pnpm
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          #version: ${{ env.PNPM_VERSION }}
+          run_install: true
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: pnpm
+          patch-watchers: false
+          expo-version: latest
+  
+    
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ❗️ Free up system space
+      #- name: Cleanup system to free disk space
+      #  run: |
+      #    docker system prune -af || true
+      #    sudo rm -rf /usr/share/dotnet
+      #    sudo rm -rf /opt/ghc
+      #    sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      #    df -h
+
+      - name: Fix Hermes executable permissions
+        run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+
+      - name: Clean & regenerate native project
+        run: npx expo prebuild --clean
+
+      #- name: Build on EAS (Android)
+      #  run: eas build --platform android --profile development --non-interactive --no-wait --local
+
+      #- name: Build apk
+      #  run: npx expo run:android --variant release
+
+      #- name: Pre-bundle JS
+      #  run: npx expo export --experimental-bundle --platform android
+      #- name: Ensure android/gradle.properties values (increase JVM)
+      #  run: |
+      #    # Append or replace recommended JVM args and flags (idempotent)
+      #    FILE=android/gradle.properties
+      #    grep -q "org.gradle.jvmargs" $FILE || echo "org.gradle.jvmargs=-Xmx6g -Dfile.encoding=UTF-8 -XX:+UseParallelGC" >> $FILE
+      #    grep -q "org.gradle.workers.max" $FILE || echo "org.gradle.workers.max=2" >> $FILE
+      #    grep -q "android.enableR8.fullMode" $FILE || echo "android.enableR8.fullMode=false" >> $FILE
+      #    # optional: disable dex in process on CI
+      #    grep -q "android.enableDexInProcess" $FILE || echo "android.enableDexInProcess=false" >> $FILE
+
+      - name: Build Release APK
+        working-directory: android
+        run: |
+          ./gradlew clean assembleRelease --stacktrace --no-daemon
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: ignore
+
+      #- name: Upload build artifacts
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: expo-dev-client
+      #    path: dist/**
+      #    if-no-files-found: ignore
