@@ -8,6 +8,7 @@ export default function PolesTabsLayout() {
       <Stack.Screen name="maps" options={{ headerShown: false }} />
       <Stack.Screen name="media" options={{ headerShown: false }} />
       <Stack.Screen name="camera" options={{ headerShown: false }} />
+      <Stack.Screen name="dashboard" options={{ headerShown: false }} />
     </Stack>
   );
 }
