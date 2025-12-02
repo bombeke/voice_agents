@@ -2,6 +2,7 @@ import { useCachedTensorModel } from "@/components/ModelContext";
 import { useCallback, useState } from "react";
 import { useSharedValue } from "react-native-reanimated";
 import { useFrameProcessor } from "react-native-vision-camera";
+import { scheduleOnRN } from "react-native-worklets";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 export const usePoleDetection = () => {
@@ -14,6 +15,51 @@ export const usePoleDetection = () => {
     const updateCameraResults = useCallback((results: any[]) => {
         setCameraResults(results);
     }, []);
+    const runObjectDetectionAsync = useCallback(async (resized: any) => {
+            if (!model) return
+
+            try {
+
+      const outputs = model.run([resized]);
+      console.log("POLEResult outputs:", outputs?.length ?? "no result");
+      // Most YOLO TFLite models return:
+      // [boxes, scores, classes, num_detections]
+      const num = Array.isArray(outputs) && outputs.length >= 4
+        ? outputs?.[3]?.[0]
+        : 0;
+
+        console.log("POLEResult num_detections:", num);
+        const detection_boxes = outputs?.[0]
+        const detection_classes = outputs?.[1]
+        const detection_scores = outputs?.[2]
+        const num_detections = outputs?.[3]
+        console.log(`POLEDetected ${num_detections} objects!`)
+        if(frameProcessorResults.value){
+            frameProcessorResults.value = [...frameProcessorResults.value, { num_detections, detection_boxes, detection_classes, detection_scores }];
+        }
+        /*
+        for (let i = 0; i < detection_boxes.length; i += 4) {
+            const confidence = detection_scores[i / 4]
+            if (confidence > 0.7) {
+                // 4. Draw a red box around the detected object!
+                const left = detection_boxes[i]
+                const top = detection_boxes[i + 1]
+                const right = detection_boxes[i + 2]
+                const bottom = detection_boxes[i + 3]
+                const rect = SkRect.Make(left, top, right, bottom)
+                canvas.drawRect(rect, SkColors.Red)
+            }
+        }*/
+
+            // update state if you want UI overlays
+            // setDetections(...)
+            } 
+            catch (e) {
+               console.warn("TF async failed", e)
+            }
+        },
+        [model]
+    )
 
   const frameProcessor = useFrameProcessor((frame) => {
     "worklet";
@@ -31,49 +77,16 @@ export const usePoleDetection = () => {
       // Resize on native thread (fast)
       const resized = resize(frame, {
         scale: { 
-            width: 640, 
-            height: 640 
+            width: 320, 
+            height: 320 
         },
         pixelFormat: "rgb",
         dataType: "float32",
       });
-      console.log("POLEResult resized:", resized?.length);
-      // IMPORTANT:
-      // Most TFLite JSI runners want a single tensor, not `[tensor]`
-      // Keep `[resized]` ONLY if your model specifically requires multi-input
-      const outputs = model.runSync([resized]);
-      console.log("POLEResult outputs:", outputs?.length ?? "no result");
-      // Most YOLO TFLite models return:
-      // [boxes, scores, classes, num_detections]
-      const num = Array.isArray(outputs) && outputs.length >= 4
-        ? outputs?.[3]?.[0]
-        : 0;
 
-        console.log("POLEResult num_detections:", num);
-        const detection_boxes = outputs?.[0]
-        const detection_classes = outputs?.[1]
-        const detection_scores = outputs?.[2]
-        const num_detections = outputs?.[3]
-        console.log(`POLEDetected ${num_detections?.[0]} objects!`)
-        if(frameProcessorResults.value){
-            frameProcessorResults.value = [...frameProcessorResults.value, { num_detections, detection_boxes, detection_classes, detection_scores }];
-        }
-        /*
-        for (let i = 0; i < detection_boxes.length; i += 4) {
-            const confidence = detection_scores[i / 4]
-            if (confidence > 0.7) {
-                // 4. Draw a red box around the detected object!
-                const left = detection_boxes[i]
-                const top = detection_boxes[i + 1]
-                const right = detection_boxes[i + 2]
-                const bottom = detection_boxes[i + 3]
-                const rect = SkRect.Make(left, top, right, bottom)
-                canvas.drawRect(rect, SkColors.Red)
-            }
-        }*/
       // Push result back to JS thread safely
-      //scheduleOnRN(updateCameraResults, outputs);
-  }, [model, frameProcessorResults]);
+      scheduleOnRN(runObjectDetectionAsync, resized);
+  }, [model, frameProcessorResults, runObjectDetectionAsync]);
 
-  return { cameraResults, frameProcessor };
+  return { cameraResults, frameProcessorResults, frameProcessor };
 };

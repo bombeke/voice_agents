@@ -229,6 +229,7 @@ function modelToString(model: TensorflowModel): string {
                 audio={microphone.hasPermission}
                 enableLocation={location.hasPermission}
                 frameProcessor={frameProcessor}
+                frameProcessorFps={10}
               />
       ) : (
         <View style={styles.emptyContainer}>
