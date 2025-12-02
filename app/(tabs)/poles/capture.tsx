@@ -178,45 +178,10 @@ function modelToString(model: TensorflowModel): string {
     location.requestPermission()
   }, [location])
   
-  
-  /*const model = useTensorflowModel(require('../../../assets/yolo11n_float16.tflite'))
-  const actualModel = model.state === 'loaded' ? model.model : undefined
 
-  useEffect(() => {
-    if (actualModel == null) return
-    console.log(`Model loaded! Shape:\n${modelToString(actualModel)}]`)
-  }, [actualModel])
-  */
   useEffect(() => {
     requestPermission();
   }, []);
-
- 
-  console.log("POLERESULT2:",cameraResults);
-  /*const { resize } = useResizePlugin()
-  const frameProcessor = useFrameProcessor((frame) => {
-    'worklet'
-   if (actualModel == null) {
-      // model is still loading...
-      return
-    }
-    runAtTargetFps(5, () => {
-      'worklet'
-      console.log(`${frame.timestamp}: ${frame.width}x${frame.height} ${frame.pixelFormat} Frame (${frame.orientation})`)
-      const resized = resize(frame, {
-        scale: {
-          width: 320,
-          height: 320,
-        },
-        pixelFormat: 'rgb',
-        dataType: 'uint8',
-      })
-      const result = actualModel.runSync([resized])
-      setCameraResults(result);
-      const num_detections = result[3]?.[0] ?? 0
-      Alert.alert('Result: ', num_detections)
-    })
-  }, [])*/
 
   const videoHdr = format?.supportsVideoHdr && enableHdr
   const photoHdr = format?.supportsPhotoHdr && enableHdr && !videoHdr

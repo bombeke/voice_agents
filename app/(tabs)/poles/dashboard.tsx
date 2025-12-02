@@ -68,7 +68,7 @@ const PoleDetailModal = ({ pole, onClose }: any) => {
           <div className="flex justify-between items-start">
             <div>
               <div className="text-sm text-slate-500">Pole Detail</div>
-              <h3 className="text-xl font-semibold">{pole.id} — {pole.type}</h3>
+              <div className="text-xl font-semibold">{pole.id} — {pole.type}</div>
               <div className="text-sm text-slate-400">{pole.location} • Owner: {pole.owner}</div>
             </div>
             <div>
@@ -130,7 +130,7 @@ export default function PoleVisionMockup() {
     <div className="min-h-screen bg-slate-50 p-6">
       <header className="max-w-7xl mx-auto mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">PoleVision™ Dashboard</h1>
+          <div className="text-2xl font-bold">PoleVision™ Dashboard</div>
           <p className="text-sm text-slate-500">Unified pole monitoring for power, telecom & environment</p>
         </div>
         <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export default function PoleVisionMockup() {
 
           <div className="bg-white p-4 rounded-2xl shadow">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">City Overview</h2>
+              <div className="text-lg font-semibold">City Overview</div>
               <div className="flex gap-2 items-center">
                 <select className="px-3 py-2 rounded-lg border border-slate-200 text-sm">
                   <option>Kampala</option>
@@ -171,7 +171,7 @@ export default function PoleVisionMockup() {
 
           <div className="bg-white p-4 rounded-2xl shadow">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Pole Registry</h3>
+              <div className="text-lg font-semibold">Pole Registry</div>
               <div className="text-sm text-slate-500">Tap a row to open detail</div>
             </div>
             <DataTable rows={rows} onSelect={(r: any) => setSelected(r)} />
@@ -180,7 +180,7 @@ export default function PoleVisionMockup() {
 
         <aside className="space-y-6">
           <div className="bg-white p-4 rounded-2xl shadow">
-            <h3 className="text-md font-semibold mb-2">Telecom Clutter</h3>
+            <div className="text-md font-semibold mb-2">Telecom Clutter</div>
             <div className="text-sm text-slate-500 mb-3">Top clusters & recommendations</div>
             <div className="space-y-2">
               <div className="p-3 rounded-lg bg-orange-50">Cluster C-0081 • Poles: 12 • Recommendation: Consolidate 8</div>
@@ -192,7 +192,7 @@ export default function PoleVisionMockup() {
           </div>
 
           <div className="bg-white p-4 rounded-2xl shadow">
-            <h3 className="text-md font-semibold mb-2">Environment & Birds</h3>
+            <div className="text-md font-semibold mb-2">Environment & Birds</div>
             <div className="text-sm text-slate-500 mb-3">Nesting zones & migration windows</div>
             <ul className="text-sm text-slate-600 list-disc list-inside space-y-1">
               <li>142 poles with active nests</li>
@@ -205,7 +205,7 @@ export default function PoleVisionMockup() {
           </div>
 
           <div className="bg-white p-4 rounded-2xl shadow">
-            <h3 className="text-md font-semibold mb-2">Maintenance Queue</h3>
+            <div className="text-md font-semibold mb-2">Maintenance Queue</div>
             <div className="text-sm text-slate-500 mb-3">Active & upcoming tasks</div>
             <div className="space-y-2 text-sm text-slate-600">
               <div className="p-2 rounded-lg bg-slate-50">P-00933 • Leaning • Priority: High</div>
