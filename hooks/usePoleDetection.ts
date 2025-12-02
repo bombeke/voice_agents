@@ -46,16 +46,18 @@ export const usePoleDetection = () => {
       // Most YOLO TFLite models return:
       // [boxes, scores, classes, num_detections]
       const num = Array.isArray(outputs) && outputs.length >= 4
-        ? outputs[3][0]
+        ? outputs?.[3]?.[0]
         : 0;
 
         console.log("POLEResult num_detections:", num);
-        const detection_boxes = outputs[0]
-        const detection_classes = outputs[1]
-        const detection_scores = outputs[2]
-        const num_detections = outputs[3]
-        console.log(`POLEDetected ${num_detections[0]} objects!`)
-        frameProcessorResults.value = [...frameProcessorResults.value, { num_detections, detection_boxes, detection_classes, detection_scores }];
+        const detection_boxes = outputs?.[0]
+        const detection_classes = outputs?.[1]
+        const detection_scores = outputs?.[2]
+        const num_detections = outputs?.[3]
+        console.log(`POLEDetected ${num_detections?.[0]} objects!`)
+        if(frameProcessorResults.value){
+            frameProcessorResults.value = [...frameProcessorResults.value, { num_detections, detection_boxes, detection_classes, detection_scores }];
+        }
         /*
         for (let i = 0; i < detection_boxes.length; i += 4) {
             const confidence = detection_scores[i / 4]
