@@ -31,18 +31,18 @@ export const usePoleDetection = () => {
       // Resize on native thread (fast)
       const resized = resize(frame, {
         scale: { 
-            width: 192, 
-            height: 192 
+            width: 320, 
+            height: 320 
         },
         pixelFormat: "rgb",
         dataType: "uint8",
       });
-
+      console.log("POLEResult resized:", resized);
       // IMPORTANT:
       // Most TFLite JSI runners want a single tensor, not `[tensor]`
       // Keep `[resized]` ONLY if your model specifically requires multi-input
       const outputs = model.runSync([resized]);
-
+      console.log("POLEResult outputs:", outputs);
       // Most YOLO TFLite models return:
       // [boxes, scores, classes, num_detections]
       const num = Array.isArray(outputs) && outputs.length >= 4
