@@ -54,17 +54,17 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={styles.container}>
-    <TamaguiProvider config={config}>
-      <MMKVProvider storage={storage}>
-        <CachedModelProvider model= { model}>
-          <SafeAreaProvider>
-            <RootLayoutNav/>
-          </SafeAreaProvider> 
-        </CachedModelProvider>
-      </MMKVProvider>
-    </TamaguiProvider>    
-     </GestureHandlerRootView>
+      <GestureHandlerRootView style={styles.container}>
+        <TamaguiProvider config={config}>
+          <MMKVProvider storage={storage}>
+            <CachedModelProvider model= { model}>
+              <SafeAreaProvider>
+                <RootLayoutNav/>
+              </SafeAreaProvider> 
+            </CachedModelProvider>
+          </MMKVProvider>
+        </TamaguiProvider>    
+      </GestureHandlerRootView>
     </QueryClientProvider>
   );
 }

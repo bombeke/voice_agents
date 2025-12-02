@@ -1,40 +1,77 @@
 import { useCachedTensorModel } from "@/components/ModelContext";
-import { useState } from "react";
-import { runAtTargetFps, useFrameProcessor } from "react-native-vision-camera";
-import { scheduleOnRN } from 'react-native-worklets';
+import { useCallback, useState } from "react";
+import { useSharedValue } from "react-native-reanimated";
+import { useFrameProcessor } from "react-native-vision-camera";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
-export const usePoleDetection=()=>{
+export const usePoleDetection = () => {
     const [cameraResults, setCameraResults] = useState<any[]>([]);
+    const frameProcessorResults = useSharedValue<any[]>([]);
     const { resize } = useResizePlugin();
     const model = useCachedTensorModel();
+    console.log("POLEResult model:", model);
 
-    const updateCameraResults = (results: any[]) => {
+    const updateCameraResults = useCallback((results: any[]) => {
         setCameraResults(results);
-    };
+    }, []);
 
-    const frameProcessor = useFrameProcessor((frame) => {
-        'worklet'
-        if (model == null) {
-            // model is still loading...
-            return
-        }
-        runAtTargetFps(10, () => {
-            'worklet'
-            console.log(`${frame.timestamp}: ${frame.width}x${frame.height} ${frame.pixelFormat} Frame (${frame.orientation})`)
-            const resized = resize(frame, {
-            scale: {
-                width: 320,
-                height: 320,
-            },
-            pixelFormat: 'rgb',
-            dataType: 'uint8',
-            })
-            const result = model.runSync([resized])
-            const num_detections = result[3]?.[0] ?? 0
-            console.log('POLEResult: ' + num_detections)
-            scheduleOnRN(updateCameraResults, result);
-        })
-    }, [model, updateCameraResults])
-    return { cameraResults, frameProcessor }
-}
+  const frameProcessor = useFrameProcessor((frame) => {
+    "worklet";
+
+    if (model == null) {
+      // still loading model
+      return;
+    }
+
+      // Debug frame info
+      console.log(
+        `POLEFRAME::::${frame.timestamp}: ${frame.width}x${frame.height} ${frame.pixelFormat} Frame (${frame.orientation})`
+      );
+
+      // Resize on native thread (fast)
+      const resized = resize(frame, {
+        scale: { 
+            width: 192, 
+            height: 192 
+        },
+        pixelFormat: "rgb",
+        dataType: "uint8",
+      });
+
+      // IMPORTANT:
+      // Most TFLite JSI runners want a single tensor, not `[tensor]`
+      // Keep `[resized]` ONLY if your model specifically requires multi-input
+      const outputs = model.runSync([resized]);
+
+      // Most YOLO TFLite models return:
+      // [boxes, scores, classes, num_detections]
+      const num = Array.isArray(outputs) && outputs.length >= 4
+        ? outputs[3][0]
+        : 0;
+
+        console.log("POLEResult num_detections:", outputs);
+        const detection_boxes = outputs[0]
+        const detection_classes = outputs[1]
+        const detection_scores = outputs[2]
+        const num_detections = outputs[3]
+        console.log(`POLEDetected ${num_detections[0]} objects!`)
+        frameProcessorResults.value = [...frameProcessorResults.value, { num_detections, detection_boxes, detection_classes, detection_scores }];
+        /*
+        for (let i = 0; i < detection_boxes.length; i += 4) {
+            const confidence = detection_scores[i / 4]
+            if (confidence > 0.7) {
+                // 4. Draw a red box around the detected object!
+                const left = detection_boxes[i]
+                const top = detection_boxes[i + 1]
+                const right = detection_boxes[i + 2]
+                const bottom = detection_boxes[i + 3]
+                const rect = SkRect.Make(left, top, right, bottom)
+                canvas.drawRect(rect, SkColors.Red)
+            }
+        }*/
+      // Push result back to JS thread safely
+      //scheduleOnRN(updateCameraResults, outputs);
+  }, [model, frameProcessorResults]);
+
+  return { cameraResults, frameProcessor };
+};

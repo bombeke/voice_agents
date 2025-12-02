@@ -21,6 +21,7 @@ export const CachedModelProvider = ({
 export const useCachedTensorModel =()=> {
   const ctx = useContext(CachedModelContext);
   if (!ctx) {
+    console.log("POLENULLL")
     return null;
   };
   return ctx;
