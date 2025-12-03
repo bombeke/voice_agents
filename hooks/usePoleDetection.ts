@@ -1,26 +1,33 @@
 import { useCachedTensorModel } from "@/components/ModelContext";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useSharedValue } from "react-native-reanimated";
 import { useFrameProcessor } from "react-native-vision-camera";
 import { scheduleOnRN } from "react-native-worklets";
 import { useResizePlugin } from "vision-camera-resize-plugin";
+import { parseYOLO } from "./parseYoloModel";
 
 export const usePoleDetection = () => {
     const [cameraResults, setCameraResults] = useState<any[]>([]);
     const frameProcessorResults = useSharedValue<any[]>([]);
     const { resize } = useResizePlugin();
-    const model = useCachedTensorModel();
+    const model = useCachedTensorModel(); // Yolo11n.tflite using react-native-fast-tflite
+    const lastInference = useRef(0);
+    
     console.log("POLEResult model:", model);
 
     const updateCameraResults = useCallback((results: any[]) => {
         setCameraResults(results);
     }, []);
-    const runObjectDetectionAsync = useCallback(async (resized: any) => {
-            if (!model) return
+    const runObjectDetectionAsync = useCallback(async (rgbFloatNorm:  Float32Array) => {
+      if (!model) return
 
-            try {
-
-      const outputs = model.run([resized]);
+      try {
+        const input = {
+          data: rgbFloatNorm,
+          shape: [1, 640, 640, 3],
+          dataType: "float32",
+        };
+      const outputs = model.run([input]);
       console.log("POLEResult outputs:", outputs?.length ?? "no result");
       // Most YOLO TFLite models return:
       // [boxes, scores, classes, num_detections]
@@ -34,9 +41,10 @@ export const usePoleDetection = () => {
         const detection_scores = outputs?.[2]
         const num_detections = outputs?.[3]
         console.log(`POLEDetected ${num_detections} objects!`)
-        if(frameProcessorResults.value){
-            frameProcessorResults.value = [...frameProcessorResults.value, { num_detections, detection_boxes, detection_classes, detection_scores }];
-        }
+        const pred = outputs[0]; // YOLO output
+
+        const detections = parseYOLO(pred as Float32Array);
+        frameProcessorResults.value = detections;
         /*
         for (let i = 0; i < detection_boxes.length; i += 4) {
             const confidence = detection_scores[i / 4]
@@ -73,19 +81,32 @@ export const usePoleDetection = () => {
       console.log(
         `POLEFRAME::::${frame.timestamp}: ${frame.width}x${frame.height} ${frame.pixelFormat} Frame (${frame.orientation})`
       );
+      // -------------- Throttle to ~10 FPS --------------
+      const now = frame.timestamp / 1000000; // microseconds → ms
+      if (now - lastInference.current < 80) return;
+      lastInference.current = now;
 
-      // Resize on native thread (fast)
+      // -------------- Resize natively --------------
       const resized = resize(frame, {
-        scale: { 
-            width: 640, 
-            height: 640 
-        },
+        scale: { width: 640, height: 640 },
         pixelFormat: "rgb",
         dataType: "float32",
       });
 
+  
+    
+
       // Push result back to JS thread safely
       scheduleOnRN(runObjectDetectionAsync, resized);
+
+          // -------------- Convert to JS-friendly array --------------
+      const arr = resized;//.toArray(); // Float32Array 0–255 RGB
+
+      // -------------- Normalize 0–1 for YOLO --------------
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = arr[i] / 255;
+      }
+      console.log("POLEEND")
   }, [model, frameProcessorResults, runObjectDetectionAsync]);
 
   return { cameraResults, frameProcessorResults, frameProcessor };

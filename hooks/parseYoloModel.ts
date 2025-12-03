@@ -39,3 +39,51 @@ export function parseYolo11(buffer: any) {
 
   return out;
 }
+
+
+export function parseYOLO(output: Float32Array) {
+  // Output is [1, 8400, 84] → flatten → length = 8400 * 84
+  const stride = 84;
+  const numBoxes = output.length / stride;
+
+  const results = [];
+
+  for (let i = 0; i < numBoxes; i++) {
+    const off = i * stride;
+
+    const x = output[off + 0];
+    const y = output[off + 1];
+    const w = output[off + 2];
+    const h = output[off + 3];
+
+    const objectness = output[off + 4];
+
+    // Find best class
+    let bestClass = 0;
+    let bestScore = 0;
+
+    for (let c = 0; c < 80; c++) {
+      const score = output[off + 5 + c];
+      if (score > bestScore) {
+        bestScore = score;
+        bestClass = c;
+      }
+    }
+
+    const confidence = objectness * bestScore;
+
+    // CLASS 0 = PERSON
+    if (bestClass === 0 && confidence > 0.30) {
+      results.push({
+        class: "person",
+        confidence,
+        x,
+        y,
+        w,
+        h,
+      });
+    }
+  }
+
+  return results;
+}
