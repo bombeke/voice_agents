@@ -77,8 +77,8 @@ export const usePoleDetection = () => {
       // Resize on native thread (fast)
       const resized = resize(frame, {
         scale: { 
-            width: 320, 
-            height: 320 
+            width: 640, 
+            height: 640 
         },
         pixelFormat: "rgb",
         dataType: "float32",

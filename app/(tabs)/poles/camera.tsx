@@ -1,6 +1,8 @@
 import Colors from '@/constants/Colors';
 //import { useUtilityPoles } from '@/providers/UtilityStoreProvider';
 //import { generateText } from '@rork-ai/toolkit-sdk';
+import { useCachedTensorModel } from '@/components/ModelContext';
+import { Skia } from "@shopify/react-native-skia";
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
@@ -17,6 +19,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSharedValue } from 'react-native-reanimated';
+import { useResizePlugin } from "vision-camera-resize-plugin";
+
 
 export default function CameraScreen() {
   const [facing] = useState<CameraType>('back');
@@ -24,6 +29,9 @@ export default function CameraScreen() {
   const [locationPermission, requestLocationPermission] = useForegroundPermissions();
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [lastCapture, setLastCapture] = useState<string | null>(null);
+  const { resize } = useResizePlugin();
+  const model = useCachedTensorModel();
+  const frameProcessorResults = useSharedValue<any[]>([]);
   
   //const { addPole, isAddingPole } = useUtilityPoles();
   const cameraRef = useRef<any>(null);
@@ -69,6 +77,46 @@ export default function CameraScreen() {
         quality: 0.8,
         base64: true,
       });
+      // Convert base64 → skImage
+      const image = Skia.Image.MakeImageFromEncoded(
+        Skia.Data.fromBase64(photo.base64)
+      );
+      if(!model || !image) return;
+      // Get raw RGBA pixels
+      const frame: any = image.readPixels();
+      // Resize on native thread (fast)
+      const resized = resize(frame, {
+        scale: { 
+            width: 640, 
+            height: 640 
+        },
+        pixelFormat: "rgb",
+        dataType: "float32",
+      });
+
+      try {
+
+        const outputs = model.run([resized]);
+        console.log("POLEResult outputs:", outputs?.length ?? "no result");
+        // Most YOLO TFLite models return:
+        // [boxes, scores, classes, num_detections]
+        const num = Array.isArray(outputs) && outputs.length >= 4
+          ? outputs?.[3]?.[0]
+          : 0;
+
+          console.log("POLEResult num_detections:", num);
+          const detection_boxes = outputs?.[0]
+          const detection_classes = outputs?.[1]
+          const detection_scores = outputs?.[2]
+          const num_detections = outputs?.[3]
+          console.log(`POLEDetected ${num_detections} objects!`)
+          if(frameProcessorResults.value){
+              frameProcessorResults.value = [...frameProcessorResults.value, { num_detections, detection_boxes, detection_classes, detection_scores }];
+          }
+      } 
+      catch (e) {
+          console.warn("TF async failed", e)
+      }
 
       console.log('[Camera] Photo captured:', photo.uri);
       console.log('[Camera] Location:', locationResult.coords);
