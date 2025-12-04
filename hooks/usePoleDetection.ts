@@ -2,7 +2,6 @@ import { useCachedTensorModel } from "@/components/ModelContext";
 import { useCallback, useRef, useState } from "react";
 import { useSharedValue } from "react-native-reanimated";
 import { useFrameProcessor } from "react-native-vision-camera";
-import { scheduleOnRN } from "react-native-worklets";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 import { parseYOLO } from "./parseYoloModel";
 
@@ -99,9 +98,54 @@ export const usePoleDetection = () => {
 
   
       console.log("IXmage2")
+//try {
+        console.log("IXmage1")
+        const input = {
+          data: resized,
+          shape: [1, 640, 640, 3],
+          dataType: "float32",
+        };
+      const outputs = model.runSync([input]);
+      console.log("POLEResult outputs:", outputs?.length ?? "no result");
+      // Most YOLO TFLite models return:
+      // [boxes, scores, classes, num_detections]
+      const num = Array.isArray(outputs) && outputs.length >= 4
+        ? outputs?.[3]?.[0]
+        : 0;
+
+        console.log("POLEResult num_detections:", num);
+        const detection_boxes = outputs?.[0]
+        const detection_classes = outputs?.[1]
+        const detection_scores = outputs?.[2]
+        const num_detections = outputs?.[3]
+        console.log(`POLEDetected ${num_detections} objects!`)
+        const pred = outputs[0]; // YOLO output
+
+        const detections = parseYOLO(pred as Float32Array);
+        frameProcessorResults.value = detections;
+        /*
+        for (let i = 0; i < detection_boxes.length; i += 4) {
+            const confidence = detection_scores[i / 4]
+            if (confidence > 0.7) {
+                // 4. Draw a red box around the detected object!
+                const left = detection_boxes[i]
+                const top = detection_boxes[i + 1]
+                const right = detection_boxes[i + 2]
+                const bottom = detection_boxes[i + 3]
+                const rect = SkRect.Make(left, top, right, bottom)
+                canvas.drawRect(rect, SkColors.Red)
+            }
+        }*/
+
+            // update state if you want UI overlays
+            // setDetections(...)
+            //} 
+            //catch (e) {
+            //   console.warn("TF async failed", e)
+            //}
 
       // Push result back to JS thread safely
-      scheduleOnRN(runObjectDetectionAsync, resized);
+      //scheduleOnRN(runObjectDetectionAsync, resized);
 
           // -------------- Convert to JS-friendly array --------------
       const arr = resized;//.toArray(); // Float32Array 0–255 RGB

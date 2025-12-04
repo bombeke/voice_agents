@@ -2,10 +2,12 @@ import Colors from '@/constants/Colors';
 //import { useUtilityPoles } from '@/providers/UtilityStoreProvider';
 //import { generateText } from '@rork-ai/toolkit-sdk';
 import { useCachedTensorModel } from '@/components/ModelContext';
-import { Skia } from "@shopify/react-native-skia";
+import { base64ToTensor } from '@/hooks/Helpers';
+
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Accuracy, getCurrentPositionAsync, useForegroundPermissions } from 'expo-location';
 import { router, Stack } from 'expo-router';
 import { Camera, Check, X } from 'lucide-react-native';
@@ -20,8 +22,6 @@ import {
   View,
 } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
-import { useResizePlugin } from "vision-camera-resize-plugin";
-
 
 export default function CameraScreen() {
   const [facing] = useState<CameraType>('back');
@@ -29,7 +29,6 @@ export default function CameraScreen() {
   const [locationPermission, requestLocationPermission] = useForegroundPermissions();
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [lastCapture, setLastCapture] = useState<string | null>(null);
-  const { resize } = useResizePlugin();
   const model = useCachedTensorModel();
   const frameProcessorResults = useSharedValue<any[]>([]);
   
@@ -77,29 +76,27 @@ export default function CameraScreen() {
         quality: 0.8,
         base64: true,
       });
-      // Convert base64 → skImage
-      const image = Skia.Image.MakeImageFromEncoded(
-        Skia.Data.fromBase64(photo.base64)
+      const resized = await manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 640, height: 640 } }],
+        { compress: 1, format: SaveFormat.PNG, base64: true }
       );
-      console.log("Image1")
-      if(!model || !image) return;
-      // Get raw RGBA pixels
-      console.log("Image2")
-      const frame: any = image.readPixels();
-      console.log("Image3")
-      // Resize on native thread (fast)
-      const resized = resize(frame, {
-        scale: { 
-            width: 640, 
-            height: 640 
-        },
-        pixelFormat: "rgb",
-        dataType: "float32",
-      });
+      const { tensor, width, height } = base64ToTensor(resized.base64);
+
+
+      // Convert to float32 RGB
+      //const tensor = rgbaToFloatRGB(resized, 640, 640);
+        const inputs =  {
+          data: tensor,
+          width: width,
+          height: height,
+          pixelFormat: "rgb",
+          dataType: "float32"
+        }
       console.log("Image4")
       try {
 
-        const outputs = model.run([resized]);
+        const outputs = model.run([inputs]);
         console.log("POLEResult outputs:", outputs?.length ?? "no result");
         // Most YOLO TFLite models return:
         // [boxes, scores, classes, num_detections]
