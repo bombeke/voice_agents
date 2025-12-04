@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTensorflowModel } from "react-native-fast-tflite";
 
 export const useCachedModel =()=>{
-    const {model, state} = useTensorflowModel(require('@/assets/yolo11n_float16.tflite'));
+    const {model, state} = useTensorflowModel(require('@/assets/ssd_mobilenet_v1.tflite'));
     
     const [cachedModel, setCachedModel] = useState<any | null>(null);
 

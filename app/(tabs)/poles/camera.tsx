@@ -15,6 +15,7 @@ import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
   Platform,
   StyleSheet,
   Text,
@@ -22,6 +23,8 @@ import {
   View,
 } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
+
+const { width: sWidth, height: sHeight } = Dimensions.get('window');
 
 export default function CameraScreen() {
   const [facing] = useState<CameraType>('back');
@@ -97,22 +100,46 @@ export default function CameraScreen() {
       try {
 
         const outputs = model.run([inputs]);
-        console.log("POLEResult outputs:", outputs?.length ?? "no result");
-        // Most YOLO TFLite models return:
-        // [boxes, scores, classes, num_detections]
-        const num = Array.isArray(outputs) && outputs.length >= 4
-          ? outputs?.[3]?.[0]
-          : 0;
+        if (!outputs || outputs.length < 4) return []
 
-          console.log("POLEResult num_detections:", num);
-          const detection_boxes = outputs?.[0]
-          const detection_classes = outputs?.[1]
-          const detection_scores = outputs?.[2]
-          const num_detections = outputs?.[3]
-          console.log(`POLEDetected ${num_detections} objects!`)
-          if(frameProcessorResults.value){
-              frameProcessorResults.value = [...frameProcessorResults.value, { num_detections, detection_boxes, detection_classes, detection_scores }];
-          }
+              const boxes = outputs[0]        // Object with string keys (40 elements: 10 detections × 4 coordinates each)
+              const classes = outputs[1]      // Object with string keys (class indices)
+              const scores = outputs[2]       // Object with string keys (confidence scores)
+              const numDetections = outputs[3][0] // Single value: number of valid detections
+
+              const detectedObjects = []
+              const count = Math.min(numDetections, 10)
+
+              for (let i = 0; i < count; i++) {
+                // All outputs are objects with string keys
+                const score = scores[i.toString()]
+
+                if (score < 0.5) continue
+
+                const classIndex = Math.floor(classes[i.toString()])
+                const label =  `Class ${classIndex}`
+
+                // Get bounding box coordinates (normalized 0-1)
+                const ymin = boxes[(i * 4 + 0).toString()]
+                const xmin = boxes[(i * 4 + 1).toString()]
+                const ymax = boxes[(i * 4 + 2).toString()]
+                const xmax = boxes[(i * 4 + 3).toString()]
+
+                const object = {
+                  id: `${i}-${performance.now()}`,
+                  label,
+                  confidence: score,
+                  box: {
+                    x: Math.max(0, xmin * sWidth),
+                    y: Math.max(0, ymin * sHeight),
+                    width: Math.min(sWidth, (xmax - xmin) * sWidth),
+                    height: Math.min(sHeight, (ymax - ymin) * sHeight),
+                  },
+                }
+
+                detectedObjects.push(object)
+                console.log("POLE:Detect:",detectedObjects?.length)
+              }
       } 
       catch (e) {
           console.warn("TF async failed", e)

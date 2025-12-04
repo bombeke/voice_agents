@@ -65,7 +65,7 @@ function modelToString(model: TensorflowModel): string {
   const [flash, setFlash] = useState<'off' | 'on'>('off')
   const [enableNightMode, setEnableNightMode] = useState(false)
   //const [cameraResults, setCameraResults] = useState<any[]>([]); 
-  const { cameraResults, frameProcessor } = usePoleDetection();
+  const { cameraResults, detections, frameProcessor } = usePoleDetection();
 
 
   // camera device settings
@@ -236,7 +236,29 @@ function modelToString(model: TensorflowModel): string {
           <Text style={styles.text}>Your phone does not have a Camera.</Text>
         </View>
       )}
-
+      {/* Overlay for bounding boxes */}
+            <View style={styles.overlay}>
+              {detections.map((detection) => (
+                <View
+                  key={detection.id}
+                  style={[
+                    styles.boundingBox,
+                    {
+                      left: detection.box.x,
+                      top: detection.box.y,
+                      width: detection.box.width,
+                      height: detection.box.height,
+                    }
+                  ]}
+                >
+                  <View style={styles.labelContainer}>
+                    <Text style={styles.label}>
+                      {detection.label} ({Math.round(detection.confidence * 100)}%)
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
       <CaptureButton
         style={styles.captureButton}
         camera={camera as any}
@@ -327,6 +349,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+  boundingBox: {
+    position: 'absolute',
+    borderWidth: 2,
+    borderColor: '#00ff00',
+    backgroundColor: 'transparent',
+  },
+  labelContainer: {
+    position: 'absolute',
+    top: -30,
+    left: 0,
+    backgroundColor: '#00ff00',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 3,
+  },
+  label: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   cameraContainer: StyleSheet.absoluteFillObject,
   camera: StyleSheet.absoluteFillObject,
