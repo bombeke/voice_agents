@@ -29,10 +29,10 @@ export default function App() {
   const [fps, setFps] = useState(0)
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.5)
 
-  const model = useTensorflowModel(require('./models/ssd_mobilenet_v1.tflite'))
+  const model = useTensorflowModel(require('../assets/ssd_mobilenet_v1.tflite'))
   const actualModel = model.state === 'loaded' ? model.model : undefined
 
-  const labels = require('./models/labels.json')
+  const labels = require('../assets/labels.json')
 
   const { resize } = useResizePlugin()
 
