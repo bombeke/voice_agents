@@ -21,7 +21,8 @@ export const usePoleDetection = () => {
     const runObjectDetectionAsync = useCallback(async (rgbFloatNorm:  Float32Array) => {
       if (!model) return
 
-      try {
+      //try {
+        console.log("IXmage1")
         const input = {
           data: rgbFloatNorm,
           shape: [1, 640, 640, 3],
@@ -61,10 +62,10 @@ export const usePoleDetection = () => {
 
             // update state if you want UI overlays
             // setDetections(...)
-            } 
-            catch (e) {
-               console.warn("TF async failed", e)
-            }
+            //} 
+            //catch (e) {
+            //   console.warn("TF async failed", e)
+            //}
         },
         [model]
     )
@@ -88,13 +89,16 @@ export const usePoleDetection = () => {
 
       // -------------- Resize natively --------------
       const resized = resize(frame, {
-        scale: { width: 640, height: 640 },
+        scale: { 
+          width: 640, 
+          height: 640 
+        },
         pixelFormat: "rgb",
         dataType: "float32",
       });
 
   
-    
+      console.log("IXmage2")
 
       // Push result back to JS thread safely
       scheduleOnRN(runObjectDetectionAsync, resized);

@@ -81,9 +81,12 @@ export default function CameraScreen() {
       const image = Skia.Image.MakeImageFromEncoded(
         Skia.Data.fromBase64(photo.base64)
       );
+      console.log("Image1")
       if(!model || !image) return;
       // Get raw RGBA pixels
+      console.log("Image2")
       const frame: any = image.readPixels();
+      console.log("Image3")
       // Resize on native thread (fast)
       const resized = resize(frame, {
         scale: { 
@@ -93,7 +96,7 @@ export default function CameraScreen() {
         pixelFormat: "rgb",
         dataType: "float32",
       });
-
+      console.log("Image4")
       try {
 
         const outputs = model.run([resized]);
@@ -171,7 +174,8 @@ export default function CameraScreen() {
       }
 
       setTimeout(() => setLastCapture(null), 3000);
-    } catch (error) {
+    } 
+    catch (error) {
       console.error('[Camera] Error capturing:', error);
       setLastCapture('Error capturing pole. Please try again.');
       
