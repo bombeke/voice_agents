@@ -15,6 +15,9 @@ export default function PolesIndex() {
       <Link href="/poles/camera" asChild>
         <Button>Camera</Button>
       </Link>
+      <Link href="/poles/vision" asChild>
+        <Button>Vison Camera</Button>
+      </Link>
       <Link href="/poles/dashboard" asChild>
         <Button>Dashboard</Button>
       </Link>

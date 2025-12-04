@@ -81,7 +81,7 @@ export default function CameraScreen() {
       });
       const resized = await manipulateAsync(
         photo.uri,
-        [{ resize: { width: 640, height: 640 } }],
+        [{ resize: { width: 300, height: 300} }],
         { compress: 1, format: SaveFormat.PNG, base64: true }
       );
       const { tensor, width, height } = base64ToTensor(resized.base64);
@@ -99,7 +99,7 @@ export default function CameraScreen() {
       console.log("Image4")
       try {
         if (!model) return [];
-        
+
         const outputs = model.run([inputs]);
         if (!outputs || outputs.length < 4) return []
 
