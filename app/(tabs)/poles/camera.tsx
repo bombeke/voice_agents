@@ -34,7 +34,7 @@ export default function CameraScreen() {
   const [lastCapture, setLastCapture] = useState<string | null>(null);
   const model = useCachedTensorModel();
   const frameProcessorResults = useSharedValue<any[]>([]);
-  
+  console.log("LOG Model:",model)
   //const { addPole, isAddingPole } = useUtilityPoles();
   const cameraRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -98,7 +98,8 @@ export default function CameraScreen() {
         }
       console.log("Image4")
       try {
-
+        if (!model) return [];
+        
         const outputs = model.run([inputs]);
         if (!outputs || outputs.length < 4) return []
 
