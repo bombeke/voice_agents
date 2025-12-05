@@ -9,6 +9,7 @@ import { useResizePlugin } from "vision-camera-resize-plugin";
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 let lastFrameTime = 0;
 export const usePoleDetection = () => {
+    const labels = require('@/assets/labels.json');
     const [cameraResults, setCameraResults] = useState<any[]>([]);
     const frameProcessorResults = useSharedValue<any[]>([]);
     const { resize } = useResizePlugin();
@@ -37,7 +38,7 @@ export const usePoleDetection = () => {
         if (score < threshold) continue
 
         const classIndex = Math.floor(classes[i.toString()])
-        const label =  `Class ${classIndex}`
+        const label =  labels[classIndex.toString()] || `Class ${classIndex}`
 
         // Get bounding box coordinates (normalized 0-1)
         const ymin = boxes[(i * 4 + 0).toString()]

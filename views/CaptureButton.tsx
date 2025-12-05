@@ -231,26 +231,30 @@ export default function CaptureButton({
 
     pressStart.current = now;
     isPressing.value = true;
-    setIsPressingButton(true);
-
+    //setIsPressingButton(true);
+    console.log("END TOUCH0")
     // long press -> start recording
     setTimeout(() => {
       if (pressStart.current === now) startRecording();
     }, START_RECORDING_DELAY);
+    console.log("END TOUCH1")
   };
 
   const handlePressOut = () => {
     const diff = Date.now() - (pressStart.current ?? 0);
 
     if (diff < START_RECORDING_DELAY) {
+      console.log("END TOUCHP0")
       takePhoto();
-    } else if (isRecording.current) {
+    } 
+    else if (isRecording.current) {
       stopRecording();
     }
 
     pressStart.current = null;
     isPressing.value = false;
-    setIsPressingButton(false);
+    console.log("END TOUCHP1")
+    //setIsPressingButton(false);
   };
 
   return (

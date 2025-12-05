@@ -237,28 +237,28 @@ function modelToString(model: TensorflowModel): string {
         </View>
       )}
       {/* Overlay for bounding boxes */}
-            <View style={styles.overlay}>
-              {detections.map((detection) => (
-                <View
-                  key={detection.id}
-                  style={[
-                    styles.boundingBox,
-                    {
-                      left: detection.box.x,
-                      top: detection.box.y,
-                      width: detection.box.width,
-                      height: detection.box.height,
-                    }
-                  ]}
-                >
-                  <View style={styles.labelContainer}>
-                    <Text style={styles.label}>
-                      {detection.label} ({Math.round(detection.confidence * 100)}%)
-                    </Text>
-                  </View>
-                </View>
-              ))}
+      <View style={styles.overlay}>
+        {detections.map((detection) => (
+          <View
+            key={detection.id}
+            style={[
+              styles.boundingBox,
+              {
+                left: detection.box.x,
+                top: detection.box.y,
+                width: detection.box.width,
+                height: detection.box.height,
+              }
+            ]}
+          >
+            <View style={styles.labelContainer}>
+              <Text style={styles.label}>
+                {detection.label} ({Math.round(detection.confidence * 100)}%)
+              </Text>
             </View>
+          </View>
+        ))}
+      </View>
       <CaptureButton
         style={styles.captureButton}
         camera={camera as any}
