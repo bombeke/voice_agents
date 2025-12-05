@@ -6,14 +6,14 @@ import { usePinchGesture } from '@/hooks/usePinchGesture';
 import { usePreferredCameraDevice } from '@/hooks/usePreferredCameraDevice';
 import CaptureButton from '@/views/CaptureButton';
 import IonIcon from "@expo/vector-icons/Ionicons";
-import MaterialIcon from "@expo/vector-icons/MaterialIcons";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, GestureResponderEvent, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, GestureResponderEvent, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 //import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
+import Colors from '@/constants/Colors';
 import { usePoleDetection } from '@/hooks/usePoleDetection';
 import { useIsFocused } from '@react-navigation/core';
-import Reanimated, { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
+import { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
 import {
   Camera,
   CameraProps,
@@ -28,22 +28,13 @@ import {
 } from 'react-native-vision-camera';
 import { Button, YStack } from 'tamagui';
 
-const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera)
-Reanimated.addWhitelistedNativeProps({
-  zoom: true,
-})
+import { requestSavePermission } from '@/hooks/Helpers';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { impactAsync, ImpactFeedbackStyle, notificationAsync, NotificationFeedbackType } from 'expo-haptics';
+import { Accuracy, getCurrentPositionAsync } from 'expo-location';
+import { createAssetAsync } from 'expo-media-library';
+import { Camera as CameraIcon } from 'lucide-react-native';
 
-/*
-function tensorToString(tensor: Tensor): string {
-  return `\n  - ${tensor.dataType} ${tensor.name}[${tensor.shape}]`
-}
-function modelToString(model: TensorflowModel): string {
-  return (
-    `TFLite Model (${model.delegate}):\n` +
-    `- Inputs: ${model.inputs.map(tensorToString).join('')}\n` +
-    `- Outputs: ${model.outputs.map(tensorToString).join('')}`
-  )
-}*/
 
  export default function CameraPage(): React.ReactElement {
   const camera = useRef<Camera>(null)
@@ -66,6 +57,8 @@ function modelToString(model: TensorflowModel): string {
   const [enableNightMode, setEnableNightMode] = useState(false)
   //const [cameraResults, setCameraResults] = useState<any[]>([]); 
   const { cameraResults, detections, frameProcessor } = usePoleDetection();
+ const pulseAnim = useRef(new Animated.Value(1)).current;
+ const [isCapturing, setIsCapturing] = useState<boolean>(false);
 
 
   // camera device settings
@@ -108,7 +101,28 @@ function modelToString(model: TensorflowModel): string {
   }, [maxZoom, minZoom, zoom])
   //#endregion
 
-  //#region Callbacks
+    const startPulse = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  const stopPulse = () => {
+    pulseAnim.setValue(1);
+  };
+
+
   const setIsPressingButton = useCallback((_isPressingButton: boolean) => {
       isPressingButton.value = _isPressingButton
       return isPressingButton;
@@ -185,16 +199,111 @@ function modelToString(model: TensorflowModel): string {
 
   const videoHdr = format?.supportsVideoHdr && enableHdr
   const photoHdr = format?.supportsPhotoHdr && enableHdr && !videoHdr
+  const allowCameraLocationPermissions = async()=>{
+    await requestPermission();
+    // await requestLocationPermission();
+    await location.requestPermission()
+    return;
+  }
 
+  const handleCapture = async () => {
+      if (!camera.current || isCapturing) return;
+  
+      if (Platform.OS !== 'web') {
+        await impactAsync(ImpactFeedbackStyle.Heavy);
+      }
+  
+      setIsCapturing(true);
+      startPulse();
+  
+      try {
+        const locationResult = await getCurrentPositionAsync({
+          accuracy: Accuracy.High,
+        });
+        const photo = await camera.current.takePhoto({ flash });
+            try {
+              const hasPermission = await requestSavePermission()
+              if (!hasPermission) {
+                Alert.alert('Permission denied!', 'Camera does not have permission to save the media.')
+                return
+              }
+              await createAssetAsync(`file:///${photo.path}`, 'photo')
+            } 
+            catch (e) {
+              const message = e instanceof Error ? e.message : JSON.stringify(e)
+              Alert.alert('Failed to save!', `An unexpected error occured while trying to save. ${message}`)
+            }
+       const detectionResult = { hasPole: true, confidence: 80 };
+  
+        console.log('[AI] Detection result:', detectionResult);
+        console.log('[Camera] Photo captured:', photo.path);
+        console.log('[Camera] Location:', locationResult.coords);
+
+        let hasPole = false;
+        let confidence = 0;
+  
+          const parsed = detectionResult;
+          hasPole = parsed.hasPole === true;
+          confidence = parsed.confidence || 0;
+  
+        if (hasPole) {
+          /*await addPole({
+            latitude: locationResult.coords.latitude,
+            longitude: locationResult.coords.longitude,
+            timestamp: Date.now(),
+            imageUri: photo.uri,
+            detectionConfidence: confidence,
+          });*/
+          
+          if (Platform.OS !== 'web') {
+            await notificationAsync(NotificationFeedbackType.Success);
+          }
+        } 
+        else {
+          //('No utility pole detected. Try again.');
+          
+          if (Platform.OS !== 'web') {
+            await notificationAsync(NotificationFeedbackType.Warning);
+          }
+        }
+  
+        //setTimeout(() => setLastCapture(null), 3000);
+      } 
+      catch (error) {
+        console.error('[Camera] Error capturing:', error);
+        
+        if (Platform.OS !== 'web') {
+          await notificationAsync(NotificationFeedbackType.Error);
+        }
+        
+        //setTimeout(() => setLastCapture(null), 3000);
+      } 
+      finally {
+        setIsCapturing(false);
+        stopPulse();
+      }
+    };
 
   if (!hasPermission) {
     return (
       <YStack justify="center" verticalAlign="center" flex={1} gap="$4">
-        <Text>Camera permission is required</Text>
-        <Button onPress={requestPermission}>Grant Permission</Button>
+      <View style={styles.permissionContainer}>
+        <CameraIcon size={64} color={Colors.light.textSecondary} />
+        <Text style={styles.permissionTitle}>Camera & Location Access</Text>
+        <Text style={styles.permissionText}>
+          We need camera and location permissions to detect and record utility poles.
+        </Text>
+        <Button
+          style={styles.permissionButton}
+          onPress={ allowCameraLocationPermissions}
+        >
+          <Text style={styles.permissionButtonText}>Grant Permissions</Text>
+        </Button>
+      </View>
       </YStack>
     );
   }
+  
   return (
     <View style={styles.container}>
       {device != null ? (
@@ -236,28 +345,20 @@ function modelToString(model: TensorflowModel): string {
           <Text style={styles.text}>Your phone does not have a Camera.</Text>
         </View>
       )}
-      {/* Overlay for bounding boxes */}
-      <View style={styles.overlay}>
-        {detections.map((detection) => (
-          <View
-            key={detection.id}
-            style={[
-              styles.boundingBox,
-              {
-                left: detection.box.x,
-                top: detection.box.y,
-                width: detection.box.width,
-                height: detection.box.height,
-              }
-            ]}
-          >
-            <View style={styles.labelContainer}>
-              <Text style={styles.label}>
-                {detection.label} ({Math.round(detection.confidence * 100)}%)
-              </Text>
-            </View>
-          </View>
-        ))}
+      <View style={styles.topBar}>
+        <View style={styles.statusIndicator}>
+          <View style={[styles.statusDot, isCapturing && styles.statusDotActive]} />
+          <Text style={styles.statusText}>
+            {isCapturing ? 'Analyzing...' : 'Ready to detect'}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.targetFrame}>
+        <View style={[styles.corner, styles.cornerTopLeft]} />
+        <View style={[styles.corner, styles.cornerTopRight]} />
+        <View style={[styles.corner, styles.cornerBottomLeft]} />
+        <View style={[styles.corner, styles.cornerBottomRight]} />
+        <Text style={styles.targetText}>Center pole in frame</Text>
       </View>
       <CaptureButton
         style={styles.captureButton}
@@ -291,7 +392,7 @@ function modelToString(model: TensorflowModel): string {
         )}
         {supportsHdr && (
           <PressableButton style={styles.button} onPress={() => setEnableHdr((h) => !h)}>
-            <MaterialIcon name={enableHdr ? 'hdr' : 'hdr-off'} color="white" size={24} />
+            <MaterialCommunityIcons name={enableHdr ? 'hdr' : 'hdr-off'} color="white" size={24} />
           </PressableButton>
         )}
         {canToggleNightMode && (
@@ -311,6 +412,52 @@ function modelToString(model: TensorflowModel): string {
           <IonIcon name="qr-code-outline" color="white" size={24} />
         </PressableButton>
       </View>
+      {/* Overlay for bounding boxes */}
+      <View style={styles.overlay}>
+        {detections.map((detection) => (
+          <View
+            key={detection.id}
+            style={[
+              styles.boundingBox,
+              {
+                left: detection.box.x,
+                top: detection.box.y,
+                width: detection.box.width,
+                height: detection.box.height,
+              }
+            ]}
+          >
+            <View style={styles.labelContainer}>
+              <Text style={styles.label}>
+                {detection.label} ({Math.round(detection.confidence * 100)}%)
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={styles.bottomBar}>
+        <View style={styles.captureButtonContainer}>
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <TouchableOpacity
+              style={[styles.captureButton, isCapturing && styles.captureButtonActive]}
+              onPress={handleCapture}
+              disabled={isCapturing} //|| isAddingPole}
+              activeOpacity={0.8}
+            >
+              {isCapturing?// || isAddingPole ?
+                (
+                <ActivityIndicator size="large" color="#FFFFFF" />
+              ) : (
+                <CameraIcon size={32} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+
+        <Text style={styles.instructionText}>
+          Tap to capture and detect utility pole
+        </Text>
+      </View>
     </View>
   )
 }
@@ -319,7 +466,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+
   },
+  /*camera: {
+    flex: 1,
+  },*/
   captureButton: {
     position: 'absolute',
     alignSelf: 'center',
@@ -402,6 +553,178 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
 
+
+    permissionContainer: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      padding: 32,
+      backgroundColor: Colors.light.background,
+    },
+    permissionTitle: {
+      fontSize: 24,
+      fontWeight: '700' as const,
+      color: Colors.light.text,
+      marginTop: 24,
+      textAlign: 'center' as const,
+    },
+    permissionText: {
+      fontSize: 16,
+      color: Colors.light.textSecondary,
+      marginTop: 12,
+      textAlign: 'center' as const,
+      lineHeight: 24,
+    },
+    permissionButton: {
+      marginTop: 32,
+      backgroundColor: Colors.light.primary,
+      paddingHorizontal: 32,
+      paddingVertical: 16,
+      borderRadius: 12,
+    },
+    permissionButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600' as const,
+    },
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    topBar: {
+      padding: 16,
+      alignItems: 'flex-start' as const,
+    },
+    statusIndicator: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: Colors.light.success,
+      marginRight: 8,
+    },
+    statusDotActive: {
+      backgroundColor: Colors.light.warning,
+    },
+    statusText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+    targetFrame: {
+      flex: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: 40,
+    },
+    corner: {
+      position: 'absolute' as const,
+      width: 40,
+      height: 40,
+      borderColor: Colors.light.primary,
+    },
+    cornerTopLeft: {
+      top: '20%',
+      left: '15%',
+      borderTopWidth: 4,
+      borderLeftWidth: 4,
+    },
+    cornerTopRight: {
+      top: '20%',
+      right: '15%',
+      borderTopWidth: 4,
+      borderRightWidth: 4,
+    },
+    cornerBottomLeft: {
+      bottom: '20%',
+      left: '15%',
+      borderBottomWidth: 4,
+      borderLeftWidth: 4,
+    },
+    cornerBottomRight: {
+      bottom: '20%',
+      right: '15%',
+      borderBottomWidth: 4,
+      borderRightWidth: 4,
+    },
+    targetText: {
+      color: '#FFFFFF',
+      fontSize: 18,
+      fontWeight: '600' as const,
+      textAlign: 'center' as const,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    captureNotification: {
+      position: 'absolute' as const,
+      top: 100,
+      left: 20,
+      right: 20,
+      backgroundColor: Colors.light.danger,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderRadius: 12,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      shadowColor: Colors.light.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    captureNotificationSuccess: {
+      backgroundColor: Colors.light.success,
+    },
+    captureNotificationText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '600' as const,
+      marginLeft: 12,
+      flex: 1,
+    },
+    bottomBar: {
+      paddingBottom: 40,
+      paddingTop: 20,
+    },
+    captureButtonContainer: {
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    captureButton: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: Colors.light.primary,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      borderWidth: 4,
+      borderColor: '#FFFFFF',
+      shadowColor: Colors.light.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    captureButtonActive: {
+      backgroundColor: Colors.light.warning,
+    },
+    instructionText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      textAlign: 'center' as const,
+      fontWeight: '500' as const,
+    },
+
+  
 })
 
 

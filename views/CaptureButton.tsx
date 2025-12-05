@@ -57,6 +57,7 @@ export default function CaptureButton({
   ...props
 }: CaptureButtonProps) {
   
+  console.log("Test button");
   const pressStart = useRef<number | null>(null);
   const isRecording = useRef(false);
 
@@ -66,6 +67,7 @@ export default function CaptureButton({
 
   /** PHOTO */
   const takePhoto = useCallback(async () => {
+    console.log("STARTING PHOTO")
     if (!camera?.current) return;
     const photo = await camera.current.takePhoto({ flash });
     try {
@@ -224,6 +226,7 @@ export default function CaptureButton({
       </Animated.View>
     </GestureDetector>
   );*/
+
   /** TOUCH BEHAVIOR USING TouchableOpacity */
   const handlePressIn = () => {
     if (!enabled) return;
@@ -262,8 +265,9 @@ export default function CaptureButton({
       <View style={[styles.wrapper, style]} {...props}>
         <TouchableOpacity
           activeOpacity={0.7}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
+          //onPressIn={handlePressIn}
+          //onPressOut={handlePressOut}
+          onPress={ takePhoto }
           disabled={!enabled}
         >
           <View style={styles.container}>
