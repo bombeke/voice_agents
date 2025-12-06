@@ -108,9 +108,5 @@ export const usePoleDetection = () => {
       [model, confidenceThreshold, screenWidth, screenHeight]
     )
 
-    /*const toggleCamera = () => {
-      setCameraType(current => current === 'back' ? 'front' : 'back')
-    }*/
-
   return { cameraResults, detections, frameProcessorResults, frameProcessor };
 };

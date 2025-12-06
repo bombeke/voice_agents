@@ -57,7 +57,6 @@ export default function CaptureButton({
   ...props
 }: CaptureButtonProps) {
   
-  console.log("Test button");
   const pressStart = useRef<number | null>(null);
   const isRecording = useRef(false);
 
@@ -187,45 +186,6 @@ export default function CaptureButton({
     strokeDashoffset: CIRC * (1 - progress.value),
   }));
 
-  /*return (
-    <GestureDetector gesture={Gesture.Simultaneous(tapGesture, panGesture)}>
-      <Animated.View style={[styles.wrapper, style]} {...props}>
-        <View style={styles.container}>
-          <Animated.View style={[styles.pulse, pulseStyle]} />
-
-          <Svg width={RING_SIZE} height={RING_SIZE} style={styles.progressSvg}>
-            <Circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={(RING_SIZE - STROKE) / 2}
-              stroke="rgba(255,0,0,0.3)"
-              strokeWidth={STROKE}
-              fill="none"
-              strokeDasharray={CIRC}
-            />
-            <AnimatedCircle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={(RING_SIZE - STROKE) / 2}
-              stroke="white"
-              strokeWidth={STROKE}
-              fill="none"
-              strokeDasharray={CIRC}
-              animatedProps={ringAnimatedProps}
-            />
-          </Svg>
-
-          <Animated.View
-            style={[
-              styles.captureButton,
-              { borderWidth: BORDER_WIDTH, borderColor: "white" },
-              buttonAnimatedStyle,
-            ]}
-          />
-        </View>
-      </Animated.View>
-    </GestureDetector>
-  );*/
 
   /** TOUCH BEHAVIOR USING TouchableOpacity */
   const handlePressIn = () => {

@@ -1,4 +1,5 @@
-import { getDatabase } from '@/services/storage/RxDB';
+
+import { getDatabase } from '@/services/storage/RxdbMmkv';
 import type { UtilityPole, UtilityPoleDatabase } from '@/services/storage/Schema';
 import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
