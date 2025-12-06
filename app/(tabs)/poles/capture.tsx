@@ -8,7 +8,7 @@ import CaptureButton from '@/views/CaptureButton';
 import IonIcon from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, GestureResponderEvent, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, GestureResponderEvent, Platform, StyleSheet, Text, View } from "react-native";
 //import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
 import Colors from '@/constants/Colors';
 import { usePoleDetection } from '@/hooks/usePoleDetection';
@@ -435,6 +435,9 @@ import { Camera as CameraIcon } from 'lucide-react-native';
           </View>
         ))}
       </View>
+      {
+        /*
+      
       <View style={styles.bottomBar}>
         <View style={styles.captureButtonContainer}>
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
@@ -458,6 +461,8 @@ import { Camera as CameraIcon } from 'lucide-react-native';
           Tap to capture and detect utility pole
         </Text>
       </View>
+      */
+      }
     </View>
   )
 }
