@@ -1,50 +1,57 @@
-import { createRxDatabase } from 'rxdb/plugins/core';
-import {
-  getRxStorageMemory
-} from 'rxdb/plugins/storage-memory';
+import * as Crypto from 'expo-crypto';
+import { addRxPlugin, createRxDatabase } from 'rxdb/plugins/core';
+import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { createMMKVBatchedStorageInstance } from './RxdbMmkvStorage';
-import { photoSchema, UtilityPoleDatabase, utilityPoleSchema } from './Schema';
+import { utilityPoleSchema } from './Schema';
 
-//addRxPlugin(RxDBQueryBuilderPlugin);
-
+addRxPlugin(RxDBQueryBuilderPlugin);
 // RxDB expects a valid RxStorage object with required methods.
+
 const mmkvRxStorage = {
   name: 'mmkv-batched',
   rxdbVersion: "16",      
   createStorageInstance: createMMKVBatchedStorageInstance
+
 };
 
-let dbPromise: Promise<UtilityPoleDatabase> | null = null;
+if (typeof global.crypto.subtle === 'undefined') {
+//@ts-ignore
+    global.crypto.subtle = {
+        digest: Crypto.digest,
+    };
+}
 
-
-export async function getDatabase(): Promise<UtilityPoleDatabase> {
-  if (dbPromise) return dbPromise;
-
-  dbPromise = (async () => {
-    const db = await createRxDatabase<UtilityPoleDatabase>({
+export const initDb = async () => {
+  let db;
+  try {
+    db = await createRxDatabase({
       name: 'polevision_db',
-      //storage: mmkvRxStorage,
-      storage: getRxStorageMemory(),
-      multiInstance: false,
-      ignoreDuplicate: true,
+      storage: mmkvRxStorage
     });
+    console.log('Database initialized in memory');
+    // You can now add collections and use the database
+  //return db;
+  }
+  catch(err){
+    console.log("DB failed:",err)
+  }
+  try {
+    if(!db) return;
 
-    // Create all collections in one call
     await db.addCollections({
       utility_poles: {
         schema: utilityPoleSchema,
       },
-      photos: {
+      /*photos: {
         schema: photoSchema,
-      }
+     }*/
     });
-
-    console.log('[Database] RxDB initialized successfully');
-    return db;
-  })();
-
-  return dbPromise;
-}
+  }
+  catch(colErr){
+    console.log("Col error:",colErr)
+  }
+  return db;
+};
 
 
 

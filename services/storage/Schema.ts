@@ -18,7 +18,8 @@ export const utilityPoleSchema: RxJsonSchema<UtilityPole> = {
   properties: {
     id: {
       type: 'string',
-      maxLength: 100,
+      maxLength: 36,
+      format: "uuid"
     },
     latitude: {
       type: 'number',
@@ -42,8 +43,8 @@ export const utilityPoleSchema: RxJsonSchema<UtilityPole> = {
       type: 'string',
     },
   },
-  required: ['id', 'latitude', 'longitude', 'timestamp', 'synced'],
-  indexes: ['timestamp', 'synced'],
+  //required: ['id', 'latitude', 'longitude', 'timestamp', 'synced'],
+  //indexes: ['timestamp', 'synced'],
 };
 
 export type UtilityPoleCollection = RxCollection<UtilityPole>;

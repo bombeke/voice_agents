@@ -14,6 +14,7 @@
   "dependencies": {
     "@config-plugins/react-native-webrtc": "^13.0.0",
     "@expo/vector-icons": "^15.0.3",
+    "@legendapp/state": "3.0.0-beta.42",
     "@lodev09/react-native-exify": "^0.2.7",
     "@maplibre/maplibre-react-native": "^10.4.0",
     "@nkzw/create-context-hook": "^1.1.0",
@@ -34,6 +35,7 @@
     "expo-blur": "~15.0.7",
     "expo-camera": "~17.0.9",
     "expo-constants": "~18.0.8",
+    "expo-crypto": "^15.0.8",
     "expo-font": "~14.0.9",
     "expo-haptics": "~14.1.4",
     "expo-image": "~3.0.7",

@@ -17,6 +17,9 @@ importers:
       '@expo/vector-icons':
         specifier: ^15.0.3
         version: 15.0.3(expo-font@14.0.9(expo@54.0.25)(react-native@0.81.4(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      '@legendapp/state':
+        specifier: 3.0.0-beta.42
+        version: 3.0.0-beta.42(react@19.1.0)
       '@lodev09/react-native-exify':
         specifier: ^0.2.7
         version: 0.2.7(react-native@0.81.4(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -77,6 +80,9 @@ importers:
       expo-constants:
         specifier: ~18.0.8
         version: 18.0.10(expo@54.0.25)(react-native@0.81.4(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))
+      expo-crypto:
+        specifier: ^15.0.8
+        version: 15.0.8(expo@54.0.25)
       expo-font:
         specifier: ~14.0.9
         version: 14.0.9(expo@54.0.25)(react-native@0.81.4(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -1276,6 +1282,14 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@legendapp/state@3.0.0-beta.42':
+    resolution: {integrity: sha512-KoGZrBdbHG5gMzP4NjKRsGZgTyy6pG+HBSyKrniL6NLsjG8L+hbYC21tIfdMvt1Xks1kTRAaqevatc4C7Yn/Uw==}
+    peerDependencies:
+      expo-sqlite: ^15.0.0
+    peerDependenciesMeta:
+      expo-sqlite:
+        optional: true
 
   '@lodev09/react-native-exify@0.2.7':
     resolution: {integrity: sha512-BEFYnzpiM93q6sd2kVwYH4uTwGeCrKNMURbtt50ycC31yVfEK+/GFqEC4aMiciNuocisjGvZGPlpF2Q4vaCEWw==}
@@ -3694,6 +3708,11 @@ packages:
     peerDependencies:
       expo: '*'
       react-native: '*'
+
+  expo-crypto@15.0.8:
+    resolution: {integrity: sha512-aF7A914TB66WIlTJvl5J6/itejfY78O7dq3ibvFltL9vnTALJ/7LYHvLT4fwmx9yUNS6ekLBtDGWivFWnj2Fcw==}
+    peerDependencies:
+      expo: '*'
 
   expo-dev-client@6.0.18:
     resolution: {integrity: sha512-8QKWvhsoZpMkecAMlmWoRHnaTNiPS3aO7E42spZOMjyiaNRJMHZsnB8W2b63dt3Yg3oLyskLAoI8IOmnqVX8vA==}
@@ -8124,6 +8143,12 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  '@legendapp/state@3.0.0-beta.42(react@19.1.0)':
+    dependencies:
+      use-sync-external-store: 1.6.0(react@19.1.0)
+    transitivePeerDependencies:
+      - react
+
   '@lodev09/react-native-exify@0.2.7(react-native@0.81.4(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
     dependencies:
       react: 19.1.0
@@ -11318,6 +11343,11 @@ snapshots:
       react-native: 0.81.4(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)
     transitivePeerDependencies:
       - supports-color
+
+  expo-crypto@15.0.8(expo@54.0.25):
+    dependencies:
+      base64-js: 1.5.1
+      expo: 54.0.25(@babel/core@7.28.5)(@expo/metro-runtime@6.1.2)(expo-router@6.0.15)(graphql@15.10.1)(react-native@0.81.4(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
   expo-dev-client@6.0.18(expo@54.0.25):
     dependencies:
