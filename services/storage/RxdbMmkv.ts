@@ -1,8 +1,11 @@
-import { addRxPlugin, createRxDatabase } from 'rxdb/plugins/core';
-import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
+import { createRxDatabase } from 'rxdb/plugins/core';
+import {
+  getRxStorageMemory
+} from 'rxdb/plugins/storage-memory';
 import { createMMKVBatchedStorageInstance } from './RxdbMmkvStorage';
 import { photoSchema, UtilityPoleDatabase, utilityPoleSchema } from './Schema';
-addRxPlugin(RxDBQueryBuilderPlugin);
+
+//addRxPlugin(RxDBQueryBuilderPlugin);
 
 // RxDB expects a valid RxStorage object with required methods.
 const mmkvRxStorage = {
@@ -20,7 +23,8 @@ export async function getDatabase(): Promise<UtilityPoleDatabase> {
   dbPromise = (async () => {
     const db = await createRxDatabase<UtilityPoleDatabase>({
       name: 'polevision_db',
-      storage: mmkvRxStorage,
+      //storage: mmkvRxStorage,
+      storage: getRxStorageMemory(),
       multiInstance: false,
       ignoreDuplicate: true,
     });
