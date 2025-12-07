@@ -5,11 +5,13 @@ import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
+import { isRxDatabase } from 'rxdb/plugins/core';
 
 const STORAGE_KEY = '@utility_poles_last_sync';
 
 export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
   const [db, setDb] = useState<UtilityPoleDatabase | null>(null);
+  const [dbValid, setDbValid] = useState<boolean>(false);
   const [poles, setPoles] = useState<UtilityPole[]>([]);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
@@ -17,14 +19,17 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
     queryKey: ['database-init'],
     queryFn: async () => {
       const database = await getDatabase();
-      setDb(database);
+      if(isRxDatabase(database)){
+        setDb(database);
+        setDbValid(true);
+      }      
       return database;
     },
     staleTime: Infinity,
   });
 
   useEffect(() => {
-    if (dbQuery.data) {
+    if (dbQuery.data && dbValid) {
       const subscription = dbQuery.data.utility_poles
         .find()
         .sort({ timestamp: 'desc' })
@@ -37,10 +42,11 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
 
       return () => subscription.unsubscribe();
     }
-  }, [dbQuery.data]);
-
+  }, [dbQuery.data, dbValid]);
+console.log("Query Data:",dbQuery.data)
   const addPoleMutation = useMutation({
     mutationFn: async (pole: Omit<UtilityPole, 'id' | 'synced'>) => {
+      console.log("DB:",db)
       if (!db) throw new Error('Database not initialized');
       
       const newPole: UtilityPole = {
@@ -48,7 +54,7 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
         id: `pole_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         synced: false,
       };
-
+      console.log("DB Pole:", newPole);
       await db.utility_poles.insert(newPole);
       console.log(`[Database] Added new pole: ${newPole.id}`);
       return newPole;

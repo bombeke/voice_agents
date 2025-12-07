@@ -1,37 +1,38 @@
-import { createRxDatabase } from 'rxdb';
+import { addRxPlugin, createRxDatabase } from 'rxdb/plugins/core';
+import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { createMMKVBatchedStorageInstance } from './RxdbMmkvStorage';
 import { photoSchema, UtilityPoleDatabase, utilityPoleSchema } from './Schema';
+addRxPlugin(RxDBQueryBuilderPlugin);
 
-
+// RxDB expects a valid RxStorage object with required methods.
 const mmkvRxStorage = {
   name: 'mmkv-batched',
-  createStorageInstance: createMMKVBatchedStorageInstance,
-  rxdbVersion: "3.0.0"
+  rxdbVersion: "16",      
+  createStorageInstance: createMMKVBatchedStorageInstance
 };
 
 let dbPromise: Promise<UtilityPoleDatabase> | null = null;
 
+
 export async function getDatabase(): Promise<UtilityPoleDatabase> {
-  if (dbPromise) {
-    return dbPromise;
-  }
+  if (dbPromise) return dbPromise;
 
   dbPromise = (async () => {
     const db = await createRxDatabase<UtilityPoleDatabase>({
       name: 'polevision_db',
       storage: mmkvRxStorage,
+      multiInstance: false,
       ignoreDuplicate: true,
     });
 
+    // Create all collections in one call
     await db.addCollections({
       utility_poles: {
         schema: utilityPoleSchema,
       },
-    });
-    await db.addCollections({
-        photos: { 
-            schema: photoSchema 
-        }
+      photos: {
+        schema: photoSchema,
+      }
     });
 
     console.log('[Database] RxDB initialized successfully');
@@ -40,6 +41,7 @@ export async function getDatabase(): Promise<UtilityPoleDatabase> {
 
   return dbPromise;
 }
+
 
 
 // When creating collection, RxDB will call createStorageInstance with params/options.

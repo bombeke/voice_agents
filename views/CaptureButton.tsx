@@ -66,7 +66,6 @@ export default function CaptureButton({
 
   /** PHOTO */
   const takePhoto = useCallback(async () => {
-    console.log("STARTING PHOTO")
     if (!camera?.current) return;
     const photo = await camera.current.takePhoto({ flash });
     try {

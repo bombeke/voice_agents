@@ -3,25 +3,25 @@
 */
 
 import {
-    BulkWriteRow,
-    EventBulk,
-    PreparedQuery,
-    RxDocumentData,
-    RxJsonSchema,
-    RxStorageBulkWriteResponse,
-    RxStorageChangeEvent,
-    RxStorageCountResult,
-    RxStorageDefaultCheckpoint,
-    RxStorageInstance,
-    RxStorageInstanceCreationParams,
-    RxStorageQueryResult,
-    StringKeys,
-    addRxStorageMultiInstanceSupport,
-    categorizeBulkWriteRows,
-    ensureNotFalsy,
-    getPrimaryFieldOfPrimaryKey,
-    getQueryMatcher,
-    getSortComparator
+  BulkWriteRow,
+  EventBulk,
+  PreparedQuery,
+  RxDocumentData,
+  RxJsonSchema,
+  RxStorageBulkWriteResponse,
+  RxStorageChangeEvent,
+  RxStorageCountResult,
+  RxStorageDefaultCheckpoint,
+  RxStorageInstance,
+  RxStorageInstanceCreationParams,
+  RxStorageQueryResult,
+  StringKeys,
+  addRxStorageMultiInstanceSupport,
+  categorizeBulkWriteRows,
+  ensureNotFalsy,
+  getPrimaryFieldOfPrimaryKey,
+  getQueryMatcher,
+  getSortComparator
 } from 'rxdb';
 
 import { MMKV, createMMKV } from 'react-native-mmkv';

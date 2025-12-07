@@ -147,6 +147,7 @@ import { Camera as CameraIcon } from 'lucide-react-native';
       const locationResult = await getCurrentPositionAsync({
         accuracy: Accuracy.High,
       });
+      Alert.alert("Taking the Photo",`Initiate Capture${media}XX:${type}`);
       await addPole({
         latitude: locationResult.coords.latitude,
         longitude: locationResult.coords.longitude,
@@ -155,7 +156,7 @@ import { Camera as CameraIcon } from 'lucide-react-native';
         detectionConfidence: 80, //get confidence from AI detections
       });
 
-      Alert.alert("Taking the Photo",`Initiate Capture${media}XX:${type}`);
+      
       Alert.alert("Camera results:",`${cameraResults}`);
       return router.navigate('/poles/maps');
     },[router,cameraResults])
