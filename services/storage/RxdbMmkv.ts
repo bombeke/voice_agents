@@ -14,11 +14,11 @@ addRxPlugin(RxDBJsonDumpPlugin);
 addRxPlugin(RxDBUpdatePlugin);
 // RxDB expects a valid RxStorage object with required methods.
 
-const mmkvRxStorage = {
+export const mmkvRxStorage = {
   name: 'mmkv-batched',
-  rxdbVersion: "16",      
+  rxdbVersion: "16",   
+  statics: {},   
   createStorageInstance: createMMKVBatchedStorageInstance
-
 };
 
 

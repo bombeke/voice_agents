@@ -1,7 +1,3 @@
-/* rx-storage-mmkv-batched.ts
-   MMKV-based RxDB storage with optional write-batching and multi-namespace sharding.
-*/
-
 import {
   BulkWriteRow,
   EventBulk,
