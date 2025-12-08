@@ -14,12 +14,12 @@ const mmkvRxStorage = {
 
 };
 
-if (typeof global.crypto.subtle === 'undefined') {
+/*if (typeof global.crypto.subtle === 'undefined') {
 //@ts-ignore
     global.crypto.subtle = {
         digest: Crypto.digest,
     };
-}
+}*/
 
 export const initDb = async () => {
   let db;
