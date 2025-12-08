@@ -7,7 +7,7 @@ import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TamaguiProvider } from 'tamagui';
 import "../global.css";
-import "../polyfills";
+//import "../polyfills";
 import { config } from '../tamagui.config';
 
 import { RxDBProvider } from '@/providers/RxDBContext';
