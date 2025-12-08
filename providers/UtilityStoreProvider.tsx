@@ -1,38 +1,42 @@
-import { initDb } from '@/services/storage/RxdbMmkv';
-import type { UtilityPole, UtilityPoleDatabase } from '@/services/storage/Schema';
+//import { initDb } from '@/services/storage/RxdbMmkv';
+import type { UtilityPole } from '@/services/storage/Schema';
 import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 import { useCallback, useEffect, useState } from 'react';
+import { useRxDB } from './RxDBContext';
 
 const STORAGE_KEY = '@utility_poles_last_sync';
 
 export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
-  const [db, setDb] = useState<UtilityPoleDatabase | null>(null);
+  //const [db, setDb] = useState<UtilityPoleDatabase | null>(null);
+  const db = useRxDB();
   const [poles, setPoles] = useState<UtilityPole[]>([]);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
   /** -----------------------------
    *  1. Initialize database once
    * ------------------------------*/
-  useEffect(() => {
+  /*useEffect(() => {
     let isMounted = true;
 
     const init = async () => {
       try {
         const _db = await initDb();
         if (isMounted) setDb(_db as any);
-      } catch (e) {
+      } 
+      catch (e) {
         console.error("[DB] Failed to initialize:", e);
       }
     };
 
-    init();
+    init().then();
+
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, []);*/
 
   /** -----------------------------------------------------------
    * 2. Subscribe to real-time RxDB changes once DB is available

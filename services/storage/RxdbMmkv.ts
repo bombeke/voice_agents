@@ -1,10 +1,17 @@
-import * as Crypto from 'expo-crypto';
 import { addRxPlugin, createRxDatabase } from 'rxdb/plugins/core';
+import { RxDBLeaderElectionPlugin } from "rxdb/plugins/leader-election";
 import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { createMMKVBatchedStorageInstance } from './RxdbMmkvStorage';
 import { utilityPoleSchema } from './Schema';
+//import { RxDBReplicationPlugin } from "rxdb/plugins/replication";
+import { RxDBJsonDumpPlugin } from "rxdb/plugins/json-dump";
+import { RxDBUpdatePlugin } from "rxdb/plugins/update";
 
 addRxPlugin(RxDBQueryBuilderPlugin);
+addRxPlugin(RxDBLeaderElectionPlugin);
+addRxPlugin(RxDBJsonDumpPlugin);
+//addRxPlugin(RxDBReplicationPlugin);
+addRxPlugin(RxDBUpdatePlugin);
 // RxDB expects a valid RxStorage object with required methods.
 
 const mmkvRxStorage = {
@@ -14,12 +21,6 @@ const mmkvRxStorage = {
 
 };
 
-/*if (typeof global.crypto.subtle === 'undefined') {
-//@ts-ignore
-    global.crypto.subtle = {
-        digest: Crypto.digest,
-    };
-}*/
 
 export const initDb = async () => {
   let db;
@@ -53,6 +54,7 @@ export const initDb = async () => {
   return db;
 };
 
+export type PoleVisionDatabaseType = Awaited<ReturnType<typeof initDb>>;
 
 
 // When creating collection, RxDB will call createStorageInstance with params/options.

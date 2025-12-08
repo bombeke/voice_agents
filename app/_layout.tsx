@@ -7,9 +7,10 @@ import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TamaguiProvider } from 'tamagui';
 import "../global.css";
+import "../polyfills";
 import { config } from '../tamagui.config';
 
-//import { UtilityPoleProvider } from "@/providers/UtilityStoreProvider";
+import { RxDBProvider } from '@/providers/RxDBContext';
 import { UtilityPoleProvider } from '@/providers/UtilityStoreProvider';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
@@ -58,13 +59,15 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.container}>
         <TamaguiProvider config={config}>
           <MMKVProvider storage={storage}>
-            <UtilityPoleProvider>
-            <CachedModelProvider model= { model}>
-              <SafeAreaProvider>
-                <RootLayoutNav/>
-              </SafeAreaProvider> 
-            </CachedModelProvider>
-            </UtilityPoleProvider>
+            <RxDBProvider>
+              <UtilityPoleProvider>
+                <CachedModelProvider model= { model}>
+                  <SafeAreaProvider>
+                    <RootLayoutNav/>
+                  </SafeAreaProvider> 
+                </CachedModelProvider>
+              </UtilityPoleProvider>
+            </RxDBProvider>
           </MMKVProvider>
         </TamaguiProvider>    
       </GestureHandlerRootView>
