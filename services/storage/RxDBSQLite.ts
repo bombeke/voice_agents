@@ -233,7 +233,7 @@ export async function initRxDbWithCustomSqlite(opts?: { dbName?: string; appName
       }
     } as any,
     multiInstance: false,
-    ignoreDuplicate: true
+    ignoreDuplicate: false
   } as any);
 
   return { db, sqlite, queryClient: queryClient, mmkv: initMMKV() };

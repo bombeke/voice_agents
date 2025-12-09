@@ -21,7 +21,9 @@ export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(()
     const unsubscribe = poleVisionDB.poles.onChange(({ value }) => {
       // 'value' here is the latest array of poles from the observable
       console.log('[LegendState] Poles updated:', value.length);
-      setPoles([...value]); // Create a new array to ensure React state update
+      if(value){
+        setPoles([...value]); // Create a new array to ensure React state update
+      }
       
       // Mark as initialized once we have the first data
       if (isInitializing) {
