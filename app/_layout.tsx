@@ -11,8 +11,9 @@ import "../global.css";
 import { config } from '../tamagui.config';
 
 //import { RxDBProvider } from '@/providers/RxDBContext';
-import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
+//import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
 
+import { UtilityPoleProvider } from '@/providers/UtilityPoleProvider';
 import { queryClient } from '@/services/Api';
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
@@ -59,13 +60,13 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.container}>
         <TamaguiProvider config={config}>
           <MMKVProvider storage={storage}>
-              <UtilityStoreProvider>
+              <UtilityPoleProvider>
                 <CachedModelProvider model= { model}>
                   <SafeAreaProvider>
                     <RootLayoutNav/>
                   </SafeAreaProvider> 
                 </CachedModelProvider>
-              </UtilityStoreProvider>
+              </UtilityPoleProvider>
           </MMKVProvider>
         </TamaguiProvider>    
       </GestureHandlerRootView>
