@@ -1,12 +1,12 @@
-import { initDb, PoleVisionDatabaseType } from "@/services/storage/RxdbMmkv";
+import { initDb } from "@/services/storage/RxdbMmkv";
 
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 
-const RxDBContext = createContext<PoleVisionDatabaseType | null>(null);
+const RxDBContext = createContext<any | null>(null);
 
 export const RxDBProvider = ({ children }: { children: ReactNode }) => {
-  const [db, setDb] = useState<PoleVisionDatabaseType | null>(null);
+  const [db, setDb] = useState<any | null>(null);
 
   /** -----------------------------
    *  1. Initialize database once

@@ -11,17 +11,16 @@ import "../global.css";
 import { config } from '../tamagui.config';
 
 //import { RxDBProvider } from '@/providers/RxDBContext';
-import { UtilityPoleProvider } from '@/providers/UtilityStoreProvider';
+import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from '@/services/Api';
+import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient();
 
 export function RootLayoutNav() {
   return (
@@ -60,13 +59,13 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.container}>
         <TamaguiProvider config={config}>
           <MMKVProvider storage={storage}>
-              <UtilityPoleProvider>
+              <UtilityStoreProvider>
                 <CachedModelProvider model= { model}>
                   <SafeAreaProvider>
                     <RootLayoutNav/>
                   </SafeAreaProvider> 
                 </CachedModelProvider>
-              </UtilityPoleProvider>
+              </UtilityStoreProvider>
           </MMKVProvider>
         </TamaguiProvider>    
       </GestureHandlerRootView>

@@ -4,6 +4,7 @@ import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
 import { createMMKVBatchedStorageInstance } from './RxdbMmkvStorage';
 import { utilityPoleSchema } from './Schema';
 //import { RxDBReplicationPlugin } from "rxdb/plugins/replication";
+
 import { RxDBJsonDumpPlugin } from "rxdb/plugins/json-dump";
 import { RxDBUpdatePlugin } from "rxdb/plugins/update";
 

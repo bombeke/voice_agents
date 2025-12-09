@@ -1,17 +1,15 @@
-import { observable } from "@legendapp/state";
+import { observable } from '@legendapp/state';
 import {
-    observablePersistMMKV,
-} from '@legendapp/state/persist-plugins/mmkv';
-import { configureSynced, syncObservable } from "@legendapp/state/sync";
+    configureObservablePersistence,
+    persistObservable
+} from '@legendapp/state/persist';
+import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv';
 
-const syncMMKVPlugin = configureSynced({
-    persist: {
-        name: 'poleVisionStore',
-        plugin: observablePersistMMKV({ 
-            id: "polevision_db"
-        })
-    }
-});
+configureObservablePersistence({
+  // Use AsyncStorage in React Native
+  pluginLocal: ObservablePersistMMKV
+})
+
 
 export const poleVisionDB = observable({
   poles: [],
@@ -20,6 +18,10 @@ export const poleVisionDB = observable({
   roads: []
 });
 
+persistObservable(poleVisionDB, {
+  local: 'polevision_store',
+})
+/*
 syncObservable(
     poleVisionDB, 
     syncMMKVPlugin({
@@ -31,6 +33,34 @@ syncObservable(
         }
     })
 );
+*/
+/*
+const messages$ = observable(syncedQuery({
+    poles: [],
+  queryClient,
+  query: {
+    queryKey: ['messages'],
+    queryFn: async () => {
+      return fetch('https://myurl/messages').then((v) => v.json())
+    },
+  },
+  mutation: {
+    mutationFn: async (variables) => {
+      return fetch(
+        'https://myurl/messages',
+        { body: JSON.stringify(variables), method: 'POST' }
+      )
+    },
+  },
+  // Persist locally
+  persist: {
+    plugin: observablePersistMMKV({ id : 'polevision_db'}),
+    name: 'messages',
+    retrySync: true // Retry sync after reload
+  },
+  changesSince: 'last-sync' // Sync only diffs
+}))
+  */
 
 export const getPoleVision =()=>{
     return poleVisionDB.poles.get();
@@ -38,7 +68,7 @@ export const getPoleVision =()=>{
 
 
 export const setPoleVision =(data: any)=>{
-    return poleVisionDB.poles.set((currentData) => [...currentData, data]);
+    return poleVisionDB.poles.set(data);
 }
 
 export const deletePoleVision = (id: string) => {

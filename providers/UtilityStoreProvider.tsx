@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = '@utility_poles_last_sync';
 
-export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
+export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(() => {
   //const [db, setDb] = useState<UtilityPoleDatabase | null>(null);
   //const db = useRxDB();
   const [poles, setPoles] = useState<UtilityPole[]>([]);

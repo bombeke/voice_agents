@@ -29,7 +29,7 @@ import {
 import { Button, YStack } from 'tamagui';
 
 import { requestSavePermission } from '@/hooks/Helpers';
-import { useUtilityPoles } from '@/providers/UtilityStoreProvider';
+import { useUtilityStorePoles } from '@/providers/UtilityStoreProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { impactAsync, ImpactFeedbackStyle, notificationAsync, NotificationFeedbackType } from 'expo-haptics';
 import { Accuracy, getCurrentPositionAsync } from 'expo-location';
@@ -60,7 +60,8 @@ import { Camera as CameraIcon } from 'lucide-react-native';
   const { cameraResults, detections, frameProcessor } = usePoleDetection();
  const pulseAnim = useRef(new Animated.Value(1)).current;
  const [isCapturing, setIsCapturing] = useState<boolean>(false);
- const { addPole } = useUtilityPoles();
+ const { addPole } = useUtilityStorePoles();
+ //const { addPole } = useUtilityStorePoles();
 
 
   // camera device settings
