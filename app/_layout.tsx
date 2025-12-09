@@ -12,7 +12,7 @@ import { config } from '../tamagui.config';
 
 //import { RxDBProvider } from '@/providers/RxDBContext';
 import { UtilityPoleProvider } from '@/providers/UtilityStoreProvider';
-import { observer } from "@legendapp/state/react";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -23,7 +23,7 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-export const RootLayoutNav = observer(function RootLayoutNav() {
+export function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -31,7 +31,7 @@ export const RootLayoutNav = observer(function RootLayoutNav() {
 
     </Stack>
   );
-})
+}
 
 
 const styles = StyleSheet.create({

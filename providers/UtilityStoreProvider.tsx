@@ -1,10 +1,10 @@
 //import { initDb } from '@/services/storage/RxdbMmkv';
-import { setPoleVision } from '@/services/storage/LegendState';
+import { poleVisionDB, setPoleVision } from '@/services/storage/LegendState';
 import type { UtilityPole } from '@/services/storage/Schema';
 import createContextHook from '@nkzw/create-context-hook';
 import { useMutation } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = '@utility_poles_last_sync';
 
@@ -13,6 +13,31 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
   //const db = useRxDB();
   const [poles, setPoles] = useState<UtilityPole[]>([]);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
+
+   useEffect(() => {
+    if (!poleVisionDB) return;
+    
+    // Use Legend-State's 'onChange' to subscribe to the 'poles' array
+    const unsubscribe = poleVisionDB.poles.onChange(({ value }) => {
+      // 'value' here is the latest array of poles from the observable
+      console.log('[LegendState] Poles updated:', value.length);
+      setPoles([...value]); // Create a new array to ensure React state update
+      
+      // Mark as initialized once we have the first data
+      if (isInitializing) {
+        setIsInitializing(false);
+      }
+    });
+
+    // Initial data fetch
+    setPoles([...poleVisionDB.poles.get() as any]);
+    setIsInitializing(false);
+    
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []); // Run once on mount
+
+
 
   /** -----------------------------
    *  1. Initialize database once

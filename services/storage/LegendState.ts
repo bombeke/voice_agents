@@ -6,7 +6,10 @@ import { configureSynced, syncObservable } from "@legendapp/state/sync";
 
 const syncMMKVPlugin = configureSynced({
     persist: {
-        plugin: observablePersistMMKV({ id: "polevision_db"})
+        name: 'poleVisionStore',
+        plugin: observablePersistMMKV({ 
+            id: "polevision_db"
+        })
     }
 });
 
@@ -17,11 +20,17 @@ export const poleVisionDB = observable({
   roads: []
 });
 
-syncObservable(poleVisionDB, syncMMKVPlugin({
-    persist:{
-        name: 'poleVisionStore' 
-    }
-}));
+syncObservable(
+    poleVisionDB, 
+    syncMMKVPlugin({
+        persist: {
+            name: 'poleVisionStore',
+            plugin: observablePersistMMKV({ 
+                id: "polevision_db"
+            })
+        }
+    })
+);
 
 export const getPoleVision =()=>{
     return poleVisionDB.poles.get();
@@ -31,3 +40,9 @@ export const getPoleVision =()=>{
 export const setPoleVision =(data: any)=>{
     return poleVisionDB.poles.set((currentData) => [...currentData, data]);
 }
+
+export const deletePoleVision = (id: string) => {
+    poleVisionDB.poles.set(prevPoles => 
+        prevPoles.filter((data: any) => data.id !== id)
+    );
+};
