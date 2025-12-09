@@ -10,8 +10,9 @@ import "../global.css";
 //import "../polyfills";
 import { config } from '../tamagui.config';
 
-import { RxDBProvider } from '@/providers/RxDBContext';
+//import { RxDBProvider } from '@/providers/RxDBContext';
 import { UtilityPoleProvider } from '@/providers/UtilityStoreProvider';
+import { observer } from "@legendapp/state/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -22,7 +23,7 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-export function RootLayoutNav() {
+export const RootLayoutNav = observer(function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -30,7 +31,7 @@ export function RootLayoutNav() {
 
     </Stack>
   );
-}
+})
 
 
 const styles = StyleSheet.create({
@@ -59,7 +60,6 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.container}>
         <TamaguiProvider config={config}>
           <MMKVProvider storage={storage}>
-            <RxDBProvider>
               <UtilityPoleProvider>
                 <CachedModelProvider model= { model}>
                   <SafeAreaProvider>
@@ -67,7 +67,6 @@ export default function RootLayout() {
                   </SafeAreaProvider> 
                 </CachedModelProvider>
               </UtilityPoleProvider>
-            </RxDBProvider>
           </MMKVProvider>
         </TamaguiProvider>    
       </GestureHandlerRootView>

@@ -1,17 +1,16 @@
 //import { initDb } from '@/services/storage/RxdbMmkv';
+import { setPoleVision } from '@/services/storage/LegendState';
 import type { UtilityPole } from '@/services/storage/Schema';
 import createContextHook from '@nkzw/create-context-hook';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
-import { useCallback, useEffect, useState } from 'react';
-import { useRxDB } from './RxDBContext';
+import { useState } from 'react';
 
 const STORAGE_KEY = '@utility_poles_last_sync';
 
 export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
   //const [db, setDb] = useState<UtilityPoleDatabase | null>(null);
-  const db = useRxDB();
+  //const db = useRxDB();
   const [poles, setPoles] = useState<UtilityPole[]>([]);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
@@ -41,7 +40,7 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
   /** -----------------------------------------------------------
    * 2. Subscribe to real-time RxDB changes once DB is available
    * ------------------------------------------------------------*/
-  useEffect(() => {
+  /**useEffect(() => {
     if (!db) return;
 
     const sub = db.utility_poles
@@ -57,14 +56,13 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
 
     return () => sub.unsubscribe();
   }, [db]);
-
+**/
   /** -----------------------------
    * Add pole mutation
    * ------------------------------ */
   const addPoleMutation = useMutation({
     mutationFn: async (pole: Omit<UtilityPole, 'id' | 'synced'>) => {
-      console.log("db",db)
-      if (!db) throw new Error("Database not initialized");
+      //if (!db) throw new Error("Database not initialized");
 
       const newPole: UtilityPole = {
         ...pole,
@@ -72,7 +70,8 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
         synced: false,
       };
       console.log("XXX")
-      await db.utility_poles.insert(newPole);
+      //await db.utility_poles.insert(newPole);
+      setPoleVision(newPole);
       console.log(`[Database] Added new pole: ${newPole.id}`);
       return newPole;
     },
@@ -81,7 +80,7 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
   /** -----------------------------
    * Sync mutation
    * ------------------------------ */
-  const syncMutation = useMutation({
+  /*const syncMutation = useMutation({
     mutationFn: async () => {
       if (!db) throw new Error("Database not initialized");
 
@@ -102,11 +101,11 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
       return unsynced.length;
     },
   });
-
+*/
   /** -----------------------------
    * Delete pole
    * ------------------------------ */
-  const deletePole = useCallback(
+  /*const deletePole = useCallback(
     async (poleId: string) => {
       if (!db) throw new Error("Database not initialized");
 
@@ -117,7 +116,7 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
       }
     },
     [db]
-  );
+  );*/
 
   /** -----------------------------
    * Provider return
@@ -125,11 +124,11 @@ export const [UtilityPoleProvider, useUtilityPoles] = createContextHook(() => {
   return {
     poles,
     addPole: addPoleMutation.mutateAsync,
-    syncPoles: syncMutation.mutateAsync,
-    deletePole,
+    //syncPoles: syncMutation.mutateAsync,
+    //deletePole,
 
     isLoading: isInitializing,
-    isSyncing: syncMutation.isPending,
+    //isSyncing: syncMutation.isPending,
     isAddingPole: addPoleMutation.isPending,
   };
 });
