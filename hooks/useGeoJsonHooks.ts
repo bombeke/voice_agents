@@ -7,15 +7,16 @@ import { nanoid } from "nanoid";
 
 export function usePhotoGeoJSON(db: any) {
   //const [data, setData] = useMMKVValue('photos',[]);
-  const { poles, isLoading } = useUtilityStorePoles();
+  const { poles } = useUtilityStorePoles();
   const [photos,setPhotos] = useState<any[]>([]);
   const [geojson, setGeojson] = useState({ type: "FeatureCollection", features: [] });
-
+  console.log("POLES:",poles)
+ 
   useEffect(()=>{
-    if(!isLoading){
-      setPhotos(poles);
+    if(poles && Array.isArray(poles)){
+      setPhotos((prevPoles)=>[...prevPoles,...poles]);
     }
-  },[poles, isLoading])
+  },[poles]);
 
   useEffect(() => {
 

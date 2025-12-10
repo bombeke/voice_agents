@@ -35,7 +35,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { impactAsync, ImpactFeedbackStyle, notificationAsync, NotificationFeedbackType } from 'expo-haptics';
 import { Accuracy, getCurrentPositionAsync } from 'expo-location';
 import { createAssetAsync } from 'expo-media-library';
-import { Camera as CameraIcon } from 'lucide-react-native';
+import { Camera as CameraIcon, Check, X } from 'lucide-react-native';
 
 
  export default function CameraPage(): React.ReactElement {
@@ -53,16 +53,16 @@ import { Camera as CameraIcon } from 'lucide-react-native';
   const isForeground = useIsForeground()
   const isActive = isFocussed && isForeground
 
-  const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back')
-  const [enableHdr, setEnableHdr] = useState(false)
-  const [flash, setFlash] = useState<'off' | 'on'>('off')
-  const [enableNightMode, setEnableNightMode] = useState(false)
-  //const [cameraResults, setCameraResults] = useState<any[]>([]); 
+  const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
+  const [enableHdr, setEnableHdr] = useState(false);
+  const [flash, setFlash] = useState<'off' | 'on'>('off');
+  const [enableNightMode, setEnableNightMode] = useState(false);
   const { cameraResults, detections, frameProcessor } = usePoleDetection();
- const pulseAnim = useRef(new Animated.Value(1)).current;
- const [isCapturing, setIsCapturing] = useState<boolean>(false);
- const { addPole } = useUtilityStorePoles();
- //const { addPole } = useUtilityPoles();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [isCapturing, setIsCapturing] = useState<boolean>(false);
+  const { addPole } = useUtilityStorePoles();
+  const [lastCapture, setLastCapture] = useState<string | null>(null);
+  //const { addPole } = useUtilityPoles();
 
 
   // camera device settings
@@ -149,7 +149,8 @@ import { Camera as CameraIcon } from 'lucide-react-native';
       const locationResult = await getCurrentPositionAsync({
         accuracy: Accuracy.High,
       });
-      Alert.alert("Taking the Photo",`Initiate Capture${media}XX:${type}`);
+
+      setLastCapture("Starting data capture");
       await addPole({
         latitude: locationResult.coords.latitude,
         longitude: locationResult.coords.longitude,
@@ -157,9 +158,8 @@ import { Camera as CameraIcon } from 'lucide-react-native';
         imageUri: media.path,
         detectionConfidence: 80, //get confidence from AI detections
       });
-
       
-      Alert.alert("Camera results:",`${cameraResults}`);
+      setLastCapture("Data captured.");
       return router.navigate('/poles/maps');
     },[router,cameraResults])
 
@@ -454,6 +454,24 @@ import { Camera as CameraIcon } from 'lucide-react-native';
           </View>
         ))}
       </View>
+      {
+        lastCapture && (
+          <View
+            style={[
+              styles.captureNotification,
+              lastCapture.includes('detected and saved') && styles.captureNotificationSuccess,
+            ]}
+          >
+            {lastCapture.includes('detected and saved') ? (
+              <Check size={20} color="#FFFFFF" />
+            ) : (
+              <X size={20} color="#FFFFFF" />
+            )}
+            <Text style={styles.captureNotificationText}>{lastCapture}</Text>
+          </View>
+        )
+      }
+
     </View>
   );
 
@@ -673,5 +691,31 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: '600' as const, 
   },
-  /* permission / misc styles unchanged - keep them if you need */
+  captureNotification: {
+      position: 'absolute' as const,
+      top: 100,
+      left: 20,
+      right: 20,
+      backgroundColor: Colors.light.danger,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderRadius: 12,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      shadowColor: Colors.light.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    captureNotificationSuccess: {
+      backgroundColor: Colors.light.success,
+    },
+    captureNotificationText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '600' as const,
+      marginLeft: 12,
+      flex: 1,
+    },
 });
