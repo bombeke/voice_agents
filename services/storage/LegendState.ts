@@ -1,12 +1,11 @@
 import { observable } from '@legendapp/state';
 import {
-    configureObservablePersistence,
-    persistObservable
+  configureObservablePersistence,
+  persistObservable
 } from '@legendapp/state/persist';
 import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv';
 
 configureObservablePersistence({
-  // Use AsyncStorage in React Native
   pluginLocal: ObservablePersistMMKV
 })
 

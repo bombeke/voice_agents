@@ -1,23 +1,21 @@
 import { useEffect, useState } from "react";
 
 import { useMMKVStorage } from "@/components/MmkvContext";
+import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
 import { getGeoTags } from "@/services/storage/Storage";
 import { nanoid } from "nanoid";
-import { useMMKVValue } from "./useMMKVVlaue";
 
 export function usePhotoGeoJSON(db: any) {
-  const [data, setData] = useMMKVValue('photos',[]);
+  //const [data, setData] = useMMKVValue('photos',[]);
+  const { poles, isLoading } = useUtilityStorePoles();
   const [photos,setPhotos] = useState<any[]>([]);
   const [geojson, setGeojson] = useState({ type: "FeatureCollection", features: [] });
 
   useEffect(()=>{
-    if(db?.photos){
-      setPhotos(db?.photos || [])
+    if(!isLoading){
+      setPhotos(poles);
     }
-    else{
-      setPhotos(data as any)
-    }
-  })
+  },[poles, isLoading])
 
   useEffect(() => {
 
