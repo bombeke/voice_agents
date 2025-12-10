@@ -3,9 +3,9 @@ import { Camera, CameraRef, CircleLayer, MapView, ShapeSource, SymbolLayer } fro
 import { useEffect, useMemo, useRef } from "react";
 
 export default function DashboardMaps() {
-    const geojson: any = usePhotoGeoJSON("photos");
+    const geojson: any = usePhotoGeoJSON();
     console.log("GEO:",geojson);
-    const memoGeoJSON = useMemo(() => geojson, [geojson?.features]);
+    const memoGeoJSON = useMemo(() => geojson, [geojson]);
     const cameraRef = useRef<CameraRef>(null);
 
     // Fallback center if geojson is empty

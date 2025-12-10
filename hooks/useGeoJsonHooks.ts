@@ -1,40 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useMMKVStorage } from "@/components/MmkvContext";
 import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
 import { getGeoTags } from "@/services/storage/Storage";
 import { nanoid } from "nanoid";
 
-export function usePhotoGeoJSON(db: any) {
-  //const [data, setData] = useMMKVValue('photos',[]);
-  const { poles } = useUtilityStorePoles();
-  const [photos,setPhotos] = useState<any[]>([]);
-  const [geojson, setGeojson] = useState({ type: "FeatureCollection", features: [] });
-  console.log("POLES:",poles)
- 
-  useEffect(()=>{
-    if(poles && Array.isArray(poles)){
-      setPhotos((prevPoles)=>[...prevPoles,...poles]);
-    }
-  },[poles]);
+export function usePhotoGeoJSON() {
+  const { poles, isLoading } = useUtilityStorePoles();
+  const [photos, setPhotos] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!Array.isArray(poles)) return;
+    setPhotos(prev => {
+      const same =
+        prev.length === poles.length &&
+        prev.every((p, i) => p.id === poles[i].id);
 
-    if(photos && Array.isArray(photos)){
-      /*const sub = photos?.find().$.subscribe((docs: any) => {
-          if (docs) setGeojson(toGeoJSON(docs as any));
-        });
+      return same ? prev : poles;
+    });
+    
+  }, [poles]);
 
-      return () => sub.unsubscribe();
-      */
-     setGeojson(toGeoJSON(photos as any))
-    }
+   const geojson = useMemo(() => {
+    return toGeoJSON(photos);
   }, [photos]);
-
+  console.log("Photos:",photos,"poles:",poles, "Loading:",isLoading)
   return geojson;
 }
 
-export function toGeoJSON(docs: any) {
+
+export function toGeoJSON(docs: any[]) {
   return {
     type: "FeatureCollection",
     features: docs?.map((doc: any) => ({

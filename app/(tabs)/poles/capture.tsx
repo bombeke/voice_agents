@@ -1,18 +1,16 @@
 import { PressableButton } from '@/components/PressableButton';
 import { CONTENT_SPACING, CONTROL_BUTTON_SIZE, MAX_ZOOM_FACTOR, SAFE_AREA_PADDING, SCREEN_HEIGHT, SCREEN_WIDTH } from '@/constants/Camera';
+import Colors from '@/constants/Colors';
 import { AnimatedCamera } from '@/hooks/AnimatedCamera';
 import { useIsForeground } from '@/hooks/useIsForeground';
-import { usePinchGesture } from '@/hooks/usePinchGesture';
+import { usePoleDetection } from '@/hooks/usePoleDetection';
 import { usePreferredCameraDevice } from '@/hooks/usePreferredCameraDevice';
 import CaptureButton from '@/views/CaptureButton';
 import IonIcon from "@expo/vector-icons/Ionicons";
+import { useIsFocused } from '@react-navigation/core';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, GestureResponderEvent, Platform, StyleSheet, Text, View } from "react-native";
-//import { Tensor, TensorflowModel, useTensorflowModel } from 'react-native-fast-tflite';
-import Colors from '@/constants/Colors';
-import { usePoleDetection } from '@/hooks/usePoleDetection';
-import { useIsFocused } from '@react-navigation/core';
+import { Animated, StyleSheet, Text, View } from "react-native";
 import { useAnimatedProps, useSharedValue } from 'react-native-reanimated';
 import {
   Camera,
@@ -28,13 +26,9 @@ import {
 } from 'react-native-vision-camera';
 import { Button, YStack } from 'tamagui';
 
-import { requestSavePermission } from '@/hooks/Helpers';
-//import { useUtilityStorePoles } from '@/providers/UtilityStoreProvider';
 import { useUtilityStorePoles } from '@/providers/UtilityStoreProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { impactAsync, ImpactFeedbackStyle, notificationAsync, NotificationFeedbackType } from 'expo-haptics';
 import { Accuracy, getCurrentPositionAsync } from 'expo-location';
-import { createAssetAsync } from 'expo-media-library';
 import { Camera as CameraIcon, Check, X } from 'lucide-react-native';
 
 
@@ -91,11 +85,8 @@ import { Camera as CameraIcon, Check, X } from 'lucide-react-native';
   const supportsHdr = format?.supportsPhotoHdr
   const supports60Fps = useMemo(() => device?.formats.some((f) => f.maxFps >= 60), [device?.formats])
   const canToggleNightMode = device?.supportsLowLightBoost ?? false
-
-  //#region Animated Zoom
   const minZoom = device?.minZoom ?? 1
   const maxZoom = Math.min(device?.maxZoom ?? 1, MAX_ZOOM_FACTOR)
-  const pinchGesture = usePinchGesture(zoom, minZoom, maxZoom);
 
   const cameraAnimatedProps = useAnimatedProps<CameraProps>(() => {
     const z = Math.max(Math.min(zoom.value, maxZoom), minZoom)
@@ -161,7 +152,7 @@ import { Camera as CameraIcon, Check, X } from 'lucide-react-native';
       
       setLastCapture("Data captured.");
       return router.navigate('/poles/maps');
-    },[router,cameraResults])
+    },[router,cameraResults, addPole])
 
   const onFlipCameraPressed = useCallback(() => {
     setCameraPosition((p) => (p === 'back' ? 'front' : 'back'))
@@ -170,39 +161,17 @@ import { Camera as CameraIcon, Check, X } from 'lucide-react-native';
   const onFlashPressed = useCallback(() => {
     setFlash((f) => (f === 'off' ? 'on' : 'off'))
   }, [])
-  //#endregion
 
-  //#region Tap Gesture
-  const onFocusTap = useCallback(
-    ({ nativeEvent: event }: GestureResponderEvent) => {
-      if (!device?.supportsFocus) return
-      camera.current?.focus({
-        x: event.locationX,
-        y: event.locationY,
-      })
-    },
-    [device?.supportsFocus],
-  )
-  const onDoubleTap = useCallback(() => {
-    onFlipCameraPressed()
-  }, [onFlipCameraPressed])
-  //#endregion
-
-  //#region Effects
   useEffect(() => {
-    // Reset zoom to it's default everytime the `device` changes.
     zoom.value = device?.neutralZoom ?? 1
-  }, [zoom, device])
-  //#endregion
-
+  }, [zoom, device?.neutralZoom])
 
   useEffect(() => {
     const f =
       format != null
         ? `(${format.photoWidth}x${format.photoHeight} photo / ${format.videoWidth}x${format.videoHeight}@${format.maxFps} video @ ${fps}fps)`
         : undefined
-    console.log(`Camera: ${device?.name} | Format: ${f}`)
-  }, [device?.name, format, fps])
+  }, [format, fps])
 
   useEffect(() => {
     location.requestPermission()
@@ -221,84 +190,6 @@ import { Camera as CameraIcon, Check, X } from 'lucide-react-native';
     await location.requestPermission()
     return;
   }
-
-  const handleCapture = async () => {
-      if (!camera.current || isCapturing) return;
-  
-      if (Platform.OS !== 'web') {
-        await impactAsync(ImpactFeedbackStyle.Heavy);
-      }
-  
-      setIsCapturing(true);
-      startPulse();
-  
-      try {
-        const locationResult = await getCurrentPositionAsync({
-          accuracy: Accuracy.High,
-        });
-        const photo = await camera.current.takePhoto({ flash });
-        try {
-          const hasPermission = await requestSavePermission()
-          if (!hasPermission) {
-            Alert.alert('Permission denied!', 'Camera does not have permission to save the media.')
-            return
-          }
-          await createAssetAsync(`file:///${photo.path}`, 'photo')
-        } 
-        catch (e) {
-          const message = e instanceof Error ? e.message : JSON.stringify(e)
-          Alert.alert('Failed to save!', `An unexpected error occured while trying to save. ${message}`)
-        }
-       const detectionResult = { hasPole: true, confidence: 80 };
-  
-        console.log('[AI] Detection result:', detectionResult);
-        console.log('[Camera] Photo captured:', photo.path);
-        console.log('[Camera] Location:', locationResult.coords);
-
-        let hasPole = false;
-        let confidence = 0;
-  
-          const parsed = detectionResult;
-          hasPole = parsed.hasPole === true;
-          confidence = parsed.confidence || 0;
-  
-        if (hasPole) {
-          /*await addPole({
-            latitude: locationResult.coords.latitude,
-            longitude: locationResult.coords.longitude,
-            timestamp: Date.now(),
-            imageUri: photo.uri,
-            detectionConfidence: confidence,
-          });*/
-          
-          if (Platform.OS !== 'web') {
-            await notificationAsync(NotificationFeedbackType.Success);
-          }
-        } 
-        else {
-          //('No utility pole detected. Try again.');
-          
-          if (Platform.OS !== 'web') {
-            await notificationAsync(NotificationFeedbackType.Warning);
-          }
-        }
-  
-        //setTimeout(() => setLastCapture(null), 3000);
-      } 
-      catch (error) {
-        console.error('[Camera] Error capturing:', error);
-        
-        if (Platform.OS !== 'web') {
-          await notificationAsync(NotificationFeedbackType.Error);
-        }
-        
-        //setTimeout(() => setLastCapture(null), 3000);
-      } 
-      finally {
-        setIsCapturing(false);
-        stopPulse();
-      }
-    };
 
   if (!hasPermission) {
     return (
