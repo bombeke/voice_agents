@@ -12,7 +12,7 @@ env:
   PNPM_VERSION: 9.15.4
   URL: ${{ secrets.URL }}
   API_URL: ${{ secrets.API_URL }}
-  API_USERNAME: ${{ secrets.API_USERNAME| }}
+  API_USERNAME: ${{ secrets.API_USERNAME }}
   API_PASSWORD: ${{ secrets.API_PASSWORD }}
   API_ACCESS_TOKEN: ${{ secrets.API_ACCESS_TOKEN }}
   PROJECT_ID: ${{ secrets.PROJECT_ID }}

@@ -17,10 +17,10 @@ export const Dhis2EventsAdapter = {
       return res.data ?? [];
     },
 
-    // If you prefer full-set writes (not used in op-based flow)
-    async set(list: UtilityPole[]) {
-      await axiosClient.post('poles/import', { poles: list }); // adapt
-    },
+  // If you prefer full-set writes (not used in op-based flow)
+  async set(list: UtilityPole[]) {
+    await axiosClient.post('poles/import', { poles: list }); // adapt
+  },
 
   async ingestEventOps(ops: Operation<BaseEvent>[]) : Promise<ImportResult> {
     // Convert ops into DHIS2 "events" array
