@@ -7,7 +7,6 @@ import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TamaguiProvider } from 'tamagui';
 import "../global.css";
-//import "../polyfills";
 import { config } from '../tamagui.config';
 
 //import { RxDBProvider } from '@/providers/RxDBContext';
@@ -15,7 +14,7 @@ import { config } from '../tamagui.config';
 
 import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
 import { queryClient } from '@/services/Api';
-import { poleVisionDB } from '@/services/storage/LegendState';
+import { initPersistence, poleVisionDBDeviceId } from '@/services/storage/LegendState';
 import { EventSyncManager } from '@/services/sync/SyncManagerEvents';
 import { useSelector } from '@legendapp/state/react';
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -27,7 +26,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 SplashScreen.preventAutoHideAsync();
 
 export function RootLayoutNav() {
-  const deviceId =  useSelector(() => poleVisionDB.deviceId.get());
+
+  const deviceId =  useSelector(() => poleVisionDBDeviceId.get());
   console.log("Device ID:",deviceId);
   const trackerSync = new EventSyncManager({
     actorId: `device:${deviceId}`, // or user id
@@ -61,6 +61,8 @@ export default function RootLayout() {
   const userId = 'mmkv_user_app';
   const storage = createUserStorage(userId);
   const { model } = useCachedModel();
+  initPersistence()
+
   useEffect(() => {
     SplashScreen.hideAsync();
   }, []);

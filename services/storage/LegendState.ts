@@ -29,18 +29,29 @@ export interface IPoleVisionDB {
   deviceId: string;
 }
 
-configureObservablePersistence({
-  pluginLocal: ObservablePersistMMKV
-})
 
+let configured = false;
+
+export function initPersistence() {
+  if (configured) return;
+
+  configureObservablePersistence({
+    pluginLocal: ObservablePersistMMKV,
+  });
+
+  configured = true;
+}
 export const poleVisionDB = observable<IPoleVisionDB>({
   poles: [],
   tracks: [],
   agents:[],
   sanitation:[],
   roads: [],
-  deviceId: randomUUID()
+  deviceId: ''
 });
+
+export const poleVisionDBTracks = observable<any>([]);
+export const poleVisionDBDeviceId = observable<string>('');
 
 export const opQueue = observable<Operation[]>([]);
 export const eventsStore = observable<LocalEventRecord[]>([]);
@@ -52,11 +63,24 @@ persistObservable(authStore, {
 });
 
 // Per collection
-persistObservable(poleVisionDB.poles, { 
-  local: 'polevision_poles',
+persistObservable(poleVisionDB, { 
+  local: {
+    name: 'polevision_app_db_v1',
+    mmkv: {
+      id: "polevision_poles_db"
+    }
+  }
+  // remote
+  // PluginLocal
+  // PluginRemote
 });
-persistObservable(poleVisionDB.tracks, { 
-  local: 'polevision_tracks' 
+persistObservable(poleVisionDBTracks, { 
+  local: {
+    name: 'polevision_tracks',
+    mmkv: {
+      id: "polevision_tracks_db"
+    }
+  } 
 });
 persistObservable(opQueue, { 
   local: STORAGE_OPS_KEY 
@@ -65,11 +89,18 @@ persistObservable(eventsStore, {
   local: STORAGE_EVENTS_KEY 
 });
 
-persistObservable(poleVisionDB.deviceId, { 
-  local: 'polevision_device_meta' 
+persistObservable(poleVisionDBDeviceId, { 
+  local: {
+    name: 'polevision_device_meta',
+    mmkv: {
+      id: "polevision_device_meta_db"
+    }
+  }
 });
 
-
+if (!poleVisionDBDeviceId.get()) {
+  poleVisionDBDeviceId.set(randomUUID());
+}
 
 export const clearTrack = () => {
   poleVisionDB.tracks.set([]);

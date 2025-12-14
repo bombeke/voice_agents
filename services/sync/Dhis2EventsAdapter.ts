@@ -88,9 +88,15 @@ export const Dhis2EventsAdapter = {
   /** Helper to fetch remote events (pull) */
   async fetchRemoteEvents(params?: Record<string, any>) {
     // Use DHIS2 tracker/events endpoint; include paging params if necessary
-    const res = await axiosClient.get('/tracker/events', { params });
-    // Res body format may differ; adapt to your DHIS2 version
-    const remoteEvents = res.data?.events ?? res.data;
-    return remoteEvents;
+    try {
+      const res = await axiosClient.get('/tracker/events', { params });
+      // Res body format may differ; adapt to your DHIS2 version
+      const remoteEvents = res.data?.events ?? res.data;
+      return remoteEvents;
+    }
+    catch(err){
+      console.error('Pull data failed', err);
+      return []
+    }
   }
 }

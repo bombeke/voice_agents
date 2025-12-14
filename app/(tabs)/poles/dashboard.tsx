@@ -314,7 +314,7 @@ export default function PoleVisionMockup() {
       {/* Footer */}
       <View className="mt-10 items-center">
         <Text className="text-xs text-slate-400">
-          PoleVision™ • Prototype UI • For demo purposes
+          PoleVision™
         </Text>
       </View>
     </ScrollView>

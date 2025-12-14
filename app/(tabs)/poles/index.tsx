@@ -1,29 +1,21 @@
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
 import { Button } from "tamagui";
+import DashboardMaps from "./maps";
 
 export default function PolesIndex() {
   return (
     <View style={{ padding: 16 }} className="gap-4">
-      <Text className="text-2xl font-semibold">AI Poles</Text>
-      <Link href="/poles/capture" asChild>
-        <Button>Capture Pole</Button>
-      </Link>
-      <Link href="/poles/maps" asChild>
-        <Button>Dashboard Maps</Button>
-      </Link>
-      <Link href="/poles/camera" asChild>
-        <Button>Camera</Button>
-      </Link>
-      <Link href="/poles/vision" asChild>
-        <Button>Vison Camera</Button>
-      </Link>
-      <Link href="/poles/dashboard" asChild>
-        <Button>Dashboard</Button>
-      </Link>
-      <Text className="mt-4">
-        Pole Distribution
-      </Text>
+      <Text className="text-2xl font-semibold">PoleVision™ Dashboard</Text>
+      <View className="flex w-full gap-3">
+        <Link href="/poles/capture" asChild>
+          <Button>Scan Pole</Button>
+        </Link>
+        <Link href="/poles/maps" asChild>
+          <Button>Dashboard</Button>
+        </Link>
+      </View>
+      <DashboardMaps/>
     </View>
   );
 }
