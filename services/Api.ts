@@ -10,7 +10,7 @@ export type AuthType =
 
 export const axiosClient = axios.create({
   baseURL: API_URL,
-  timeout: 20000,
+  //timeout: 20000,
   auth:{
     username: API_USERNAME,
     password: API_PASSWORD,
