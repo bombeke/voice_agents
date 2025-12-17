@@ -93,7 +93,7 @@ persistObservable(poleVisionDBDeviceId, {
   local: {
     name: 'polevision_device_meta',
     mmkv: {
-      id: "polevision_device_meta_db"
+      id: "polevision_device_meta_db",
     }
   }
 });

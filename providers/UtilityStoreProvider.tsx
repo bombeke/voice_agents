@@ -8,7 +8,7 @@ import { useCallback } from 'react';
 
 export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(() => {
   const poles =  useSelector(() => poleVisionDB.poles.get());
-  const tracks = useSelector(poleVisionDB.tracks.get());
+  const tracks = useSelector(() => poleVisionDB.tracks.get());
 
   const isLoading = poles === undefined || tracks === undefined;
 
