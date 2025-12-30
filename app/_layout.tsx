@@ -9,9 +9,6 @@ import { TamaguiProvider } from 'tamagui';
 import "../global.css";
 import { config } from '../tamagui.config';
 
-//import { RxDBProvider } from '@/providers/RxDBContext';
-//import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
-
 import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
 import { queryClient } from '@/services/Api';
 import { BackendSyncObserver } from '@/services/storage/BackendSyncObserver';

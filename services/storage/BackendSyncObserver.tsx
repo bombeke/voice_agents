@@ -16,18 +16,19 @@ import { authStore$, CRDTPole, poleVisionDB$, remotePoles$, resolveCRDTPole } fr
 
 
 export function BackendSyncObserver() {
-  const authStore = useValue(authStore$);
+  const authApp = useValue(authStore$);
   const remote = useValue(remotePoles$);
 
   useEffect(() => {
     const auth = observe(() => {
-      if (!authStore) return;
-    
-      queryClient.invalidateQueries({ queryKey: ['poles'] });
+      if (!authApp) return;
+      queryClient.invalidateQueries({ queryKey: ['metadata'] });
     });
 
-    return auth;
-  },[authStore]);
+    return ()=>{
+      auth();
+    }
+  },[authApp]);
 
   useEffect(() => {
     let online = true;

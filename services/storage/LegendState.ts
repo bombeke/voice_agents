@@ -3,7 +3,7 @@ import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv';
 import { configureSynced, syncObservable } from '@legendapp/state/sync';
 import { syncedQuery } from '@legendapp/state/sync-plugins/tanstack-query';
 import { randomUUID } from 'expo-crypto';
-import { AuthType, queryClient } from '../Api';
+import { AuthType, axiosClient, queryClient } from '../Api';
 import { Operation } from '../sync/Types';
 import { LocalEventRecord } from './EventStore';
 
@@ -93,8 +93,8 @@ export function initPersistence() {
       plugin: ObservablePersistMMKV,
     }
   });
-  //@ts-ignore
-  syncObservable(authStore, syncPlugin({
+
+  syncObservable(authStore$, syncPlugin({
     persist:{
       name: "polevision_auth_store",
     }
@@ -120,11 +120,13 @@ export function initPersistence() {
       }
     } 
   }));
+  
   syncObservable(opQueue$, syncPlugin({ 
     persist:{
       name: STORAGE_OPS_KEY 
     }
   }));
+
   syncObservable(eventsStore$, { 
     persist: {
       name: STORAGE_EVENTS_KEY
@@ -148,15 +150,15 @@ export const remotePoles$ = observable(
     queryClient,
 
     query: {
-      queryKey: ['poles'],
+      queryKey: ['metadata'],
       queryFn: async () => {
         console.log("Fetching poles");
-        const res = await fetch('https://api.yourbackend.com/poles');
-        if (!res.ok) {
+        const res = await axiosClient.get('metadata');
+        if (res.status !== 200) {
           console.log('Failed to fetch poles');
           return [];
         }
-        return res.json();
+        return res.data;
       },
     },
 
@@ -164,19 +166,29 @@ export const remotePoles$ = observable(
       //@ts-ignore
       mutationFn: async (pole: SyncedPole) => {
         console.log("POLE STARTED SYNCING")
-        const res = await fetch(
-          `https://api.yourbackend.com/poles/${pole.id}`,
-          {
-            method: pole.deleted ? 'DELETE' : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(pole),
-          }
-        );
-        if (!res.ok) {
-          console.log('Failed to sync pole');
-          return null;
-        } 
-        return res.json();
+        if(pole.deleted){
+          console.log("DELETING POLE")
+          const deleteRes = await axiosClient.delete(`metadata/${pole.id}`);
+          if (deleteRes.status !== 200) {
+            console.log('Failed to sync pole');
+            return null;
+          } 
+          return deleteRes.data;
+        }
+        else{
+          const res = await axiosClient.put(
+            pole?.id?`metadata/${pole?.id}`:`metadata`,
+            pole,
+            {
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+          if (res.status !== 200) {
+            console.log('Failed to sync pole');
+            return null;
+          } 
+          return res.data;
+        }
       },
     },
   })
