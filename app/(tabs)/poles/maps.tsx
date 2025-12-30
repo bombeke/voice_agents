@@ -10,7 +10,7 @@ export default function DashboardMaps() {
     const cameraRef = useRef<CameraRef>(null);
 
     // Fallback center if geojson is empty
-    const firstFeature = geojson?.features?.[0];
+    const firstFeature = memoGeoJSON?.features?.[0];
     const lng = firstFeature?.geometry?.coordinates?.[0];
     const lat = firstFeature?.geometry?.coordinates?.[1];
     const initialCenter = useRef<[number, number]>([
@@ -35,7 +35,7 @@ export default function DashboardMaps() {
         }
       }
       initMap();
-  }, [memoGeoJSON?.features, lng, lat]);
+  }, [firstFeature, lng, lat]);
 
   return (
     <MapView

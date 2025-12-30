@@ -1,14 +1,15 @@
-import { deletePoleVision, poleVisionDB, setPoleVision } from '@/services/storage/LegendState';
-import type { UtilityPole } from '@/services/storage/Schema';
-import { useSelector } from '@legendapp/state/react';
+import type { UtilityPole } from '@/services/storage/LegendState';
+import { deletePoleVision, poleVisionDB$, setPoleVision } from '@/services/storage/LegendState';
+import { useValue } from '@legendapp/state/react';
 import createContextHook from '@nkzw/create-context-hook';
 import { useMutation } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 import { useCallback } from 'react';
 
 export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(() => {
-  const poles =  useSelector(() => poleVisionDB.poles.get());
-  const tracks = useSelector(() => poleVisionDB.tracks.get());
+  const poles =  useValue(poleVisionDB$.poles);
+  const tracks = useValue(poleVisionDB$.tracks);
+  console.log("POLES OBSERVABLE:",poles)
 
   const isLoading = poles === undefined || tracks === undefined;
 

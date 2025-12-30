@@ -1,5 +1,5 @@
 import { axiosClient } from '../Api';
-import { UtilityPole } from '../storage/Schema';
+import { UtilityPole } from '../storage/LegendState';
 import type { BaseEvent, ImportResult, Operation } from './Types';
 
 /**

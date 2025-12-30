@@ -1,6 +1,6 @@
 import { randomUUID } from 'expo-crypto';
 import { getEventByLocalId, upsertEvent } from '../storage/EventStore';
-import { eventsStore, opQueue } from '../storage/LegendState';
+import { eventsStore$, opQueue$ } from '../storage/LegendState';
 import { bumpAttempt, removeOps } from '../storage/OpQueue';
 import { Dhis2EventsAdapter } from './Dhis2EventsAdapter';
 import { mergeFieldLevel, mergeLWW, mergeServerWins } from './MergeStrategies';
@@ -33,7 +33,7 @@ export class EventSyncManager<T> {
 
   /** Push a batch of ops to DHIS2 */
   async pushOpsOnce() {
-    const q = opQueue.get();
+    const q = opQueue$.get();
     if (!q.length) return { ok: true, processed: 0 };
 
     const chunk = q.slice(0, this.batchSize);
@@ -80,7 +80,7 @@ export class EventSyncManager<T> {
       const remoteEvents = await this.remoteAdapter.fetchRemoteEvents(params);
 
       // For each remote event, merge into local store
-      const localList = eventsStore.get();
+      const localList = eventsStore$.get();
       const localMap = new Map(localList.map(r => [r.localId, r]));
 
       for (const remote of remoteEvents) {
@@ -104,14 +104,14 @@ export class EventSyncManager<T> {
           const op: Operation = {
             opId: randomUUID(),
             kind: 'update',
-            recordLocalId: local.localId,
+            recordLocalId: local.localId as any,
             payload: local,
             actor: this.actorId,
             timestamp: new Date().toISOString(),
             attempts: 0,
             idempotencyKey: `sync-push-${local.localId}-${Date.now()}`,
           };
-          opQueue.push(op);
+          opQueue$.push(op);
         }
       }
       return { ok: true, pulled: remoteEvents.length };

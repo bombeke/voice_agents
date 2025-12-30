@@ -1,17 +1,5 @@
-import type { RxCollection, RxDatabase, RxJsonSchema } from 'rxdb';
 
-export interface UtilityPole {
-  id: string;
-  latitude: number;
-  longitude: number;
-  timestamp: number;
-  imageUri?: string;
-  detectionConfidence?: number;
-  synced: boolean;
-  dhis2Id?: string;
-}
-
-export const utilityPoleSchema: RxJsonSchema<UtilityPole> = {
+export const utilityPoleSchema = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
@@ -47,11 +35,6 @@ export const utilityPoleSchema: RxJsonSchema<UtilityPole> = {
   //indexes: ['timestamp', 'synced'],
 };
 
-export type UtilityPoleCollection = RxCollection<UtilityPole>;
-
-export type UtilityPoleDatabase = RxDatabase<{
-  utility_poles: UtilityPoleCollection;
-}>;
 
 export const photoSchema = {
   title: "photo schema",

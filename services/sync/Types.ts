@@ -36,10 +36,10 @@ export type Meta = {
 
 export type BaseEvent = {
   id?: string; // server event id (may be absent until server assigns)
-  localId: string; // local identifier we always keep
-  program: string;
+  localId?: string; // local identifier we always keep
+  program?: string;
   programStage?: string;
-  orgUnit: string;
+  orgUnit?: string;
   eventDate?: string;
   status?: string;      // ACTIVE / COMPLETED etc
   dataValues?: Array<{ dataElement: string; value: any }>;

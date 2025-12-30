@@ -14,9 +14,10 @@ import { config } from '../tamagui.config';
 
 import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
 import { queryClient } from '@/services/Api';
-import { initPersistence, poleVisionDBDeviceId } from '@/services/storage/LegendState';
-import { EventSyncManager } from '@/services/sync/SyncManagerEvents';
-import { useSelector } from '@legendapp/state/react';
+import { BackendSyncObserver } from '@/services/storage/BackendSyncObserver';
+import { initPersistence, poleVisionDBDeviceId$ } from '@/services/storage/LegendState';
+import { OpQueueReplayObserver } from '@/services/storage/OpQueueReplayObserver';
+import { useValue } from '@legendapp/state/react';
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -27,17 +28,21 @@ SplashScreen.preventAutoHideAsync();
 
 export function RootLayoutNav() {
 
-  const deviceId =  useSelector(() => poleVisionDBDeviceId.get());
+  const deviceId =  useValue(poleVisionDBDeviceId$);
   console.log("Device ID:",deviceId);
-  const trackerSync = new EventSyncManager({
-    actorId: `device:${deviceId}`, // or user id
-    batchSize: 20,
-    intervalMs: 30_000,
-    mergeStrategy: 'LWW',
-  });
+  /*useEffect(() => {
+    const trackerSync = new EventSyncManager({
+      actorId: `device:${deviceId}`,
+      batchSize: 20,
+      intervalMs: 30_000,
+      mergeStrategy: 'LWW',
+    });
 
-  const stopSync = trackerSync.startAuto();
-  // Keep stopSync to stop on app exit
+    const stop = trackerSync.startAuto();
+    return stop; // cleanup on unmount
+  }, [deviceId]);
+  */
+
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -79,6 +84,8 @@ export default function RootLayout() {
               <UtilityStoreProvider>
                 <CachedModelProvider model= { model}>
                   <SafeAreaProvider>
+                    <BackendSyncObserver/>
+                    <OpQueueReplayObserver/>
                     <RootLayoutNav/>
                   </SafeAreaProvider> 
                 </CachedModelProvider>
