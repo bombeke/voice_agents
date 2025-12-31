@@ -153,7 +153,7 @@ export const remotePoles$ = observable(
       queryKey: ['metadata'],
       queryFn: async () => {
         console.log("Fetching poles");
-        const res = await axiosClient.get('metadata');
+        const res = await axiosClient.get('/metadata');
         if (res.status !== 200) {
           console.log('Failed to fetch poles');
           return [];
@@ -168,7 +168,7 @@ export const syncPoleToServer = async (pole: SyncedPole) => {
   console.log("POLE STARTED SYNCING")
   if(pole.deleted){
     console.log("DELETING POLE")
-    const deleteRes = await axiosClient.delete(`metadata/${pole.id}`);
+    const deleteRes = await axiosClient.delete(`/metadata/${pole.id}`);
     if (deleteRes.status !== 200) {
       console.log('Failed to sync pole');
       return null;
@@ -177,7 +177,7 @@ export const syncPoleToServer = async (pole: SyncedPole) => {
   }
   else{
     const res = await axiosClient.put(
-      pole?.id?`metadata/${pole?.id}`:`metadata`,
+      pole?.id?`/metadata/${pole?.id}`:`/metadata`,
       pole,
       {
         headers: { 'Content-Type': 'application/json' },

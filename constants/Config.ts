@@ -9,3 +9,5 @@ export const API_URL = env?.API_URL;
 export const API_USERNAME = env?.API_USERNAME;
 export const API_PASSWORD = env?.API_PASSWORD;
 export const API_ACCESS_TOKEN = env?.API_ACCESS_TOKEN;
+
+export const APP_SECURE_AUTH_STATE_KEY = 'PoleVisionAuthToken';

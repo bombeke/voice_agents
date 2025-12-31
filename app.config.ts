@@ -24,6 +24,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "bundleIdentifier": "org.bombeke.voiceagents",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -55,7 +58,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-	[
+	    [
         "expo-build-properties",
         {
           "android": {
@@ -109,6 +112,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           isAndroidForegroundServiceEnabled: true,
           isAndroidBackgroundServiceEnabled: true,
           locationAlwaysAndWhenInUsePermission: "Allow ${PRODUCT_NAME) to use your location"
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to access your Face ID biometric data."
         }
       ]
     ],

@@ -9,7 +9,7 @@ export type AuthType =
   | { kind: 'oauth2', accessToken: string };
 
 export const axiosClient = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_URL}`,
   //timeout: 20000,
   auth:{
     username: API_USERNAME,

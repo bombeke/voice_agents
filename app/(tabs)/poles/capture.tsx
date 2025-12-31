@@ -148,7 +148,7 @@ import { Camera as CameraIcon, Check, X } from 'lucide-react-native';
         timestamp: Date.now(),
         imageUri: media.path,
         detectionConfidence: 80, //get confidence from AI detections
-      });
+      } as any);
       
       setLastCapture("Data captured.");
       return router.navigate('/poles/maps');

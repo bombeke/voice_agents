@@ -1,4 +1,4 @@
-import type { UtilityPole } from '@/services/storage/LegendState';
+import type { CRDTPole, SyncedPole } from '@/services/storage/LegendState';
 import { deletePoleVision, poleVisionDB$, setPoleVision } from '@/services/storage/LegendState';
 import { useValue } from '@legendapp/state/react';
 import createContextHook from '@nkzw/create-context-hook';
@@ -17,8 +17,8 @@ export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(()
    * Add pole
    */
   const addPoleMutation = useMutation({
-    mutationFn: async (pole: Omit<UtilityPole, 'id' | 'synced'>) => {
-      const newPole: UtilityPole = {
+    mutationFn: async (pole: SyncedPole & CRDTPole) => {
+      const newPole: SyncedPole & CRDTPole = {
         ...pole,
         id: randomUUID(),
         synced: false,
