@@ -161,38 +161,37 @@ export const remotePoles$ = observable(
         return res.data;
       },
     },
-
-    mutation: {
-      //@ts-ignore
-      mutationFn: async (pole: SyncedPole) => {
-        console.log("POLE STARTED SYNCING")
-        if(pole.deleted){
-          console.log("DELETING POLE")
-          const deleteRes = await axiosClient.delete(`metadata/${pole.id}`);
-          if (deleteRes.status !== 200) {
-            console.log('Failed to sync pole');
-            return null;
-          } 
-          return deleteRes.data;
-        }
-        else{
-          const res = await axiosClient.put(
-            pole?.id?`metadata/${pole?.id}`:`metadata`,
-            pole,
-            {
-              headers: { 'Content-Type': 'application/json' },
-            }
-          );
-          if (res.status !== 200) {
-            console.log('Failed to sync pole');
-            return null;
-          } 
-          return res.data;
-        }
-      },
-    },
   })
 );
+
+export const syncPoleToServer = async (pole: SyncedPole) => {
+  console.log("POLE STARTED SYNCING")
+  if(pole.deleted){
+    console.log("DELETING POLE")
+    const deleteRes = await axiosClient.delete(`metadata/${pole.id}`);
+    if (deleteRes.status !== 200) {
+      console.log('Failed to sync pole');
+      return null;
+    } 
+    return deleteRes.data;
+  }
+  else{
+    const res = await axiosClient.put(
+      pole?.id?`metadata/${pole?.id}`:`metadata`,
+      pole,
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+    if (res.status !== 200) {
+      console.log('Failed to sync pole');
+      return null;
+    } 
+    return res.data;
+  }
+}
+
+
 
 /*observe(() => {
   const remote = remotePoles$.get();
@@ -380,10 +379,12 @@ export const replayOpQueue = async (status$: ReturnType<typeof syncState>) => {
 
   for (const op of queue) {
     try {
-      poleVisionDB$.poles.set(prev => [...prev.filter(p => p.id !== op.payload.id), op.payload]);
+     // poleVisionDB$.poles.set(prev => [...prev.filter(p => p.id !== op.payload.id), op.payload]);
+      await syncPoleToServer(op.payload);
       await status$.sync();
       opQueue$.set((q: any) => q.filter((o: any) => o?.id !== op?.id));
-    } catch (err) {
+    } 
+    catch (err) {
       // Increment retry count
       opQueue$.set(q =>
         q.map((o: any) => (o?.id === op?.id ? { ...o, retries: (o?.retries ?? 0) + 1 } : o))
