@@ -5,7 +5,7 @@ import { makeRedirectUri, ResponseType, useAuthRequest } from "expo-auth-session
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Button, Platform, ScrollView, Text, View } from "react-native";
+import { Button, Platform, ScrollView, Text, View } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -13,7 +13,7 @@ WebBrowser.maybeCompleteAuthSession();
 export default function HomeScreen() {
   const router = useRouter();
   const [loggedIn,setLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const redirectUri = makeRedirectUri({
     scheme: "voiceagents",
@@ -30,7 +30,11 @@ export default function HomeScreen() {
         authorizationEndpoint: `${API_URL}/login`,
       }
     );
-    
+  
+  const activateLogin = async (e: any)=>{
+    setLoading(true);
+    await promptAsync();
+  }
   useEffect(() => {
     const bootstrapAuth = async () => {
       if (Platform.OS === "web") {
@@ -40,7 +44,7 @@ export default function HomeScreen() {
 
       const token = await getSecret(APP_SECURE_AUTH_STATE_KEY);
       if (token) {
-        setLoggedIn(true);
+        setLoggedIn(false);
         router.replace("/"); 
       }
       setLoading(false);
@@ -66,26 +70,29 @@ export default function HomeScreen() {
           await saveSecret(APP_SECURE_AUTH_STATE_KEY, res.data.token);
         }
         router.replace("/");
-      } else {
+      } 
+      else {
         setLoggedIn(false);
       }
+      setLoading(false);
     }
     authenticate();
   }, [response]);
-  if (loading) {
+
+  /*if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );
-  }
-  if(!loggedIn){
+  }*/
+  if(!loggedIn && !loading){
       return (
         <View style={{ flex: 1, justifyContent: "center" }}>
           <Button
             title="Login"
-            onPress={() => promptAsync()}
-            disabled={!request}
+            onPress={ activateLogin }
+            //disabled={!request}
           />
         </View>
       );

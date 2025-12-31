@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef } from "react";
 
 export default function DashboardMaps() {
     const geojson: any = usePhotoGeoJSON();
-    console.log("GEO:",geojson);
     const memoGeoJSON = useMemo(() => geojson, [geojson]);
     const cameraRef = useRef<CameraRef>(null);
 
@@ -25,7 +24,7 @@ export default function DashboardMaps() {
         const locationResult = await getCurrentPositionAsync({
           accuracy: Accuracy.High,
         });
-        if (firstFeature && cameraRef.current) {
+        if (cameraRef.current) {
           initialCenter.current = [locationResult.coords.longitude ?? lng, locationResult.coords.latitude ?? lat]
           cameraRef.current.setCamera({
             centerCoordinate: initialCenter.current,
@@ -35,7 +34,7 @@ export default function DashboardMaps() {
         }
       }
       initMap();
-  }, [firstFeature, lng, lat]);
+  }, [lng, lat]);
 
   return (
     <MapView
