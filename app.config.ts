@@ -133,5 +133,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "URL": process.env.URL,
       "PROJECT_ID": process.env.PROJECT_ID,
       "API_TOKEN": process.env.API_TOKEN,
+      "API_URL" : process.env.API_URL,
+      "API_USERNAME": process.env.API_USERNAME,
+      "API_PASSWORD" : process.env.API_PASSWORD,
+      "API_ACCESS_TOKEN" : process.env.API_ACCESS_TOKEN
     }
   });
