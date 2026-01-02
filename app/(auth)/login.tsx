@@ -70,7 +70,7 @@ export default function LoginScreen() {
       <View className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 items-center">
         {/* Logo */}
         <Image
-          source={require('@/assets/logo.png')}
+          source={require('../../assets/images/logo.jpg')}
           className="w-24 h-24 mb-6"
           resizeMode="contain"
         />
