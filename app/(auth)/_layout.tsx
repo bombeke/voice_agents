@@ -1,27 +1,22 @@
-import AppTabs from "@/components/AppTabs";
 import { useAuth } from "@/providers/AuthProvider";
-import { Routes } from "@/services/Routes";
-import { Redirect, useSegments } from "expo-router";
+import { Redirect, Stack, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-export default function TabsLayout() {
-  
-    const {
+export default function AuthLayout() {
+  const {
     isAuthenticated,
     loading,
-    claims,
     setRedirectAfterLogin,
   } = useAuth();
 
   const segments = useSegments();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated  && segments.length > 0) {
+    if (!isAuthenticated  && segments.length > 0) {
       setRedirectAfterLogin(`/${segments.join("/")}`);
     }
-  }, [loading, isAuthenticated]);
-
+  }, []);
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -30,11 +25,9 @@ export default function TabsLayout() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Redirect href={ Routes.LOGIN} />;
+  if (isAuthenticated) {
+    return <Redirect href={{ pathname: "/(tabs)"}} />;
   }
-  
-  return (
-    <AppTabs />
-  );
+
+  return <Stack screenOptions={{ headerShown: false }}/>;
 }

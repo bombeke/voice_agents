@@ -5,23 +5,27 @@ import { Redirect, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-export default function TabsLayout() {
-  
-    const {
-    isAuthenticated,
-    loading,
-    claims,
-    setRedirectAfterLogin,
-  } = useAuth();
 
+export default function AdminLayout() {
+  const {
+    loading,
+    isAuthenticated,
+    claims,
+    isAdmin, 
+    offlineMode,
+    setRedirectAfterLogin
+  } = useAuth();
   const segments = useSegments();
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated  && segments.length > 0) {
+    useEffect(() => {
+    if (!loading && !isAuthenticated && segments.length > 0) {
       setRedirectAfterLogin(`/${segments.join("/")}`);
     }
   }, [loading, isAuthenticated]);
 
+  /**
+   * ⏳ Loading guard
+   */
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -31,10 +35,13 @@ export default function TabsLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href={ Routes.LOGIN} />;
+    return <Redirect href={Routes.LOGIN }/>;
   }
-  
+
+  if (!isAdmin) {
+    return <Redirect href={Routes.TABS} />;
+  }
   return (
-    <AppTabs />
+    <AppTabs/>
   );
 }
