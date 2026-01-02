@@ -9,6 +9,7 @@ import { TamaguiProvider } from 'tamagui';
 import "../global.css";
 import { config } from '../tamagui.config';
 
+import { AuthProvider } from '@/providers/AuthProvider';
 import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
 import { queryClient } from '@/services/Api';
 import { BackendSyncObserver } from '@/services/storage/BackendSyncObserver';
@@ -82,11 +83,13 @@ export default function RootLayout() {
           <MMKVProvider storage={storage}>
               <UtilityStoreProvider>
                 <CachedModelProvider model= { model}>
-                  <SafeAreaProvider>
-                    <BackendSyncObserver/>
-                    <OpQueueReplayObserver/>
-                    <RootLayoutNav/>
-                  </SafeAreaProvider> 
+                  <AuthProvider>
+                    <SafeAreaProvider>
+                      <BackendSyncObserver/>
+                      <OpQueueReplayObserver/>
+                      <RootLayoutNav/>
+                    </SafeAreaProvider>
+                  </AuthProvider>
                 </CachedModelProvider>
               </UtilityStoreProvider>
           </MMKVProvider>
