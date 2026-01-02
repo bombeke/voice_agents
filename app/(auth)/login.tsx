@@ -33,6 +33,9 @@ export default function LoginScreen() {
   const promptLogin =async (e: any)=>{
     return await promptAsync();
   }
+  console.log("Request:",request);
+  console.log("Response:",response);
+
   useEffect(() => {
     const completeLogin = async () => {
       if (response?.type !== "success") return;
@@ -53,7 +56,7 @@ export default function LoginScreen() {
     };
 
     completeLogin();
-  }, [response]);
+  }, [response, redirectAfterLogin]);
 
   if (submitting) {
     return (
@@ -77,20 +80,20 @@ export default function LoginScreen() {
 
         {/* Title */}
         <Text className="text-2xl font-bold text-gray-800 mb-2 text-center">
-          VoiceAgents AI Toolkit
+          Bombeke PoleVision AI Toolkit
         </Text>
 
         <Text className="text-center text-gray-500 mb-6">
-          Manage AI Agents for Disease Surveillance, Pole Defects, Sanitation & Traffic Reporting.
+          AI Agents for Disease Surveillance, Pole Defects, Sanitation, Roads & Traffic Analytics.
         </Text>
 
         {/* Login Button */}
         <Pressable
           className="w-full bg-blue-600 py-3 rounded-xl items-center justify-center"
           onPress={ promptLogin }
-          disabled={!request}
+          //disabled={!request}
         >
-          <Text className="text-white font-semibold text-lg">Login with Casdoor</Text>
+          <Text className="text-white font-semibold text-lg">Login</Text>
         </Pressable>
 
         {/* Optional Terms */}
