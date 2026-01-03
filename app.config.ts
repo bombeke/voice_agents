@@ -18,6 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "assetBundlePatterns": [
       "**/*"
     ],
+    "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true,
       "bitcode": false,

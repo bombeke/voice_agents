@@ -1,6 +1,10 @@
 import { API_PASSWORD, API_URL, API_USERNAME } from "@/constants/Config";
 import { QueryClient } from "@tanstack/react-query";
+import type { InternalAxiosRequestConfig } from "axios";
 import axios from 'axios';
+import { refreshSession } from "./auth/AuthService";
+import { getToken } from "./auth/AuthStorage";
+import { signRequest } from "./auth/DeviceKeys";
 
 export type AuthType = 
   | { kind: 'none' }
@@ -96,7 +100,41 @@ export async function refreshOAuthToken() {
     console.log("Refresh error", err);
   }
 }
-  */
+*/
+
+axiosClient.interceptors.response.use(
+  r => r,
+  async error => {
+    if (error.response?.status === 401) {
+      const ok = await refreshSession();
+      if (ok) return axiosClient(error.config);
+    }
+    throw error;
+  }
+);
+
+
+axiosClient.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    const token = getToken();
+    if (!token) return config;
+
+    const { signature, timestamp } = await signRequest(
+      config.method!,
+      config.url!,
+      config.data
+    );
+
+    config.headers.set("Authorization", `Bearer ${token}`);
+    config.headers.set("X-Device-Signature", signature);
+    config.headers.set("X-Device-Timestamp", String(timestamp));
+    // config.headers.set("X-Session-Id", sessionId);
+
+    return config;
+  }
+);
+
+
 
 
 

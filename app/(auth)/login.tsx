@@ -27,7 +27,7 @@ export default function LoginScreen() {
       responseType: ResponseType.Code,
     },
     {
-      authorizationEndpoint: `${API_URL}/login`,
+      authorizationEndpoint: `${API_URL}/auth/login?redirect_uri=${encodeURIComponent(redirectUri)}`,
     }
   );
   const promptLogin =async (e: any)=>{
@@ -42,9 +42,11 @@ export default function LoginScreen() {
 
       setSubmitting(true);
       const { code, state } = response.params;
-      const res = await axiosClient.post("/callback", {
+      //const { publicKey } = await getDeviceKeypair();
+      const res = await axiosClient.post("/auth/callback", {
         code,
         state,
+        //device_public_key: publicKey,
       });
 
       await login(res.data.token, res.data.expires_at);
