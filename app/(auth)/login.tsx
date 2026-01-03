@@ -25,6 +25,7 @@ export default function LoginScreen() {
       clientId: "dummy",
       redirectUri,
       responseType: ResponseType.Code,
+      state: undefined
     },
     {
       authorizationEndpoint: `${API_URL}/auth/login?redirect_uri=${encodeURIComponent(redirectUri)}`,
