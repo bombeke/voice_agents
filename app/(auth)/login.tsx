@@ -1,19 +1,28 @@
 import { makeRedirectUri, ResponseType, useAuthRequest } from "expo-auth-session";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
 import { axiosClient } from "@/services/Api";
+import { useQuery } from "@tanstack/react-query";
+import { coolDownAsync, maybeCompleteAuthSession, warmUpAsync } from "expo-web-browser";
 
-WebBrowser.maybeCompleteAuthSession();
+maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login, redirectAfterLogin, setRedirectAfterLogin } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  
+  const { data } = useQuery({
+    queryKey: ["state"],
+    queryFn: async () => {
+      const res = await axiosClient.get("/auth/state");
+      return res.data;
+    },
+  });
 
   const redirectUri = makeRedirectUri({
     scheme: "voiceagents",
@@ -25,7 +34,7 @@ export default function LoginScreen() {
       clientId: "dummy",
       redirectUri,
       responseType: ResponseType.Code,
-      state: undefined
+      //state: data?.state
     },
     {
       authorizationEndpoint: `${API_URL}/auth/login`,
@@ -36,7 +45,13 @@ export default function LoginScreen() {
   }
   console.log("Request:",request);
   console.log("Response:",response);
+  useEffect(() => {
+      warmUpAsync();
 
+      return () => {
+        coolDownAsync();
+      };
+    }, []);
   useEffect(() => {
     const completeLogin = async () => {
       if (response?.type !== "success") return;
@@ -49,9 +64,9 @@ export default function LoginScreen() {
         state,
         //device_public_key: publicKey,
       });
-
+      console.log("Callback:",res)
       await login(res.data.token, res.data.expires_at);
-
+      console.log("Callback redirect:",redirectAfterLogin)
       const target = redirectAfterLogin ?? "/(tabs)";
       setRedirectAfterLogin(undefined);
 

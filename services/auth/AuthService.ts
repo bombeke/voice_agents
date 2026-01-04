@@ -1,9 +1,12 @@
 
 import { IClaims } from "@/providers/AuthProvider";
 import NetInfo from "@react-native-community/netinfo";
+import * as Linking from "expo-linking";
 import { jwtDecode } from "jwt-decode";
 import { axiosClient } from "../Api";
 import { clearAuth, getExpiry, getToken, saveClaims, saveExpiry, saveToken } from "./AuthStorage";
+
+import { AuthSessionResult } from "expo-auth-session";
 
 
 /**
@@ -53,5 +56,50 @@ export async function refreshSession(): Promise<boolean> {
     console.error("Failed to refresh session:", err);
     await clearAuth();
     return false;
+  }
+}
+
+export function validateCasdoorRedirect(
+  redirectUri: string,
+  returnedUrl: string
+) {
+  const expected = Linking.parse(redirectUri);
+  const actual = Linking.parse(returnedUrl);
+
+  if (expected.scheme !== actual.scheme) {
+    throw new Error("Invalid redirect scheme");
+  }
+
+  if (expected.hostname !== actual.hostname) {
+    throw new Error("Invalid redirect host");
+  }
+
+  return true;
+}
+
+
+export function validateCasdoorAuthResponse(
+  response: AuthSessionResult | null,
+  expectedState?: string
+): asserts response is AuthSessionResult & {
+  type: "success";
+  params: { code: string; state: string };
+} {
+  if (!response || response.type !== "success") {
+    throw new Error("Authentication failed or was cancelled");
+  }
+
+  const { code, state } = response.params ?? {};
+
+  if (!code) {
+    throw new Error("Missing authorization code");
+  }
+
+  if (!state) {
+    throw new Error("Missing OAuth state");
+  }
+
+  if (expectedState && state !== expectedState) {
+    throw new Error("Invalid OAuth state (possible CSRF)");
   }
 }

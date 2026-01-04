@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [claims, setClaims] = useState<IClaims | null>(null);
-  const [redirectAfterLogin, setRedirectAfterLogin] = useState<string>();
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | undefined>('/(tabs)');
   const [offlineMode, setOfflineMode] = useState(false);
 
   useEffect(() => {
@@ -102,6 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     setClaims(decoded);
     setIsAuthenticated(true);
+    return;
   };
 
   const logout = async () => {
@@ -109,6 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setClaims(null);
     setIsAuthenticated(false);
     setOfflineMode(false);
+    return;
   };
 
   const isAdmin = !!claims?.roles?.includes("admin");
