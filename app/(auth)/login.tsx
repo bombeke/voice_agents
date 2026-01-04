@@ -17,7 +17,7 @@ export default function LoginScreen() {
 
   const redirectUri = makeRedirectUri({
     scheme: "voiceagents",
-    path: "callback",
+    //path: "callback",
   });
 
   const [request, response, promptAsync] = useAuthRequest(
@@ -28,7 +28,7 @@ export default function LoginScreen() {
       state: undefined
     },
     {
-      authorizationEndpoint: `${API_URL}/auth/login?redirect_uri=${encodeURIComponent(redirectUri)}`,
+      authorizationEndpoint: `${API_URL}/auth/login`,
     }
   );
   const promptLogin =async (e: any)=>{
