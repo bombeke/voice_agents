@@ -45,6 +45,7 @@ export default function LoginScreen() {
   }
   console.log("Request:",request);
   console.log("Response:",response);
+
   useEffect(() => {
       warmUpAsync();
 
@@ -52,29 +53,44 @@ export default function LoginScreen() {
         coolDownAsync();
       };
     }, []);
+
   useEffect(() => {
+    if (response?.type !== "success") return;
+
+    let cancelled = false;
+
     const completeLogin = async () => {
-      if (response?.type !== "success") return;
+      try {
+        console.log("Callback:1")
+        setSubmitting(true);
+        console.log("Callback:2")
+        const { code, state } = response.params;
+        //const { publicKey } = await getDeviceKeypair();
+        console.log("Callback:3")
+        const res = await axiosClient.post("/auth/callback", {
+          code,
+          state,
+          //device_public_key: publicKey,
+        });
+        console.log("Callback:",res)
+        await login(res.data.token, res.data.expires_at);
+        console.log("Callback redirect:",redirectAfterLogin)
+        const target = redirectAfterLogin ?? "/(tabs)";
+        setRedirectAfterLogin(undefined);
 
-      setSubmitting(true);
-      const { code, state } = response.params;
-      //const { publicKey } = await getDeviceKeypair();
-      const res = await axiosClient.post("/auth/callback", {
-        code,
-        state,
-        //device_public_key: publicKey,
-      });
-      console.log("Callback:",res)
-      await login(res.data.token, res.data.expires_at);
-      console.log("Callback redirect:",redirectAfterLogin)
-      const target = redirectAfterLogin ?? "/(tabs)";
-      setRedirectAfterLogin(undefined);
-
-      router.replace(target as any);
+        router.replace(target as any);
+      }
+      catch (e) {
+        console.log("Login callback failed:", e);
+        setSubmitting(false);
+      }
     };
 
     completeLogin();
-  }, [response, redirectAfterLogin]);
+    return () => {
+      cancelled = true;
+    };
+  }, [response]);
 
   if (submitting) {
     return (
