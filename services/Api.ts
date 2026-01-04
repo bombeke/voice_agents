@@ -4,7 +4,7 @@ import type { InternalAxiosRequestConfig } from "axios";
 import axios from 'axios';
 import { refreshSession } from "./auth/AuthService";
 import { getToken } from "./auth/AuthStorage";
-import { signRequest } from "./auth/DeviceKeys";
+//import { signRequest } from "./auth/DeviceKeys";
 
 export type AuthType = 
   | { kind: 'none' }
@@ -119,15 +119,15 @@ axiosClient.interceptors.request.use(
     const token = getToken();
     if (!token) return config;
 
-    const { signature, timestamp } = await signRequest(
+    /*const { signature, timestamp } = await signRequest(
       config.method!,
       config.url!,
       config.data
-    );
+    );*/
 
     config.headers.set("Authorization", `Bearer ${token}`);
-    config.headers.set("X-Device-Signature", signature);
-    config.headers.set("X-Device-Timestamp", String(timestamp));
+    //config.headers.set("X-Device-Signature", signature);
+    //config.headers.set("X-Device-Timestamp", String(timestamp));
     // config.headers.set("X-Session-Id", sessionId);
 
     return config;
