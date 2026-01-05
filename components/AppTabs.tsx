@@ -71,7 +71,6 @@ export default function AppTabs() {
           options={{ title: "Offline Mode" }}
         />
       )}
-
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
     </Tabs>
   );
