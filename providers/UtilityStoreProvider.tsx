@@ -9,7 +9,6 @@ import { useCallback } from 'react';
 export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(() => {
   const poles =  useValue(poleVisionDB$.poles);
   const tracks = useValue(poleVisionDB$.tracks);
-  //console.log("POLES OBSERVABLE:",poles)
 
   const isLoading = poles === undefined || tracks === undefined;
 
@@ -25,7 +24,7 @@ export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(()
       };
 
       setPoleVision(newPole);
-      console.log(`[LegendState] Added new pole: ${newPole.id}`);
+      console.log(`Added new pole: ${newPole.id}`);
       return newPole;
     },
   });

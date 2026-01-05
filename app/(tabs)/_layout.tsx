@@ -20,7 +20,7 @@ export default function TabsLayout() {
     if (!loading && !isAuthenticated  && segments.length > 0) {
       setRedirectAfterLogin(`/${segments.join("/")}`);
     }
-  }, [loading, isAuthenticated]);
+  }, [loading, isAuthenticated,segments]);
 
   if (loading) {
     return (

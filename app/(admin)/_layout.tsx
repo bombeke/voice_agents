@@ -21,7 +21,7 @@ export default function AdminLayout() {
     if (!loading && !isAuthenticated && segments.length > 0) {
       setRedirectAfterLogin(`/${segments.join("/")}`);
     }
-  }, [loading, isAuthenticated]);
+  }, [loading, isAuthenticated, segments]);
 
   /**
    * ⏳ Loading guard

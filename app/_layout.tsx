@@ -28,19 +28,6 @@ export function RootLayoutNav() {
 
   const deviceId =  useValue(poleVisionDBDeviceId$);
   console.log("Device ID:",deviceId);
-  /*useEffect(() => {
-    const trackerSync = new EventSyncManager({
-      actorId: `device:${deviceId}`,
-      batchSize: 20,
-      intervalMs: 30_000,
-      mergeStrategy: 'LWW',
-    });
-
-    const stop = trackerSync.startAuto();
-    return stop; // cleanup on unmount
-  }, [deviceId]);
-  */
-
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />

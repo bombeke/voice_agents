@@ -1,7 +1,7 @@
 import { makeRedirectUri, ResponseType, useAuthRequest } from "expo-auth-session";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Pressable, Text, View } from "react-native";
 
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
@@ -61,26 +61,29 @@ export default function LoginScreen() {
 
     const completeLogin = async () => {
       try {
-        console.log("Callback:1")
         setSubmitting(true);
-        console.log("Callback:2")
         const { code, state } = response.params;
         //const { publicKey } = await getDeviceKeypair();
-        console.log("Callback:3")
         const res = await axios.post(`${API_URL}/auth/callback`, {
           code,
           state,
           //device_public_key: publicKey,
         });
-        await login(res.data.token, res.data.expires_at);
-        console.log("Callback redirect:",redirectAfterLogin)
-        const target = redirectAfterLogin ?? "/(tabs)";
-        setRedirectAfterLogin(undefined);
+        if(res.data.token || res.data.access_token){
+          await login(res.data.token || res.data.access_token, res.data.expires_at);
+          if(redirectAfterLogin === '/(auth)/login'){
+            setRedirectAfterLogin(undefined);
+            router.replace("/(tabs)");
+          }
+          const target = redirectAfterLogin ?? "/(tabs)";
+          setRedirectAfterLogin(undefined);
 
-        router.replace(target as any);
+          router.replace(target as any);
+        }
       }
       catch (e) {
-        console.log("Login callback failed:", e);
+        console.log("Login callback failed:",e);
+        Alert.alert("Login","Login failed. Please try again.");
         setSubmitting(false);
       }
     };
@@ -103,7 +106,7 @@ export default function LoginScreen() {
   return (
     <View className="flex-1 justify-center items-center bg-gray-50 px-6">
       {/* Card */}
-      <View className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 items-center">
+      <View className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 items-center">
         {/* Logo */}
         <Image
           source={require('../../assets/images/logo.jpg')}
