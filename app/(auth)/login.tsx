@@ -5,8 +5,8 @@ import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
-import { axiosClient } from "@/services/Api";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import { coolDownAsync, maybeCompleteAuthSession, warmUpAsync } from "expo-web-browser";
 
 maybeCompleteAuthSession();
@@ -19,7 +19,7 @@ export default function LoginScreen() {
   const { data } = useQuery({
     queryKey: ["state"],
     queryFn: async () => {
-      const res = await axiosClient.get("/auth/state");
+      const res = await axios.get(`${API_URL}/auth/state`);
       return res.data;
     },
   });
@@ -67,7 +67,7 @@ export default function LoginScreen() {
         const { code, state } = response.params;
         //const { publicKey } = await getDeviceKeypair();
         console.log("Callback:3")
-        const res = await axiosClient.post("/auth/callback", {
+        const res = await axios.post(`${API_URL}/auth/callback`, {
           code,
           state,
           //device_public_key: publicKey,

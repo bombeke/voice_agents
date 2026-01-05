@@ -1,7 +1,7 @@
 import { ROTATION_INTERVAL, ROTATION_KEY } from "@/constants/Config";
 import { deleteItemAsync } from "expo-secure-store";
 import { getSecret, saveSecret } from "../AuthHelpers";
-import { getDeviceKeyPair } from "./DeviceKeys";
+
 
 
 
@@ -15,7 +15,6 @@ export async function maybeRotateKey(): Promise<boolean> {
 
   await deleteItemAsync("device_keypair_v1");
 
-  await getDeviceKeyPair();
 
   await saveSecret(ROTATION_KEY, String(now));
   return true;

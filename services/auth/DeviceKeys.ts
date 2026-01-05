@@ -1,88 +1,43 @@
 import { DEVICE_KEY_NAME } from "@/constants/Config";
+import { getRandomBytesAsync } from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
+import { sha256 } from "js-sha256";
 import { Platform } from "react-native";
 import { getSecret, saveSecret } from "../AuthHelpers";
 
+/* ------------------------------------------------------------------ */
+/* Base64URL helpers (pure JS)                                         */
+/* ------------------------------------------------------------------ */
 
-/**
- * Convert ArrayBuffer → base64url
- */
-export function base64url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
+function base64url(bytes: Uint8Array): string {
   let binary = "";
-  bytes.forEach((b) => (binary += String.fromCharCode(b)));
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
   return btoa(binary)
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
 }
 
-/**
- * Convert base64url → ArrayBuffer
- */
-export function fromBase64url(input: string): ArrayBuffer {
-  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64.padEnd(base64.length + ((4 - base64.length) % 4), "=");
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
+/* ------------------------------------------------------------------ */
+/* Device Secret Management                                            */
+/* ------------------------------------------------------------------ */
 
-
-export async function getDeviceKeyPair(): Promise<CryptoKeyPair> {
-  if (!global.crypto?.subtle) {
-    throw new Error("WebCrypto not available");
-  }
-
+export async function getDeviceSecret(): Promise<Uint8Array> {
   const stored = await getSecret(DEVICE_KEY_NAME);
+
   if (stored) {
-    const parsed = JSON.parse(stored);
-
-    const privateKey = await crypto.subtle.importKey(
-      "pkcs8",
-      fromBase64url(parsed.privateKey),
-      { name: "ECDSA", namedCurve: "P-256" },
-      false,
-      ["sign"]
-    );
-
-    const publicKey = await crypto.subtle.importKey(
-      "spki",
-      fromBase64url(parsed.publicKey),
-      { name: "ECDSA", namedCurve: "P-256" },
-      true,
-      ["verify"]
-    );
-
-    return { privateKey, publicKey };
+    return Uint8Array.from(atob(stored), (c) => c.charCodeAt(0));
   }
-  const keyPair = await crypto.subtle.generateKey(
-    {
-      name: "ECDSA",
-      namedCurve: "P-256",
-    },
-    true,
-    ["sign", "verify"]
-  );
 
-  const privateKey = await crypto.subtle.exportKey(
-    "pkcs8",
-    keyPair.privateKey
-  );
-  const publicKey = await crypto.subtle.exportKey(
-    "spki",
-    keyPair.publicKey
-  );
+  // 🔐 Generate device-bound random secret
+  const secret = await getRandomBytesAsync(32);
 
   await saveSecret(
     DEVICE_KEY_NAME,
-    JSON.stringify({
-      privateKey: base64url(privateKey),
-      publicKey: base64url(publicKey),
-    }),
+    btoa(String.fromCharCode(...secret)),
     {
       keychainAccessible:
         Platform.OS === "ios"
@@ -91,41 +46,37 @@ export async function getDeviceKeyPair(): Promise<CryptoKeyPair> {
     }
   );
 
-  return keyPair;
+  return secret;
 }
+
+/* ------------------------------------------------------------------ */
+/* Request Signing (HMAC-SHA256 style)                                 */
+/* ------------------------------------------------------------------ */
 
 export async function signRequest(
   method: string,
   url: string,
-  body?: any
+  body?: unknown
 ): Promise<{
   signature: string;
   timestamp: number;
 }> {
-  const { privateKey } = await getDeviceKeyPair();
+  const secret = await getDeviceSecret();
+  const timestamp = Math.floor(Date.now() / 1000);
 
-  const ts = Math.floor(Date.now() / 1000);
   const payload = JSON.stringify({
     m: method.toUpperCase(),
     u: url,
     b: body ? JSON.stringify(body) : "",
-   // s: sessionId,
-    t: ts,
+    t: timestamp,
   });
 
-  const data = new TextEncoder().encode(payload);
-
-  const sig = await crypto.subtle.sign(
-    {
-      name: "ECDSA",
-      hash: "SHA-256",
-    },
-    privateKey,
-    data
-  );
+  // 🔑 HMAC-like construction (pure JS)
+  const key = base64url(secret);
+  const signatureHex = sha256.hmac(key, payload);
 
   return {
-    signature: base64url(sig),
-    timestamp: ts,
+    signature: signatureHex,
+    timestamp,
   };
 }

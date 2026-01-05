@@ -4,7 +4,7 @@ import type { InternalAxiosRequestConfig } from "axios";
 import axios from 'axios';
 import { refreshSession } from "./auth/AuthService";
 import { getToken } from "./auth/AuthStorage";
-//import { signRequest } from "./auth/DeviceKeys";
+//import { attachDeviceAuth } from "./auth/AxiosDeviceAuth";
 
 export type AuthType = 
   | { kind: 'none' }
@@ -135,7 +135,7 @@ axiosClient.interceptors.request.use(
 );
 
 
-
+//attachDeviceAuth(axiosClient);
 
 
 export const queryClient = new QueryClient();

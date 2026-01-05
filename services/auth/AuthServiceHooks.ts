@@ -18,7 +18,7 @@ type ExchangeResponse = {
 export function useCasdoorTokenExchange() {
   return useMutation({
     mutationFn: async (params: ExchangeParams) => {
-      const res = await axiosClient.post("/auth/casdoor/exchange",
+      const res = await axiosClient.post("/auth/exchange",
         {
           headers: {
             "Content-Type": "application/json",
