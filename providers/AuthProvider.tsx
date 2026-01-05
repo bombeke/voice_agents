@@ -3,7 +3,7 @@ import { jwtDecode } from "jwt-decode";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { refreshSession } from "@/services/auth/AuthService";
-import { clearAuth, getClaims, getExpiry, getToken, saveClaims, saveExpiry, saveToken } from "@/services/auth/AuthStorage";
+import { clearAuth, getExpiry, getToken, saveExpiry, saveToken } from "@/services/auth/AuthStorage";
 
 export interface IClaims {
   sub: string;
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const net = await NetInfo.fetch();
       const token = await getToken();
       const expiry = await getExpiry();
-      const cachedClaims = getClaims();
+      //const cachedClaims = getClaims();
 
       if (!token || !expiry) {
         setLoading(false);
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const expired = expiry < now;
 
       if (!expired) {
-        setClaims(cachedClaims ?? jwtDecode(token));
+        //setClaims(cachedClaims ?? jwtDecode(token));
         setIsAuthenticated(true);
         setLoading(false);
         return;
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // offline & expired → downgrade
       if (!net.isConnected) {
         setOfflineMode(true);
-        setClaims(cachedClaims);
+        //setClaims(cachedClaims);
         setIsAuthenticated(true);
         setLoading(false);
         return;
@@ -78,12 +78,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (refreshed) {
         const newToken = await getToken();
         const decoded = jwtDecode<IClaims>(newToken!);
-        setClaims(decoded);
+        //setClaims(decoded);
         setIsAuthenticated(true);
       } 
       else {
         await clearAuth();
-        setClaims(null);
+        //setClaims(null);
         setIsAuthenticated(false);
       }
 
@@ -98,9 +98,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     await saveToken(token);
     await saveExpiry(expiresAt);
-    saveClaims(decoded);
+    //saveClaims(decoded);
 
-    setClaims(decoded);
+    //setClaims(decoded);
     setIsAuthenticated(true);
     return;
   };

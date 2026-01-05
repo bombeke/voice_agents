@@ -72,7 +72,6 @@ export default function LoginScreen() {
           state,
           //device_public_key: publicKey,
         });
-        console.log("Callback:",res)
         await login(res.data.token, res.data.expires_at);
         console.log("Callback redirect:",redirectAfterLogin)
         const target = redirectAfterLogin ?? "/(tabs)";

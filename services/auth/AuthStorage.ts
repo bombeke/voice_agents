@@ -22,9 +22,10 @@ export async function getExpiry() {
   return expiry ?? null;
 }
 
-export async function saveExpiry(expiry: number) {
+export async function saveExpiry(expiry: number=300) {
   mmkv.set("expiry", expiry);
 }
+
 
 export async function clearAuth() {
   mmkv.clearAll();
