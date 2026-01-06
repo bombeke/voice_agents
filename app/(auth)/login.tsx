@@ -71,10 +71,10 @@ export default function LoginScreen() {
         });
         if(res.data.token || res.data.access_token){
           await login(res.data.token || res.data.access_token, res.data.expires_at);
-          if(redirectAfterLogin === '/(auth)/login'){
+          /*if(redirectAfterLogin === '/(auth)/login'){
             setRedirectAfterLogin(undefined);
             router.replace("/(tabs)");
-          }
+          }*/
           const target = redirectAfterLogin ?? "/(tabs)";
           setRedirectAfterLogin(undefined);
 
