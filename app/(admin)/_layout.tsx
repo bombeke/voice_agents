@@ -3,7 +3,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { Routes } from "@/services/Routes";
 import { Redirect, useSegments } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 
 export default function AdminLayout() {
@@ -21,7 +21,7 @@ export default function AdminLayout() {
     if (!loading && !isAuthenticated && segments.length > 0) {
       setRedirectAfterLogin(`/${segments.join("/")}`);
     }
-  }, [loading, isAuthenticated, segments]);
+  }, [loading, isAuthenticated, segments,setRedirectAfterLogin]);
 
   /**
    * ⏳ Loading guard
@@ -42,16 +42,6 @@ export default function AdminLayout() {
     return <Redirect href={Routes.TABS} />;
   }
   return (
-      <View
-        style={styles.layout}
-      >
         <AppTabs />
-      </View>
   );
 }
-const styles = StyleSheet.create({
-  layout: {
-    flex: 1,
-    backgroundColor: "#F3F4F6", // Shared background for all tabs
-  },
-});

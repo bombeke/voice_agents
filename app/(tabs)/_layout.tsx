@@ -3,24 +3,22 @@ import { useAuth } from "@/providers/AuthProvider";
 import { Routes } from "@/services/Routes";
 import { Redirect, useSegments } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 export default function TabsLayout() {
-  
-    const {
+  const {
     isAuthenticated,
     loading,
-    claims,
     setRedirectAfterLogin,
   } = useAuth();
 
   const segments = useSegments();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated  && segments.length > 0) {
+    if (!loading && !isAuthenticated && segments.length > 0) {
       setRedirectAfterLogin(`/${segments.join("/")}`);
     }
-  }, [loading, isAuthenticated,segments]);
+  }, [loading, isAuthenticated, segments, setRedirectAfterLogin]);
 
   if (loading) {
     return (
@@ -31,20 +29,8 @@ export default function TabsLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href={ Routes.LOGIN} />;
+    return <Redirect href={Routes.LOGIN} />;
   }
-  
-  return (
-      <View
-        style={styles.layout}
-      >
-        <AppTabs />
-      </View>
-  );
+
+  return <AppTabs />;
 }
-const styles = StyleSheet.create({
-  layout: {
-    flex: 1,
-    backgroundColor: "#F3F4F6", // Shared background for all tabs
-  },
-});
