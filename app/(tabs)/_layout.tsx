@@ -1,8 +1,7 @@
 import AppTabs from "@/components/AppTabs";
 import { useAuth } from "@/providers/AuthProvider";
 import { Routes } from "@/services/Routes";
-import { Redirect, useSegments } from "expo-router";
-import { Tabs, TabSlot } from "expo-router/ui";
+import { Redirect, Slot, Tabs, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
@@ -22,8 +21,8 @@ export default function TabsLayout() {
   }, [loading, isAuthenticated, segments, setRedirectAfterLogin]);
 
   return (
-    <Tabs>
-      <TabSlot/>
+    <Tabs screenOptions={{ headerShown: false }}>
+      <Slot/>
       <AppTabs />
 
       {/* Overlay logic instead of replacing navigator */}
