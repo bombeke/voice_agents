@@ -1,5 +1,5 @@
 import { FontAwesome } from "@expo/vector-icons";
-import { TabList, Tabs, TabSlot, TabTrigger } from "expo-router/ui";
+import { TabList, TabTrigger } from "expo-router/ui";
 
 import { useAuth } from "@/providers/AuthProvider";
 import { hasPerm } from "@/services/auth/AuthUtils";
@@ -12,8 +12,6 @@ export default function AppTabs() {
   const isOfflineReadonly = adminMode === "offline-readonly";
 
   return (
-    <Tabs>
-      <TabSlot/>
       <TabList className="flex-row bg-black border-t border-neutral-800">
 
         {/* Home (always visible) */}
@@ -93,6 +91,5 @@ export default function AppTabs() {
           Settings
         </TabTrigger>
       </TabList>
-    </Tabs>
   );
 }

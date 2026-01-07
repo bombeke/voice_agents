@@ -2,6 +2,7 @@ import AppTabs from "@/components/AppTabs";
 import { useAuth } from "@/providers/AuthProvider";
 import { Routes } from "@/services/Routes";
 import { Redirect, useSegments } from "expo-router";
+import { Tabs, TabSlot } from "expo-router/ui";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
@@ -23,25 +24,24 @@ export default function AdminLayout() {
     }
   }, [loading, isAuthenticated, segments,setRedirectAfterLogin]);
 
-  /**
-   * ⏳ Loading guard
-   */
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Redirect href={Routes.LOGIN }/>;
-  }
-
-  if (!isAdmin) {
-    return <Redirect href={Routes.TABS} />;
-  }
   return (
-        <AppTabs />
+            <Tabs>
+              <TabSlot/>
+              <AppTabs />
+        
+              {/* Overlay logic instead of replacing navigator */}
+              {loading && (
+                <View style={{ position: "absolute", inset: 0, justifyContent: "center" }}>
+                  <ActivityIndicator size="large" />
+                </View>
+              )}
+        
+              {!loading && !isAuthenticated && (
+                <Redirect href={Routes.LOGIN} />
+              )}
+              {!isAdmin && (
+                <Redirect href={Routes.TABS} />
+              )}
+            </Tabs>
   );
 }
