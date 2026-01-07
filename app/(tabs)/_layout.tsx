@@ -20,17 +20,21 @@ export default function TabsLayout() {
     }
   }, [loading, isAuthenticated, segments, setRedirectAfterLogin]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+  return (
+    <>
+      <AppTabs />
 
-  if (!isAuthenticated) {
-    return <Redirect href={Routes.LOGIN} />;
-  }
+      {/* Overlay logic instead of replacing navigator */}
+      {loading && (
+        <View style={{ position: "absolute", inset: 0, justifyContent: "center" }}>
+          <ActivityIndicator size="large" />
+        </View>
+      )}
 
-  return <AppTabs />;
+      {!loading && !isAuthenticated && (
+        <Redirect href={Routes.LOGIN} />
+      )}
+    </>
+  );
+
 }
