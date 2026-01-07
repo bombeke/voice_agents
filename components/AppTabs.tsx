@@ -92,7 +92,6 @@ export default function AppTabs() {
           <FontAwesome name="cog" size={18} />
           Settings
         </TabTrigger>
-        
       </TabList>
     </Tabs>
   );

@@ -37,12 +37,12 @@ export async function refreshSession(): Promise<boolean> {
 
     const res = await axiosClient.post("/refresh", { token });
 
-    if (!res.data?.token) {
+    if (!res.data?.token || !res.data?.access_token) {
       await clearAuth();
       return false;
     }
 
-    const newToken = res.data.token;
+    const newToken = res.data.token || res.data.access_token;
     const decoded: IClaims = jwtDecode(newToken);
 
     const newExpiry = decoded.exp;
