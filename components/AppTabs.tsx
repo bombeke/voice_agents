@@ -6,13 +6,13 @@ import { Routes } from "@/services/Routes";
 import { Tabs } from "expo-router";
 import { Text, View } from "react-native";
 
-export default function AppTabs() {
+export function AppTabs() {
   const { isAdmin, adminMode, claims } = useAuth();
 
   const isOfflineReadonly = adminMode === "offline-readonly";
 
   return (
-    <>
+    <Tabs screenOptions={{ headerShown: false }}>
         {/* Home (always visible) */}
         <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: () =>
           <FontAwesome name="home" size={18} />
@@ -91,6 +91,7 @@ export default function AppTabs() {
           <FontAwesome name="cog" size={18} />
         }}
         />
-    </>
+    </Tabs>
   );
 }
+export default AppTabs;
