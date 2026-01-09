@@ -68,17 +68,17 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.container}>
         <TamaguiProvider config={config}>
           <MMKVProvider storage={storage}>
+            <AuthProvider>
               <UtilityStoreProvider>
                 <CachedModelProvider model= { model}>
-                  <AuthProvider>
                     <SafeAreaProvider>
                       <BackendSyncObserver/>
                       <OpQueueReplayObserver/>
                       <RootLayoutNav/>
                     </SafeAreaProvider>
-                  </AuthProvider>
                 </CachedModelProvider>
               </UtilityStoreProvider>
+            </AuthProvider>
           </MMKVProvider>
         </TamaguiProvider>    
       </GestureHandlerRootView>

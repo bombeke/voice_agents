@@ -6,6 +6,6 @@ export function isTokenExpired(expiresAt?: number | null) {
   return now >= expiresAt - 30; // 30s grace window
 }
 
-export function hasPerm(claims: IClaims | null, perm: string) {
-  return claims?.permissions?.includes(perm);
+export function hasPerm(claims: IClaims | null, perm: string): boolean {
+  return claims?.permissions?.includes(perm)?? false;
 }

@@ -165,10 +165,10 @@ export const remotePoles$ = observable(
 );
 
 export const syncPoleToServer = async (pole: SyncedPole) => {
-  console.log("POLE STARTED SYNCING")
+  console.log("POLE STARTED SYNCING:",pole)
   if(pole.deleted){
     console.log("DELETING POLE")
-    const deleteRes = await axiosClient.delete(`/metadata/${pole.id}`);
+    const deleteRes = await axiosClient.delete(`/alkuistore/${pole.id}`);
     if (deleteRes.status !== 200) {
       console.log('Failed to sync pole');
       return null;
@@ -176,13 +176,15 @@ export const syncPoleToServer = async (pole: SyncedPole) => {
     return deleteRes.data;
   }
   else{
+    console.log("SAVING POLE")
     const res = await axiosClient.put(
-      pole?.id?`/metadata/${pole?.id}`:`/metadata`,
+      pole?.id?`/alkuistore/${pole?.id}`:`/alkuistore`,
       pole,
       {
         headers: { 'Content-Type': 'application/json' },
       }
     );
+    console.log("SAVING POLE:",res.status, "data:",res.data)
     if (res.status !== 200) {
       console.log('Failed to sync pole');
       return null;

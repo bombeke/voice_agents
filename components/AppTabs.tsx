@@ -20,12 +20,12 @@ export function AppTabs() {
         />
 
         {/* Agents (permission based) */}
-        {hasPerm(claims as any, "agents:view") && (
+        <Tabs.Protected guard={hasPerm(claims as any, "agents:view")}>
           <Tabs.Screen name="agents" options={{ title: "Agents", tabBarIcon: () =>
             <FontAwesome name="user" size={18} />
           }}
           />
-        )}
+        </Tabs.Protected>
 
         {/* Core AI tabs */}
         <Tabs.Screen name="poles" options={{ title: "Poles", tabBarIcon: () =>
