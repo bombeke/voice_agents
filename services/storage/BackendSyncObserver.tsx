@@ -17,12 +17,12 @@ import { authStore$, CRDTPole, poleVisionDB$, remotePoles$, resolveCRDTPole } fr
 
 export function BackendSyncObserver() {
   const authApp = useValue(authStore$);
-  const remote = useValue(remotePoles$);
+  //const remote = useValue(remotePoles$);
 
   useEffect(() => {
     const auth = observe(() => {
       if (!authApp) return;
-      queryClient.invalidateQueries({ queryKey: ['metadata'] });
+      queryClient.invalidateQueries({ queryKey: ['alkuistore'] });
     });
 
     return ()=>{
@@ -38,7 +38,7 @@ export function BackendSyncObserver() {
     });
     const dispose = observe(() => {
       if(!online) return;
-      //const remote = remotePoles$.get();
+      const remote = remotePoles$.get();
       if (!remote) return;
 
       poleVisionDB$.poles.set((local) => {
