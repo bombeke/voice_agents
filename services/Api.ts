@@ -1,4 +1,4 @@
-import { API_PASSWORD, API_URL, API_USERNAME } from "@/constants/Config";
+import { API_URL } from "@/constants/Config";
 import { QueryClient } from "@tanstack/react-query";
 import type { InternalAxiosRequestConfig } from "axios";
 import axios from 'axios';
@@ -15,10 +15,10 @@ export type AuthType =
 export const axiosClient = axios.create({
   baseURL: `${API_URL}`,
   //timeout: 20000,
-  auth:{
+  /*auth:{
     username: API_USERNAME,
     password: API_PASSWORD,
-  },
+  },*/
   headers: { 
     'Content-Type': 'application/json'
   },

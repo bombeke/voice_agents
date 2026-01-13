@@ -175,21 +175,25 @@ export const syncPoleToServer = async (pole: SyncedPole) => {
     } 
     return deleteRes.data;
   }
-  else{
-    console.log("SAVING POLE")
-    const res = await axiosClient.put(
-      pole?.id?`/alkuistore/${pole?.id}`:`/alkuistore`,
-      pole,
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-    console.log("SAVING POLE:",res.status, "data:",res.data)
-    if (res.status !== 200) {
-      console.log('Failed to sync pole');
+  else {
+    const url = pole?.id?`/alkuistore/${pole?.id}`:`/alkuistore`
+    console.log("SAVING POLE", url)
+    try{
+      const res = await axiosClient.put(
+        url,
+        pole
+      );
+      console.log("SAVING POLE:",res.status, "data:",res.data)
+      if (res.status !== 200) {
+        console.log('Failed to sync pole');
+        return null;
+      } 
+      return res.data;
+    }
+    catch(e:any){
+      console.log("Failed to save:",e)
       return null;
-    } 
-    return res.data;
+    }
   }
 }
 
