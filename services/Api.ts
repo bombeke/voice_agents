@@ -14,11 +14,6 @@ export type AuthType =
 
 export const axiosClient = axios.create({
   baseURL: `${API_URL}`,
-  //timeout: 20000,
-  /*auth:{
-    username: API_USERNAME,
-    password: API_PASSWORD,
-  },*/
   headers: {
     "Content-Type": "application/json",
   },
@@ -115,7 +110,6 @@ axiosClient.interceptors.response.use(
 axiosClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const token = await getToken();
-    console.log("toek req:", token);
     if (!token) return config;
 
     /*const { signature, timestamp } = await signRequest(
