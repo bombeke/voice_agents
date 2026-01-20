@@ -1,10 +1,10 @@
 import { APP_SECURE_AUTH_STATE_KEY } from "@/constants/Config";
 import { deleteItemAsync } from "expo-secure-store";
 import { Platform } from "react-native";
-import { createMMKV } from "react-native-mmkv";
 import { getSecret, saveSecret } from "../AuthHelpers";
+import { createUserStorage } from "../storage/Storage";
 
-export const mmkv = createMMKV();
+export const mmkv = createUserStorage('auth_session');
 
 export async function getToken() {
   let token = mmkv.getString("token");

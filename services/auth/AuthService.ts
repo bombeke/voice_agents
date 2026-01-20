@@ -1,13 +1,18 @@
-
 import { IClaims } from "@/providers/AuthProvider";
 import NetInfo from "@react-native-community/netinfo";
 import * as Linking from "expo-linking";
 import { jwtDecode } from "jwt-decode";
 import { axiosClient } from "../Api";
-import { clearAuth, getExpiry, getToken, saveClaims, saveExpiry, saveToken } from "./AuthStorage";
+import {
+  clearAuth,
+  getExpiry,
+  getToken,
+  saveClaims,
+  saveExpiry,
+  saveToken,
+} from "./AuthStorage";
 
 import { AuthSessionResult } from "expo-auth-session";
-
 
 /**
  * Refresh the current session token using Casdoor refresh token or code
@@ -44,15 +49,14 @@ export async function refreshSession(): Promise<boolean> {
 
     const newToken = res.data.token || res.data.access_token;
     const decoded: IClaims = jwtDecode(newToken);
-    console.log("Refresh Token Decoded:",decoded)
+    console.log("Refresh Token Decoded:", decoded);
     const newExpiry = decoded.exp;
     await saveToken(newToken);
     await saveExpiry(newExpiry);
     saveClaims(decoded);
 
     return true;
-  } 
-  catch (err: any) {
+  } catch (err: any) {
     console.error("Failed to refresh session:", err);
     await clearAuth();
     return false;
@@ -61,7 +65,7 @@ export async function refreshSession(): Promise<boolean> {
 
 export function validateCasdoorRedirect(
   redirectUri: string,
-  returnedUrl: string
+  returnedUrl: string,
 ) {
   const expected = Linking.parse(redirectUri);
   const actual = Linking.parse(returnedUrl);
@@ -77,10 +81,9 @@ export function validateCasdoorRedirect(
   return true;
 }
 
-
 export function validateCasdoorAuthResponse(
   response: AuthSessionResult | null,
-  expectedState?: string
+  expectedState?: string,
 ): asserts response is AuthSessionResult & {
   type: "success";
   params: { code: string; state: string };

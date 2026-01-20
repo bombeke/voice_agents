@@ -1,16 +1,16 @@
 import { API_URL } from "@/constants/Config";
 import { QueryClient } from "@tanstack/react-query";
 import type { InternalAxiosRequestConfig } from "axios";
-import axios from 'axios';
+import axios from "axios";
 import { refreshSession } from "./auth/AuthService";
 import { getToken } from "./auth/AuthStorage";
 //import { attachDeviceAuth } from "./auth/AxiosDeviceAuth";
 
-export type AuthType = 
-  | { kind: 'none' }
-  | { kind: 'basic', username: string, password: string }
-  | { kind: 'bearer', token: string }
-  | { kind: 'oauth2', accessToken: string };
+export type AuthType =
+  | { kind: "none" }
+  | { kind: "basic"; username: string; password: string }
+  | { kind: "bearer"; token: string }
+  | { kind: "oauth2"; accessToken: string };
 
 export const axiosClient = axios.create({
   baseURL: `${API_URL}`,
@@ -19,36 +19,35 @@ export const axiosClient = axios.create({
     username: API_USERNAME,
     password: API_PASSWORD,
   },*/
-  headers: { 
-    'Content-Type': 'application/json'
+  headers: {
+    "Content-Type": "application/json",
   },
-
 });
 
 export function applyAuthConfig(auth: AuthType) {
   // Clear previous auth
   delete axiosClient.defaults.auth;
-  delete axiosClient.defaults.headers.common['Authorization'];
+  delete axiosClient.defaults.headers.common["Authorization"];
 
   switch (auth.kind) {
-    case 'none':
+    case "none":
       // No auth
       break;
 
-    case 'basic':
+    case "basic":
       axiosClient.defaults.auth = {
         username: auth.username,
-        password: auth.password
+        password: auth.password,
       };
       break;
 
-    case 'bearer':
-      axiosClient.defaults.headers.common['Authorization'] =
+    case "bearer":
+      axiosClient.defaults.headers.common["Authorization"] =
         `Bearer ${auth.token}`;
       break;
 
-    case 'oauth2':
-      axiosClient.defaults.headers.common['Authorization'] =
+    case "oauth2":
+      axiosClient.defaults.headers.common["Authorization"] =
         `Bearer ${auth.accessToken}`;
       break;
   }
@@ -56,22 +55,22 @@ export function applyAuthConfig(auth: AuthType) {
 
 export function createAuthHeaders(auth: AuthType) {
   switch (auth.kind) {
-    case 'none':
+    case "none":
       return {};
-    case 'basic':
+    case "basic":
       return {
         auth: {
           username: auth.username,
-          password: auth.password
-        }
+          password: auth.password,
+        },
       };
-    case 'bearer':
+    case "bearer":
       return {
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       };
-    case 'oauth2':
+    case "oauth2":
       return {
-        headers: { Authorization: `Bearer ${auth.accessToken}` }
+        headers: { Authorization: `Bearer ${auth.accessToken}` },
       };
   }
 }
@@ -103,20 +102,20 @@ export async function refreshOAuthToken() {
 */
 
 axiosClient.interceptors.response.use(
-  r => r,
-  async error => {
+  (r) => r,
+  async (error) => {
     if (error.response?.status === 401) {
       const ok = await refreshSession();
       if (ok) return axiosClient(error.config);
     }
     throw error;
-  }
+  },
 );
-
 
 axiosClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = getToken();
+    const token = await getToken();
+    console.log("toek req:", token);
     if (!token) return config;
 
     /*const { signature, timestamp } = await signRequest(
@@ -131,11 +130,9 @@ axiosClient.interceptors.request.use(
     // config.headers.set("X-Session-Id", sessionId);
 
     return config;
-  }
+  },
 );
 
-
 //attachDeviceAuth(axiosClient);
-
 
 export const queryClient = new QueryClient();
