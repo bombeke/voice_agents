@@ -1,9 +1,15 @@
-import { observe } from '@legendapp/state';
-import { useValue } from '@legendapp/state/react';
-import NetInfo from '@react-native-community/netinfo';
-import { useEffect } from 'react';
-import { queryClient } from '../Api';
-import { authStore$, CRDTPole, poleVisionDB$, remotePoles$, resolveCRDTPole } from './LegendState';
+import { observe } from "@legendapp/state";
+import { useValue } from "@legendapp/state/react";
+import NetInfo from "@react-native-community/netinfo";
+import { useEffect } from "react";
+import { queryClient } from "../Api";
+import {
+  authStore$,
+  CRDTPole,
+  poleVisionDB$,
+  remotePoles$,
+  resolveCRDTPole,
+} from "./LegendState";
 
 /**
  * BackendSyncObserver is an observer-only component that observes the remote poles
@@ -14,7 +20,6 @@ import { authStore$, CRDTPole, poleVisionDB$, remotePoles$, resolveCRDTPole } fr
  * The component will automatically clean up on unmount.
  */
 
-
 export function BackendSyncObserver() {
   const authApp = useValue(authStore$);
   //const remote = useValue(remotePoles$);
@@ -22,13 +27,13 @@ export function BackendSyncObserver() {
   useEffect(() => {
     const auth = observe(() => {
       if (!authApp) return;
-      queryClient.invalidateQueries({ queryKey: ['alkuistore'] });
+      queryClient.invalidateQueries({ queryKey: ["alkuistore"] });
     });
 
-    return ()=>{
+    return () => {
       auth();
-    }
-  },[authApp]);
+    };
+  }, [authApp]);
 
   useEffect(() => {
     let online = true;
@@ -37,23 +42,21 @@ export function BackendSyncObserver() {
       online = !!state.isConnected;
     });
     const dispose = observe(() => {
-      if(!online) return;
+      if (!online) return;
       const remote = remotePoles$.get();
       if (!remote) return;
 
       poleVisionDB$.poles.set((local) => {
-        const map = new Map(
-          local.map((p: any) => [p?.id, p as CRDTPole])
-        );
+        const map = new Map(local.map((p: any) => [p?.pid, p as CRDTPole]));
 
         for (const rp of remote) {
-          const lp = map.get(rp.id);
+          const lp = map.get(rp.pid);
           const merged = resolveCRDTPole(lp, rp);
 
           if (merged?.deleted) {
-            map.delete(rp.id);
+            map.delete(rp.pid);
           } else if (merged) {
-            map.set(rp.id, merged);
+            map.set(rp.pid, merged);
           }
         }
 
@@ -61,10 +64,10 @@ export function BackendSyncObserver() {
       });
     });
 
-    return ()=>{
+    return () => {
       dispose();
       unsubNet();
-    } 
+    };
   }, []);
 
   return null; // observer-only component
