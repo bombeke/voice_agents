@@ -11,22 +11,20 @@ export function usePhotoGeoJSON() {
 
   useEffect(() => {
     if (!Array.isArray(poles)) return;
-    setPhotos(prev => {
+    setPhotos((prev) => {
       const same =
         prev.length === poles.length &&
-        prev.every((p, i) => p.id === poles[i].id);
+        prev.every((p, i) => p.pid === poles[i].pid);
 
       return same ? prev : poles;
     });
-    
   }, [poles]);
 
-   const geojson = useMemo(() => {
+  const geojson = useMemo(() => {
     return toGeoJSON(photos);
   }, [photos]);
   return geojson;
 }
-
 
 export function toGeoJSON(docs: any[]) {
   return {
@@ -34,21 +32,21 @@ export function toGeoJSON(docs: any[]) {
     features: docs?.map((doc: any) => ({
       type: "Feature",
       properties: {
-        id: doc.id,
-        uri: doc.uri
+        id: doc.pid,
+        uri: doc.uri,
       },
       geometry: {
         type: "Point",
-        coordinates: [doc.longitude, doc.latitude]
-      }
-    }))
+        coordinates: [doc.longitude, doc.latitude],
+      },
+    })),
   };
 }
 
 export async function saveGeoPhoto(db: any, { uri, lat, lng }: any) {
   const id = nanoid();
   const storage = useMMKVStorage();
-  if(storage){
+  if (storage) {
     // store inside MMKV fast lookups or offline cache
     storage.set(`photo:${id}`, JSON.stringify({ uri, lat, lng }));
 
@@ -58,11 +56,10 @@ export async function saveGeoPhoto(db: any, { uri, lat, lng }: any) {
       uri,
       latitude: lat,
       longitude: lng,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     });
   }
 }
-
 
 export function geoTagsToGeoJSON() {
   const tags = getGeoTags();

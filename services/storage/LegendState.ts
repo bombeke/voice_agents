@@ -172,7 +172,7 @@ export const remotePoles$ = observable(
           console.log("Failed to fetch poles");
           return [];
         }
-        return res.data;
+        return res.data?.data;
       },
     },
   }),
@@ -190,10 +190,8 @@ export const syncPoleToServer = async (pole: SyncedPole) => {
     return deleteRes.data;
   } else {
     const url = pole?.pid ? `/alkuistore/${pole?.pid}` : `/alkuistore`;
-    console.log("SAVING POLE", url);
     try {
       const res = await axiosClient.put(url, pole);
-      console.log("SAVING POLE:", res.status, "data:", res.data);
       if (res.status !== 200) {
         console.log("Failed to sync pole");
         return null;
