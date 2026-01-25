@@ -159,6 +159,8 @@ export function initPersistence() {
   configured = true;
 }
 
+/** observable for network state */
+export const isOnline$ = observable(true);
 export const remotePoles$ = observable(
   syncedQuery<SyncedPole[]>({
     queryClient,
@@ -172,6 +174,7 @@ export const remotePoles$ = observable(
           console.log("Failed to fetch poles");
           return [];
         }
+        console.log("Fetching poles:", res.data);
         return res.data?.data;
       },
     },

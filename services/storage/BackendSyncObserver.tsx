@@ -1,74 +1,55 @@
-import { observe } from "@legendapp/state";
-import { useValue } from "@legendapp/state/react";
+import { useObserve } from "@legendapp/state/react";
 import NetInfo from "@react-native-community/netinfo";
 import { useEffect } from "react";
 import { queryClient } from "../Api";
 import {
   authStore$,
   CRDTPole,
+  isOnline$,
   poleVisionDB$,
   remotePoles$,
   resolveCRDTPole,
 } from "./LegendState";
 
-/**
- * BackendSyncObserver is an observer-only component that observes the remote poles
- * and merges them with the local poles in the LegendState. It will resolve any
- * conflicts between the local and remote poles and update the LegendState
- * accordingly.
- *
- * The component will automatically clean up on unmount.
- */
-
 export function BackendSyncObserver() {
-  const authApp = useValue(authStore$);
-  //const remote = useValue(remotePoles$);
+  /** 🔹 React to auth changes */
+  useObserve(() => {
+    if (!authStore$.get()) return;
+    queryClient.invalidateQueries({ queryKey: ["alkuistore"] });
+  });
 
+  /** 🔹 Track network state (non-observable → observable bridge) */
   useEffect(() => {
-    const auth = observe(() => {
-      if (!authApp) return;
-      queryClient.invalidateQueries({ queryKey: ["alkuistore"] });
+    const unsub = NetInfo.addEventListener((state) => {
+      isOnline$.set(!!state.isConnected);
     });
-
-    return () => {
-      auth();
-    };
-  }, [authApp]);
-
-  useEffect(() => {
-    let online = true;
-
-    const unsubNet = NetInfo.addEventListener((state: any) => {
-      online = !!state.isConnected;
-    });
-    const dispose = observe(() => {
-      if (!online) return;
-      const remote = remotePoles$.get();
-      if (!remote) return;
-
-      poleVisionDB$.poles.set((local) => {
-        const map = new Map(local.map((p: any) => [p?.pid, p as CRDTPole]));
-
-        for (const rp of remote) {
-          const lp = map.get(rp.pid);
-          const merged = resolveCRDTPole(lp, rp);
-
-          if (merged?.deleted) {
-            map.delete(rp.pid);
-          } else if (merged) {
-            map.set(rp.pid, merged);
-          }
-        }
-
-        return Array.from(map.values());
-      });
-    });
-
-    return () => {
-      dispose();
-      unsubNet();
-    };
+    return unsub;
   }, []);
 
-  return null; // observer-only component
+  /** 🔹 React to remote poles + connectivity */
+  useObserve(() => {
+    if (!isOnline$.get()) return;
+
+    const remote = remotePoles$.get();
+    if (!remote) return;
+
+    poleVisionDB$.poles.set((local) => {
+      const map = new Map(local.map((p) => [p.pid, p as CRDTPole]));
+
+      for (const rp of remote) {
+        const lp = map.get(rp.pid);
+        const merged = resolveCRDTPole(lp, rp);
+
+        if (merged?.deleted) {
+          map.delete(rp.pid);
+        } else if (merged) {
+          map.set(rp.pid, merged);
+        }
+      }
+
+      return Array.from(map.values());
+    });
+  });
+
+  return null;
 }
