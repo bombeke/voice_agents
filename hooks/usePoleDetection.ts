@@ -1,12 +1,19 @@
 import { useCachedTensorModel } from "@/components/ModelContext";
 import { useRef, useState } from "react";
 import { Dimensions } from "react-native";
+import type { SharedValue } from "react-native-reanimated";
 import { useSharedValue } from "react-native-reanimated";
 import { runAsync, useFrameProcessor } from "react-native-vision-camera";
 import { useRunOnJS } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
-type DetectionObject = {
+export interface IBoundingBox {
+  x: number; // normalized (0–1)
+  y: number; // normalized (0–1)
+  width: number; // normalized (0–1)
+  height: number; // normalized (0–1)
+}
+export interface IDetectionObject {
   id: number;
   label?: string;
   score: number;
@@ -16,147 +23,66 @@ type DetectionObject = {
     width: number; // normalized (0–1)
     height: number; // normalized (0–1)
   };
-};
+}
+
+export interface IDetectionObjectResult extends IDetectionObject {
+  confidence: number;
+  box: IBoundingBox;
+}
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 let lastFrameTime = 0;
-export const usePoleDetection = () => {
-  const labels = require("@/assets/labels.json");
-  const [cameraResults, setCameraResults] = useState<any[]>([]);
-  const frameProcessorResults = useSharedValue<any[]>([]);
+
+export const processDetection = (
+  detections: IDetectionObject[],
+  sWidth: number,
+  sHeight: number,
+  threshold: number,
+) => {
+  "worklet";
+
+  const detectedObjects: Partial<IDetectionObjectResult>[] = [];
+  if (!detections) return detectedObjects;
+
+  for (let i = 0; i < detections.length; i++) {
+    const d = detections[i];
+    if (d.score < threshold) continue;
+
+    detectedObjects.push({
+      id: d.id, // stable
+      label: d.label ?? "Unknown",
+      confidence: d.score,
+      box: {
+        x: d.boundingBox.x * sWidth,
+        y: d.boundingBox.y * sHeight,
+        width: d.boundingBox.width * sWidth,
+        height: d.boundingBox.height * sHeight,
+      },
+    });
+  }
+
+  return detectedObjects;
+};
+
+export const useDetectionResults = () => {
+  const results = useSharedValue<any[]>([]);
+  return results;
+};
+
+export const useDetectionFrameProcessor = (
+  model: any,
+  threshold: number,
+  results: SharedValue<any[]>,
+) => {
   const { resize } = useResizePlugin();
-  const model = useCachedTensorModel(); // Yolo11n.tflite using react-native-fast-tflite
-  const lastInference = useRef(0);
-  const [detections, setDetections] = useState<any[]>([]);
-  const [fps, setFps] = useState(0);
-  const [confidenceThreshold, setConfidenceThreshold] = useState(0.5);
-  const processDetection1 = (
-    outputs: any,
-    sWidth: any,
-    sHeight: any,
-    threshold: any,
-  ) => {
-    "worklet";
 
-    if (!outputs || outputs.length < 4) return [];
-
-    const boxes = outputs[0]; // Object with string keys (40 elements: 10 detections × 4 coordinates each)
-    const classes = outputs[1]; // Object with string keys (class indices)
-    const scores = outputs[2]; // Object with string keys (confidence scores)
-    const numDetections = outputs[3][0]; // Single value: number of valid detections
-
-    const detectedObjects = [];
-    const count = Math.min(numDetections, 10);
-
-    for (let i = 0; i < count; i++) {
-      // All outputs are objects with string keys
-      const score = scores[i.toString()];
-
-      if (score < threshold) continue;
-
-      const classIndex = Math.floor(classes[i.toString()]);
-      const label = labels[classIndex.toString()] || `Class ${classIndex}`;
-
-      // Get bounding box coordinates (normalized 0-1)
-      const ymin = boxes[(i * 4 + 0).toString()];
-      const xmin = boxes[(i * 4 + 1).toString()];
-      const ymax = boxes[(i * 4 + 2).toString()];
-      const xmax = boxes[(i * 4 + 3).toString()];
-
-      const object = {
-        id: `${i}-${performance.now()}`,
-        label,
-        confidence: score,
-        box: {
-          x: Math.max(0, xmin * sWidth),
-          y: Math.max(0, ymin * sHeight),
-          width: Math.min(sWidth, (xmax - xmin) * sWidth),
-          height: Math.min(sHeight, (ymax - ymin) * sHeight),
-        },
-      };
-
-      detectedObjects.push(object);
-    }
-    return detectedObjects;
-  };
-
-  const processDetection = (
-    detections: DetectionObject[],
-    sWidth: number,
-    sHeight: number,
-    threshold: number,
-  ) => {
-    "worklet";
-
-    if (!detections || detections.length === 0) return [];
-
-    const detectedObjects = [];
-
-    for (let i = 0; i < detections.length; i++) {
-      const detection = detections[i];
-
-      if (detection.score < threshold) continue;
-
-      const {
-        boundingBox: { x, y, width, height },
-        score,
-        label,
-      } = detection;
-
-      detectedObjects.push({
-        id: `${detection.id}-${performance.now()}`,
-        label: label ?? "Unknown",
-        confidence: score,
-        box: {
-          x: Math.max(0, x * sWidth),
-          y: Math.max(0, y * sHeight),
-          width: Math.min(sWidth, width * sWidth),
-          height: Math.min(sHeight, height * sHeight),
-        },
-      });
-    }
-
-    return detectedObjects;
-  };
-
-  const updateDetectionsOnJS = useRunOnJS(
-    (detections) => {
-      if (detections) {
-        setDetections(detections);
-      } else {
-        setDetections([]);
-      }
-    },
-    [setDetections],
-  );
-
-  const updateFpsOnJS = useRunOnJS(
-    (currentFps) => {
-      setFps(currentFps);
-    },
-    [setFps],
-  );
-
-  const frameProcessor = useFrameProcessor(
+  return useFrameProcessor(
     (frame) => {
       "worklet";
       if (model === null) {
         return;
       }
-
-      // Calculate FPS using shared value for persistence
-      const currentTime = performance.now();
-      const storedLastTime = lastFrameTime || 0;
-
-      if (storedLastTime > 0) {
-        const timeDiff = currentTime - storedLastTime;
-        const currentFps = Math.round(1000 / timeDiff);
-        updateFpsOnJS(currentFps);
-      }
-      lastFrameTime = currentTime;
-
-      //const result = model.runSync([resized])
-      runAsync(frame, () => {
+      return runAsync(frame, () => {
         "worklet";
         const resized = resize(frame, {
           scale: {
@@ -166,18 +92,55 @@ export const usePoleDetection = () => {
           pixelFormat: "rgb",
           dataType: "uint8",
         });
-        const result = model.forward(resized);
-        const processedDetections = processDetection(
-          result,
-          screenWidth,
-          screenHeight,
-          confidenceThreshold,
+
+        const detections: IDetectionObject[] = model.forward(resized);
+        console.log("Model results:", detections);
+        if (!detections || detections.length === 0) return;
+
+        const objects = processDetection(
+          detections,
+          frame.width,
+          frame.height,
+          threshold,
         );
-        updateDetectionsOnJS(processedDetections);
+        console.log("results::::", objects);
+        results.value = objects;
       });
     },
-    [model, confidenceThreshold, screenWidth, screenHeight],
+    [threshold],
+  );
+};
+
+export const usePoleDetection = () => {
+  const labels = require("@/assets/labels.json");
+  const [cameraResults, setCameraResults] = useState<any[]>([]);
+  const frameProcessorResults = useSharedValue<any[]>([]);
+
+  const model = useCachedTensorModel(); // Yolo11n.tflite using react-native-fast-tflite
+  const lastInference = useRef(0);
+
+  const [fps, setFps] = useState(0);
+  const [confidenceThreshold, setConfidenceThreshold] = useState(0.5);
+
+  const updateFpsOnJS = useRunOnJS(
+    (currentFps) => {
+      setFps(currentFps);
+    },
+    [setFps],
   );
 
-  return { cameraResults, detections, frameProcessorResults, frameProcessor };
+  const detectionResults = useDetectionResults();
+
+  const frameProcessor = useDetectionFrameProcessor(
+    model,
+    0.5,
+    detectionResults,
+  );
+
+  return {
+    cameraResults,
+    detections: detectionResults.value,
+    frameProcessorResults,
+    frameProcessor,
+  };
 };
