@@ -4,19 +4,16 @@ import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function AuthLayout() {
-  const {
-    isAuthenticated,
-    loading,
-    setRedirectAfterLogin,
-  } = useAuth();
+  const { isAuthenticated, loading, setRedirectAfterLogin } = useAuth();
 
   const segments = useSegments();
 
   useEffect(() => {
-    if (!isAuthenticated  && segments.length > 0) {
+    if (!isAuthenticated && segments.length > 0) {
       setRedirectAfterLogin(`/${segments.join("/")}`);
     }
-  }, []);
+  }, [isAuthenticated, segments]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -26,8 +23,8 @@ export default function AuthLayout() {
   }
 
   if (isAuthenticated) {
-    return <Redirect href={{ pathname: "/(tabs)"}} />;
+    return <Redirect href={{ pathname: "/(tabs)" }} />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }}/>;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
