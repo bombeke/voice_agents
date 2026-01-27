@@ -58,9 +58,6 @@ export default function LoginScreen() {
   const promptLogin = async (e: any) => {
     return await promptAsync();
   };
-  console.log("Request:", request);
-  console.log("Response:", response);
-
   useEffect(() => {
     warmUpAsync();
 
@@ -109,7 +106,7 @@ export default function LoginScreen() {
     return () => {
       cancelled = true;
     };
-  }, [response]);
+  }, [response?.type]);
 
   if (submitting) {
     return (

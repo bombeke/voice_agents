@@ -12,7 +12,7 @@ export default function AuthLayout() {
     if (!isAuthenticated && segments.length > 0) {
       setRedirectAfterLogin(`/${segments.join("/")}`);
     }
-  }, [isAuthenticated, segments]);
+  }, [isAuthenticated]);
 
   if (loading) {
     return (

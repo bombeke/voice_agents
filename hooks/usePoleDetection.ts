@@ -1,9 +1,8 @@
 import { useCachedTensorModel } from "@/components/ModelContext";
 import { useMemo, useRef, useState } from "react";
 import { Dimensions } from "react-native";
-import type { SharedValue } from "react-native-reanimated";
-import { useSharedValue } from "react-native-reanimated";
-import { useFrameProcessor } from "react-native-vision-camera";
+import { runOnJS, useSharedValue } from "react-native-reanimated";
+import { runAsync, useFrameProcessor } from "react-native-vision-camera";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 export interface IBoundingBox {
@@ -67,73 +66,123 @@ export const useDetectionResults = () => {
   return results;
 };
 
-export const handlePredict = async (model: any, image: any) => {
-  "worklet";
+export const handlePredictJS = async (model: any, image: Uint8Array | any) => {
   try {
-    const result = await model.forward(image);
-    return result;
-  } catch (error) {
-    console.error("Model forward error:", error);
+    return await model.forward(image);
+  } catch (e) {
+    console.error("Model forward error:", e);
     return null;
   }
+};
+export const useDetectionQueues = () => {
+  const inferenceQueue = useSharedValue<any[]>([]);
+  const detectionResults = useSharedValue<any[]>([]);
+  const isInferring = useSharedValue(false);
+
+  // FPS governor
+  const lastInferenceTs = useSharedValue(0);
+  const targetFps = useSharedValue(5); // default cap
+
+  return {
+    inferenceQueue,
+    detectionResults,
+    isInferring,
+    lastInferenceTs,
+    targetFps,
+  };
+};
+
+export const runModelInferenceJS = async (
+  model: any,
+  image: any,
+  inferenceQueue: { value: any[] },
+  isInferring: { value: boolean },
+) => {
+  try {
+    const detections = await model.forward(image);
+    if (detections?.length) {
+      inferenceQueue.value = [...inferenceQueue.value, detections];
+    }
+  } catch (e) {
+    console.error("Inference error:", e);
+  } finally {
+    isInferring.value = false;
+  }
+};
+
+export const nowMs = () => {
+  "worklet";
+  return global.performance.now();
 };
 
 export const useDetectionFrameProcessor = (
   model: any,
   threshold: number,
-  results: SharedValue<any[]>,
+  queues: ReturnType<typeof useDetectionQueues>,
 ) => {
   const { resize } = useResizePlugin();
-  const isProcessing = useSharedValue(false);
+
+  const {
+    inferenceQueue,
+    detectionResults,
+    isInferring,
+    lastInferenceTs,
+    targetFps,
+  } = queues;
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
       "worklet";
-      if (!model.isReady || isProcessing.value) {
+
+      const now = nowMs();
+      const minInterval = 1000 / targetFps.value;
+
+      // 1️⃣ Drain inference results queue
+      if (inferenceQueue.value.length > 0) {
+        const detections = inferenceQueue.value.shift();
+
+        const objects = processDetection(
+          detections,
+          frame.width,
+          frame.height,
+          threshold,
+        );
+
+        detectionResults.value = objects;
+      }
+
+      // 2️⃣ FPS governor
+      if (now - lastInferenceTs.value < minInterval) {
         return;
       }
 
-      isProcessing.value = true;
+      // 3️⃣ Backpressure lock
+      if (!model.isReady || isInferring.value) return;
 
+      isInferring.value = true;
+      lastInferenceTs.value = now;
+
+      // 4️⃣ Resize frame (cheap, worklet-safe)
       const resized = resize(frame, {
-        scale: {
-          width: 300,
-          height: 300,
-        },
+        scale: { width: 300, height: 300 },
         pixelFormat: "rgb",
         dataType: "uint8",
       });
 
-      handlePredict(model, resized)
-        .then((detections: IDetectionObject[] | null) => {
-          "worklet";
-
-          if (!detections || detections.length === 0) {
-            isProcessing.value = false;
-            return;
-          }
-
-          console.log("Model results:", detections);
-
-          const objects = processDetection(
-            detections,
-            frame.width,
-            frame.height,
-            threshold,
-          );
-
-          console.log("results::::", objects);
-          results.value = objects;
-          isProcessing.value = false;
-        })
-        .catch((error: any) => {
-          "worklet";
-          console.error("Detection error:", error);
-          isProcessing.value = false;
-        });
+      // 5️⃣ Fire async inference
+      return runAsync(frame, () => {
+        "worklet";
+        return runOnJS(runModelInferenceJS)(
+          model,
+          resized,
+          inferenceQueue,
+          isInferring,
+        );
+      });
     },
     [threshold, model.isReady],
   );
+
   return frameProcessor;
 };
 
@@ -142,6 +191,7 @@ export const usePoleDetection = () => {
   const [cameraResults, setCameraResults] = useState<any[]>([]);
   const frameProcessorResults = useSharedValue<any[]>([]);
   const model = useCachedTensorModel(); // Yolo11n.tflite using react-native-fast-tflite
+  const queues = useDetectionQueues();
   const lastInference = useRef(0);
   const [fps, setFps] = useState(0);
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.5);
@@ -150,17 +200,17 @@ export const usePoleDetection = () => {
     setFps(currentFps);
   };
 
-  const detectionResults = useDetectionResults();
+  //const detectionResults = useDetectionResults();
   const frameProcessor = useDetectionFrameProcessor(
     model,
     confidenceThreshold,
-    detectionResults,
+    queues,
   );
 
   return useMemo(
     () => ({
       cameraResults,
-      detections: detectionResults.value,
+      detections: queues.detectionResults.value,
       frameProcessorResults,
       frameProcessor,
       fps,
@@ -169,7 +219,7 @@ export const usePoleDetection = () => {
     }),
     [
       cameraResults,
-      detectionResults.value,
+      //detectionResults.value,
       frameProcessorResults,
       frameProcessor,
       fps,
