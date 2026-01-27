@@ -89,7 +89,7 @@ export const useDetectionFrameProcessor = (
   const frameProcessor = useFrameProcessor(
     (frame) => {
       "worklet";
-      if (model === null || isProcessing.value) {
+      if (!model.isReady || isProcessing.value) {
         return;
       }
 
@@ -132,7 +132,7 @@ export const useDetectionFrameProcessor = (
           isProcessing.value = false;
         });
     },
-    [threshold, model],
+    [threshold, model.isReady],
   );
   return frameProcessor;
 };
