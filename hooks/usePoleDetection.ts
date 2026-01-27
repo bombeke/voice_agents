@@ -1,5 +1,5 @@
 import { useCachedTensorModel } from "@/components/ModelContext";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import type { SharedValue } from "react-native-reanimated";
 import { useSharedValue } from "react-native-reanimated";
@@ -86,7 +86,7 @@ export const useDetectionFrameProcessor = (
   const { resize } = useResizePlugin();
   const isProcessing = useSharedValue(false);
 
-  return useFrameProcessor(
+  const frameProcessor = useFrameProcessor(
     (frame) => {
       "worklet";
       if (model === null || isProcessing.value) {
@@ -132,8 +132,9 @@ export const useDetectionFrameProcessor = (
           isProcessing.value = false;
         });
     },
-    [threshold, model, resize, results],
+    [threshold, model],
   );
+  return frameProcessor;
 };
 
 export const usePoleDetection = () => {
@@ -156,13 +157,23 @@ export const usePoleDetection = () => {
     detectionResults,
   );
 
-  return {
-    cameraResults,
-    detections: detectionResults.value,
-    frameProcessorResults,
-    frameProcessor,
-    fps,
-    confidenceThreshold,
-    setConfidenceThreshold,
-  };
+  return useMemo(
+    () => ({
+      cameraResults,
+      detections: detectionResults.value,
+      frameProcessorResults,
+      frameProcessor,
+      fps,
+      confidenceThreshold,
+      setConfidenceThreshold,
+    }),
+    [
+      cameraResults,
+      detectionResults.value,
+      frameProcessorResults,
+      frameProcessor,
+      fps,
+      confidenceThreshold,
+    ],
+  );
 };

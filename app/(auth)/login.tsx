@@ -1,13 +1,28 @@
-import { makeRedirectUri, ResponseType, useAuthRequest } from "expo-auth-session";
+import {
+  makeRedirectUri,
+  ResponseType,
+  useAuthRequest,
+} from "expo-auth-session";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Image, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { coolDownAsync, maybeCompleteAuthSession, warmUpAsync } from "expo-web-browser";
+import {
+  coolDownAsync,
+  maybeCompleteAuthSession,
+  warmUpAsync,
+} from "expo-web-browser";
 
 maybeCompleteAuthSession();
 
@@ -15,7 +30,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login, redirectAfterLogin, setRedirectAfterLogin } = useAuth();
   const [submitting, setSubmitting] = useState(false);
-  
+
   const { data } = useQuery({
     queryKey: ["state"],
     queryFn: async () => {
@@ -38,21 +53,21 @@ export default function LoginScreen() {
     },
     {
       authorizationEndpoint: `${API_URL}/auth/login`,
-    }
+    },
   );
-  const promptLogin =async (e: any)=>{
+  const promptLogin = async (e: any) => {
     return await promptAsync();
-  }
-  console.log("Request:",request);
-  console.log("Response:",response);
+  };
+  console.log("Request:", request);
+  console.log("Response:", response);
 
   useEffect(() => {
-      warmUpAsync();
+    warmUpAsync();
 
-      return () => {
-        coolDownAsync();
-      };
-    }, []);
+    return () => {
+      coolDownAsync();
+    };
+  }, []);
 
   useEffect(() => {
     if (response?.type !== "success") return;
@@ -69,9 +84,12 @@ export default function LoginScreen() {
           state,
           //device_public_key: publicKey,
         });
-        if(res.data.token || res.data.access_token){
-          await login(res.data.token || res.data.access_token, res.data.expires_at);
-          if(redirectAfterLogin === '/(auth)/login'){
+        if (res.data.token || res.data.access_token) {
+          await login(
+            res.data.token || res.data.access_token,
+            res.data.expires_at,
+          );
+          if (redirectAfterLogin === "/(auth)/login") {
             setRedirectAfterLogin(undefined);
             router.replace("/(tabs)");
           }
@@ -80,10 +98,9 @@ export default function LoginScreen() {
 
           router.replace(target as any);
         }
-      }
-      catch (e) {
-        console.log("Login callback failed:",e);
-        Alert.alert("Login","Login failed. Please try again.");
+      } catch (e) {
+        console.log("Login callback failed:", e);
+        Alert.alert("Login", "Login failed. Please try again.");
         setSubmitting(false);
       }
     };
@@ -109,7 +126,7 @@ export default function LoginScreen() {
       <View className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 items-center">
         {/* Logo */}
         <Image
-          source={require('../../assets/images/logo.jpg')}
+          source={require("../../assets/images/logo.jpg")}
           className="w-24 h-24 mb-6"
           resizeMode="contain"
         />
@@ -120,13 +137,14 @@ export default function LoginScreen() {
         </Text>
 
         <Text className="text-center text-gray-500 mb-6">
-          AI Agents for Disease Surveillance, Pole Defects, Sanitation, Roads & Traffic Analytics.
+          AI Agents for Disease Surveillance, Pole Defects, Sanitation, Roads &
+          Traffic Analytics.
         </Text>
 
         {/* Login Button */}
         <Pressable
           className="w-full bg-blue-600 py-3 rounded-xl items-center justify-center"
-          onPress={ promptLogin }
+          onPress={promptLogin}
           //disabled={!request}
         >
           <Text className="text-white font-semibold text-lg">Login</Text>
