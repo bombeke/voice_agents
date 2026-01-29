@@ -168,13 +168,11 @@ export const remotePoles$ = observable(
     query: {
       queryKey: ["alkuistore"],
       queryFn: async () => {
-        console.log("Fetching poles");
         const res = await axiosClient.post("/alkuistore", {});
         if (res.status !== 200) {
           console.log("Failed to fetch poles");
           return [];
         }
-        console.log("Fetching poles:", res.data);
         return res.data?.data;
       },
     },
@@ -182,7 +180,6 @@ export const remotePoles$ = observable(
 );
 
 export const syncPoleToServer = async (pole: SyncedPole) => {
-  console.log("POLE STARTED SYNCING:", pole);
   if (pole.deleted) {
     console.log("DELETING POLE");
     const deleteRes = await axiosClient.delete(`/alkuistore/${pole.pid}`);
@@ -206,47 +203,6 @@ export const syncPoleToServer = async (pole: SyncedPole) => {
     }
   }
 };
-
-/*observe(() => {
-  const remote = remotePoles$.get();
-  if (!remote?.length) return;
-
-  poleVisionDB$.poles.set((local) => {
-    const map = new Map(local.map(p => [p.id, p]));
-
-    for (const pole of remote) {
-      if (!pole.deleted) {
-        map.set(pole.id, pole);
-      }
-    }
-
-    return Array.from(map.values());
-  });
-});
-*/
-/*observe(() => {
-  const remote = remotePoles$.get();
-  if (!remote?.length) return;
-
-  poleVisionDB$.poles.set((local) => {
-    const map = new Map(local.map(p => [p.id, p as SyncedPole]));
-
-    for (const rp of remote) {
-      const lp = map.get(rp.id);
-      const resolved = resolveConflict(lp, rp);
-      
-      if (resolved?.deleted) {
-        map.delete(rp.id);
-      } 
-      else if (resolved) {
-        map.set(rp.id, resolved);
-      }
-    }
-
-    return Array.from(map.values());
-  });
-});
-*/
 
 export const getPoleVision = () => {
   return poleVisionDB$.poles.get();

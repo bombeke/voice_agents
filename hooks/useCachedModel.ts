@@ -1,17 +1,29 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    SSDLITE_320_MOBILENET_V3_LARGE,
-    useObjectDetection,
+  SSDLITE_320_MOBILENET_V3_LARGE,
+  useObjectDetection,
 } from "react-native-executorch";
-export const useCachedModel = () => {
-  //const {model, state} = useTensorflowModel(require('@/assets/ssd_mobilenet_v1.tflite'));
 
+export const useCachedModel = () => {
   const [cachedModel, setCachedModel] = useState<any | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
   const model = useObjectDetection({ model: SSDLITE_320_MOBILENET_V3_LARGE });
+
+  const hasCached = useRef(false);
+
+  useEffect(() => {
+    if (model.isReady && !hasCached.current) {
+      setCachedModel(model);
+      setIsReady(true);
+      hasCached.current = true;
+    }
+  }, [model.isReady]);
 
   const runModel = useCallback(
     async (image: any) => {
       if (!cachedModel) return [];
+
       const detections = await cachedModel.forward(image);
 
       for (const detection of detections) {
@@ -19,23 +31,15 @@ export const useCachedModel = () => {
         console.log("Bounding label: ", detection.label);
         console.log("Bounding score: ", detection.score);
       }
+
       return detections;
     },
     [cachedModel],
   );
 
-  useEffect(() => {
-    /*if(state === 'loaded' && model){
-            setCachedModel(model);
-        }*/
-    if (model.isReady) {
-      setCachedModel(model);
-    }
-  }, [model]);
-
   return {
     model: cachedModel,
-    state: model.isReady,
+    state: isReady,
     predict: runModel,
   };
 };

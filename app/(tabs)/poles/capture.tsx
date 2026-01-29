@@ -62,7 +62,7 @@ export default function CameraPage(): React.ReactElement {
   const [enableHdr, setEnableHdr] = useState(false);
   const [flash, setFlash] = useState<"off" | "on">("off");
   const [enableNightMode, setEnableNightMode] = useState(false);
-  const { cameraResults, detections, frameProcessor } = usePoleDetection();
+  const { detections, frameProcessor } = usePoleDetection();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const { addPole } = useUtilityStorePoles();
@@ -168,7 +168,7 @@ export default function CameraPage(): React.ReactElement {
       setLastCapture("Data captured.");
       return router.navigate("/poles/maps");
     },
-    [router, cameraResults, addPole],
+    [addPole],
   );
 
   const onFlipCameraPressed = useCallback(() => {
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 32,
-    paddingVertical: 32,
+    paddingVertical: 20,
     borderRadius: 12,
   },
   permissionButtonText: {

@@ -1,9 +1,21 @@
 import NetInfo from "@react-native-community/netinfo";
 import { jwtDecode } from "jwt-decode";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 import { refreshSession } from "@/services/auth/AuthService";
-import { clearAuth, getExpiry, getToken, saveExpiry, saveToken } from "@/services/auth/AuthStorage";
+import {
+  clearAuth,
+  getExpiry,
+  getToken,
+  saveExpiry,
+  saveToken,
+} from "@/services/auth/AuthStorage";
 
 export interface IClaims {
   sub: string;
@@ -11,7 +23,7 @@ export interface IClaims {
   permissions?: string[];
   org?: string;
   exp: number;
-};
+}
 
 export type AdminMode = "online" | "offline-readonly" | "disabled";
 
@@ -38,7 +50,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [claims, setClaims] = useState<IClaims | null>(null);
-  const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | undefined>('/(tabs)');
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState<
+    string | undefined
+  >("/(tabs)");
   const [offlineMode, setOfflineMode] = useState(false);
 
   useEffect(() => {
@@ -80,8 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const decoded = jwtDecode<IClaims>(newToken!);
         //setClaims(decoded);
         setIsAuthenticated(true);
-      } 
-      else {
+      } else {
         await clearAuth();
         //setClaims(null);
         setIsAuthenticated(false);
@@ -93,7 +106,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     bootstrap();
   }, []);
 
-  const login = async (token: string, expiresAt: number) => {
+  const login = useCallback(async (token: string, expiresAt: number) => {
     const decoded = jwtDecode<IClaims>(token);
 
     await saveToken(token);
@@ -103,16 +116,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     //setClaims(decoded);
     setIsAuthenticated(true);
     return;
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await clearAuth();
     setClaims(null);
     setIsAuthenticated(false);
     setOfflineMode(false);
     return;
-  };
+  }, []);
 
+  const handleSetRedirectAfterLogin = useCallback((path?: string) => {
+    setRedirectAfterLogin(path);
+  }, []);
   const isAdmin = !!claims?.roles?.includes("admin");
 
   // Offline admin read-only mode
@@ -138,7 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         redirectAfterLogin,
         login,
         logout,
-        setRedirectAfterLogin,
+        setRedirectAfterLogin: handleSetRedirectAfterLogin,
       }}
     >
       {children}

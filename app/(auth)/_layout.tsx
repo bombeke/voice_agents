@@ -1,18 +1,29 @@
 import { useAuth } from "@/providers/AuthProvider";
 import { Redirect, Stack, useSegments } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function AuthLayout() {
   const { isAuthenticated, loading, setRedirectAfterLogin } = useAuth();
-
   const segments = useSegments();
+  const hasSetRedirect = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated && segments.length > 0) {
-      setRedirectAfterLogin(`/${segments.join("/")}`);
+    // Only set redirect once when user becomes unauthenticated
+    if (!isAuthenticated && segments.length > 0 && !hasSetRedirect.current) {
+      const path = `/${segments.join("/")}`;
+      // Don't redirect to login page itself
+      if (path !== "/(auth)/login") {
+        setRedirectAfterLogin(path);
+        hasSetRedirect.current = true;
+      }
     }
-  }, [isAuthenticated]);
+
+    // Reset flag when authenticated
+    if (isAuthenticated) {
+      hasSetRedirect.current = false;
+    }
+  }, [isAuthenticated, segments, setRedirectAfterLogin]);
 
   if (loading) {
     return (

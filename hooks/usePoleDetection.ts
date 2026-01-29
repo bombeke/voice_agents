@@ -188,9 +188,8 @@ export const useDetectionFrameProcessor = (
 
 export const usePoleDetection = () => {
   const labels = require("@/assets/labels.json");
-  const [cameraResults, setCameraResults] = useState<any[]>([]);
-  const frameProcessorResults = useSharedValue<any[]>([]);
-  const model = useCachedTensorModel(); // Yolo11n.tflite using react-native-fast-tflite
+  const model = useCachedTensorModel();
+  console.log("Model is Ready:", model.isReady);
   const queues = useDetectionQueues();
   const lastInference = useRef(0);
   const [fps, setFps] = useState(0);
@@ -209,21 +208,12 @@ export const usePoleDetection = () => {
 
   return useMemo(
     () => ({
-      cameraResults,
       detections: queues.detectionResults.value,
-      frameProcessorResults,
       frameProcessor,
       fps,
       confidenceThreshold,
       setConfidenceThreshold,
     }),
-    [
-      cameraResults,
-      //detectionResults.value,
-      frameProcessorResults,
-      frameProcessor,
-      fps,
-      confidenceThreshold,
-    ],
+    [frameProcessor, fps, confidenceThreshold],
   );
 };

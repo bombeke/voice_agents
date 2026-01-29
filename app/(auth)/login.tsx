@@ -86,16 +86,16 @@ export default function LoginScreen() {
             res.data.token || res.data.access_token,
             res.data.expires_at,
           );
-          if (redirectAfterLogin === "/(auth)/login") {
-            setRedirectAfterLogin(undefined);
-            router.replace("/(tabs)");
-          }
-          const target = redirectAfterLogin ?? "/(tabs)";
-          setRedirectAfterLogin(undefined);
+          const target =
+            redirectAfterLogin && redirectAfterLogin !== "/(auth)/login"
+              ? redirectAfterLogin
+              : "/(tabs)";
 
+          setRedirectAfterLogin(undefined);
           router.replace(target as any);
         }
       } catch (e) {
+        if (cancelled) return;
         console.log("Login callback failed:", e);
         Alert.alert("Login", "Login failed. Please try again.");
         setSubmitting(false);
@@ -106,7 +106,7 @@ export default function LoginScreen() {
     return () => {
       cancelled = true;
     };
-  }, [response?.type]);
+  }, [response?.type, redirectAfterLogin]);
 
   if (submitting) {
     return (
