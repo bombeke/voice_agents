@@ -1,7 +1,5 @@
 import { MMKVProvider } from "@/components/MmkvContext";
-import {
-  CachedModelBootstrap
-} from "@/components/ModelContext";
+import { CachedModelBootstrap } from "@/components/ModelContext";
 import { createUserStorage } from "@/services/storage/Storage";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -26,7 +24,7 @@ SplashScreen.preventAutoHideAsync();
 
 export function RootLayoutNav() {
   //const deviceId =  useValue(poleVisionDBDeviceId$);
-  //console.log("Device ID:",deviceId);
+  console.log("Device ID:");
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
