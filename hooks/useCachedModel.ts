@@ -48,11 +48,12 @@ export function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-export const useCachedModel1 = () => {
+export const useCachedModel = () => {
   const [cachedModel, setCachedModel] = useState<any | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  const model = useObjectDetection({ model: SSDLITE_320_MOBILENET_V3_LARGE });
+  //const model = useObjectDetection({ model: SSDLITE_320_MOBILENET_V3_LARGE });
+  const model = getCachedModel();
 
   const hasCached = useRef(false);
 
@@ -88,14 +89,14 @@ export const useCachedModel1 = () => {
   };
 };
 
-export const useCachedModel = () => {
+export const useCachedModel1 = () => {
   const [ready, setReady] = useState(() => !!getCachedModel());
 
   useEffect(() => {
     if (ready) return;
 
     return subscribe(() => {
-      setReady(true);
+      //setReady(true);
     });
   }, [ready]);
 

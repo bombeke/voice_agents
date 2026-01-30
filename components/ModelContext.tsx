@@ -1,7 +1,4 @@
-import {
-  getCachedModel,
-  useInitCachedModel
-} from "@/hooks/useCachedModel";
+import { getCachedModel, useInitCachedModel } from "@/hooks/useCachedModel";
 import { createContext, PropsWithChildren, ReactNode, useContext } from "react";
 
 export interface ICachedModelContext {
