@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [claims, setClaims] = useState<IClaims | null>(null);
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<
     string | undefined
-  >("/(tabs)");
+  >(undefined);
   const [offlineMode, setOfflineMode] = useState(false);
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const handleSetRedirectAfterLogin = useCallback((path?: string) => {
-    setRedirectAfterLogin(path);
+    setRedirectAfterLogin((prev) => prev ?? path);
   }, []);
   const isAdmin = !!claims?.roles?.includes("admin");
 

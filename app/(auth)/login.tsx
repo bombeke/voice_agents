@@ -4,7 +4,7 @@ import {
   useAuthRequest,
 } from "expo-auth-session";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,6 @@ import {
 
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
-import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import {
   coolDownAsync,
@@ -30,15 +29,15 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login, redirectAfterLogin, setRedirectAfterLogin } = useAuth();
   const [submitting, setSubmitting] = useState(false);
-
-  const { data } = useQuery({
+  const handledRef = useRef(false);
+  /*const { data } = useQuery({
     queryKey: ["state"],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/auth/state`);
       return res.data;
     },
   });
-
+  */
   const redirectUri = makeRedirectUri({
     scheme: "voiceagents",
     //path: "callback",
@@ -68,12 +67,14 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (response?.type !== "success") return;
+    if (handledRef.current) return;
 
-    let cancelled = false;
+    handledRef.current = true;
 
     const completeLogin = async () => {
       try {
         setSubmitting(true);
+
         const { code, state } = response.params;
         //const { publicKey } = await getDeviceKeypair();
         const res = await axios.post(`${API_URL}/auth/callback`, {
@@ -81,32 +82,22 @@ export default function LoginScreen() {
           state,
           //device_public_key: publicKey,
         });
-        if (res.data.token || res.data.access_token) {
-          await login(
-            res.data.token || res.data.access_token,
-            res.data.expires_at,
-          );
-          const target =
-            redirectAfterLogin && redirectAfterLogin !== "/(auth)/login"
-              ? redirectAfterLogin
-              : "/(tabs)";
-
-          setRedirectAfterLogin(undefined);
-          router.replace(target as any);
+        const token = res.data.token || res.data.access_token;
+        if (!token) {
+          Alert.alert("Login failed", "Please try again");
+          return;
         }
+
+        await login(token, res.data.expires_at);
       } catch (e) {
-        if (cancelled) return;
-        console.log("Login callback failed:", e);
-        Alert.alert("Login", "Login failed. Please try again.");
+        handledRef.current = false;
         setSubmitting(false);
+        Alert.alert("Login failed", "Please try again.");
       }
     };
 
     completeLogin();
-    return () => {
-      cancelled = true;
-    };
-  }, [response?.type, redirectAfterLogin]);
+  }, [response?.type]);
 
   if (submitting) {
     return (

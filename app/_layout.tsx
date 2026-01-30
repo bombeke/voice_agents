@@ -1,44 +1,41 @@
-import { MMKVProvider } from '@/components/MmkvContext';
-import { CachedModelProvider } from '@/components/ModelContext';
-import { useCachedModel } from '@/hooks/useCachedModel';
-import { createUserStorage } from '@/services/storage/Storage';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { TamaguiProvider } from 'tamagui';
+import { MMKVProvider } from "@/components/MmkvContext";
+import {
+  CachedModelBootstrap
+} from "@/components/ModelContext";
+import { createUserStorage } from "@/services/storage/Storage";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { TamaguiProvider } from "tamagui";
 import "../global.css";
-import { config } from '../tamagui.config';
+import { config } from "../tamagui.config";
 
-import { AuthProvider } from '@/providers/AuthProvider';
-import { UtilityStoreProvider } from '@/providers/UtilityStoreProvider';
-import { queryClient } from '@/services/Api';
-import { BackendSyncObserver } from '@/services/storage/BackendSyncObserver';
-import { initPersistence, poleVisionDBDeviceId$ } from '@/services/storage/LegendState';
-import { OpQueueReplayObserver } from '@/services/storage/OpQueueReplayObserver';
-import { useValue } from '@legendapp/state/react';
+import { AuthProvider } from "@/providers/AuthProvider";
+import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
+import { queryClient } from "@/services/Api";
+import { BackendSyncObserver } from "@/services/storage/BackendSyncObserver";
+import { initPersistence } from "@/services/storage/LegendState";
+import { OpQueueReplayObserver } from "@/services/storage/OpQueueReplayObserver";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 SplashScreen.preventAutoHideAsync();
 
 export function RootLayoutNav() {
-
-  const deviceId =  useValue(poleVisionDBDeviceId$);
-  console.log("Device ID:",deviceId);
+  //const deviceId =  useValue(poleVisionDBDeviceId$);
+  //console.log("Device ID:",deviceId);
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(admin)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" />
-
     </Stack>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -48,16 +45,17 @@ const styles = StyleSheet.create({
 
 export default function RootLayout() {
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
-  const userId = 'mmkv_user_app';
-  const storage = createUserStorage(userId);
-  const { model } = useCachedModel();
-  initPersistence()
+  const userId = "mmkv_user_app";
+  const storage = useMemo(() => createUserStorage(userId), [userId]);
+  useEffect(() => {
+    initPersistence();
+  }, []);
 
   useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    if (loaded) SplashScreen.hideAsync();
+  }, [loaded]);
 
   if (!loaded) {
     return null;
@@ -70,17 +68,17 @@ export default function RootLayout() {
           <MMKVProvider storage={storage}>
             <AuthProvider>
               <UtilityStoreProvider>
-                <CachedModelProvider model= { model}>
-                    <SafeAreaProvider>
-                      <BackendSyncObserver/>
-                      <OpQueueReplayObserver/>
-                      <RootLayoutNav/>
-                    </SafeAreaProvider>
-                </CachedModelProvider>
+                <CachedModelBootstrap>
+                  <SafeAreaProvider>
+                    <BackendSyncObserver />
+                    <OpQueueReplayObserver />
+                    <RootLayoutNav />
+                  </SafeAreaProvider>
+                </CachedModelBootstrap>
               </UtilityStoreProvider>
             </AuthProvider>
           </MMKVProvider>
-        </TamaguiProvider>    
+        </TamaguiProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
   );

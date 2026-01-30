@@ -1,4 +1,8 @@
-import { createContext, ReactNode, useContext } from 'react';
+import {
+  getCachedModel,
+  useInitCachedModel
+} from "@/hooks/useCachedModel";
+import { createContext, PropsWithChildren, ReactNode, useContext } from "react";
 
 export interface ICachedModelContext {
   model: any;
@@ -9,19 +13,36 @@ export const CachedModelContext = createContext<any | null>(null);
 
 export const CachedModelProvider = ({
   model,
-  children
-}: ICachedModelContext ) => {
+  children,
+}: ICachedModelContext) => {
   return (
     <CachedModelContext.Provider value={model}>
       {children}
     </CachedModelContext.Provider>
   );
-}
+};
 
-export const useCachedTensorModel =()=> {
+export const useCachedTensorModel = () => {
   const ctx = useContext(CachedModelContext);
   if (!ctx) {
     return null;
-  };
+  }
   return ctx;
+};
+
+export function CachedModelBootstrap1({ children }: any) {
+  const cached = getCachedModel();
+  return (
+    <CachedModelProvider model={cached.model}>{children}</CachedModelProvider>
+  );
+}
+
+export function CachedModelBootstrap({ children }: PropsWithChildren) {
+  const ready = useInitCachedModel();
+
+  if (!ready) {
+    return null; // or splash / loader
+  }
+
+  return <>{children}</>;
 }

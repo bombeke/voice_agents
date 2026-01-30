@@ -18,7 +18,12 @@ import { useIsFocused } from "@react-navigation/core";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
-import { useAnimatedProps, useSharedValue } from "react-native-reanimated";
+import {
+  runOnJS,
+  useAnimatedProps,
+  useAnimatedReaction,
+  useSharedValue,
+} from "react-native-reanimated";
 import {
   Camera,
   CameraProps,
@@ -62,7 +67,10 @@ export default function CameraPage(): React.ReactElement {
   const [enableHdr, setEnableHdr] = useState(false);
   const [flash, setFlash] = useState<"off" | "on">("off");
   const [enableNightMode, setEnableNightMode] = useState(false);
-  const { detections, frameProcessor } = usePoleDetection();
+  const { queues, frameProcessor, pauseDetection, resumeDetection } =
+    usePoleDetection();
+  const [detectionsSafe, setDetectionsSafe] = useState<any[]>([]);
+
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const { addPole } = useUtilityStorePoles();
@@ -99,6 +107,13 @@ export default function CameraPage(): React.ReactElement {
   const canToggleNightMode = device?.supportsLowLightBoost ?? false;
   const minZoom = device?.minZoom ?? 1;
   const maxZoom = Math.min(device?.maxZoom ?? 1, MAX_ZOOM_FACTOR);
+  // safely bridge sharedValue -> React state
+  useAnimatedReaction(
+    () => queues.detectionResults.value, // track the worklet shared value
+    (val) => {
+      runOnJS(setDetectionsSafe)(val); // update React state on JS thread
+    },
+  );
 
   const cameraAnimatedProps = useAnimatedProps<CameraProps>(() => {
     const z = Math.max(Math.min(zoom.value, maxZoom), minZoom);
@@ -152,23 +167,30 @@ export default function CameraPage(): React.ReactElement {
         params: { path: media.path, type: type },
       });
       */
-      const locationResult = await getCurrentPositionAsync({
-        accuracy: Accuracy.High,
-      });
+      setIsCapturing(true);
+      pauseDetection();
+      try {
+        const locationResult = await getCurrentPositionAsync({
+          accuracy: Accuracy.High,
+        });
 
-      setLastCapture("Starting data capture");
-      await addPole({
-        latitude: locationResult.coords.latitude,
-        longitude: locationResult.coords.longitude,
-        timestamp: Date.now(),
-        imageUri: media.path,
-        detectionConfidence: 80, //get confidence from AI detections
-      } as any);
+        setLastCapture("Starting data capture");
+        await addPole({
+          latitude: locationResult.coords.latitude,
+          longitude: locationResult.coords.longitude,
+          timestamp: Date.now(),
+          imageUri: media.path,
+          detectionConfidence: 80, //get confidence from AI detections
+        } as any);
 
-      setLastCapture("Data captured.");
-      return router.navigate("/poles/maps");
+        setLastCapture("Data captured.");
+        return router.navigate("/poles/maps");
+      } finally {
+        setIsCapturing(false);
+        resumeDetection();
+      }
     },
-    [addPole],
+    [addPole, resumeDetection, pauseDetection],
   );
 
   const onFlipCameraPressed = useCallback(() => {
@@ -266,8 +288,8 @@ export default function CameraPage(): React.ReactElement {
           video={true}
           audio={microphone.hasPermission}
           enableLocation={location.hasPermission}
-          frameProcessor={frameProcessor}
-          frameProcessorFps={10}
+          frameProcessor={isCapturing ? undefined : frameProcessor}
+          frameProcessorFps={isCapturing ? 0 : 10}
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -385,7 +407,7 @@ export default function CameraPage(): React.ReactElement {
 
       {/* Overlay for bounding boxes */}
       <View style={styles.overlay} pointerEvents="none">
-        {detections.map((detection) => (
+        {detectionsSafe.map((detection) => (
           <View
             key={detection.id}
             style={[

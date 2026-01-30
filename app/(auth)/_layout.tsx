@@ -1,30 +1,37 @@
 import { useAuth } from "@/providers/AuthProvider";
-import { Redirect, Stack, useSegments } from "expo-router";
+import { Redirect, Stack, usePathname } from "expo-router";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function AuthLayout() {
-  const { isAuthenticated, loading, setRedirectAfterLogin } = useAuth();
-  const segments = useSegments();
-  const hasSetRedirect = useRef(false);
+  const {
+    isAuthenticated,
+    loading,
+    redirectAfterLogin,
+    setRedirectAfterLogin,
+  } = useAuth();
 
+  const pathname = usePathname();
+  const capturedRef = useRef<string | null>(null);
+
+  /**
+   * Capture intended route ONCE while unauthenticated
+   */
   useEffect(() => {
-    // Only set redirect once when user becomes unauthenticated
-    if (!isAuthenticated && segments.length > 0 && !hasSetRedirect.current) {
-      const path = `/${segments.join("/")}`;
-      // Don't redirect to login page itself
-      if (path !== "/(auth)/login") {
-        setRedirectAfterLogin(path);
-        hasSetRedirect.current = true;
-      }
-    }
+    if (loading) return;
+    if (isAuthenticated) return;
+    if (!pathname) return;
+    if (pathname.startsWith("/(auth)")) return;
 
-    // Reset flag when authenticated
-    if (isAuthenticated) {
-      hasSetRedirect.current = false;
-    }
-  }, [isAuthenticated, segments, setRedirectAfterLogin]);
+    if (capturedRef.current === pathname) return;
 
+    setRedirectAfterLogin(pathname);
+    capturedRef.current = pathname;
+  }, [pathname, loading, isAuthenticated]);
+
+  /**
+   * Once authenticated, redirect and clear intent
+   */
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -34,7 +41,8 @@ export default function AuthLayout() {
   }
 
   if (isAuthenticated) {
-    return <Redirect href={{ pathname: "/(tabs)" }} />;
+    const target = redirectAfterLogin ?? "/(tabs)";
+    return <Redirect href={target as any} />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

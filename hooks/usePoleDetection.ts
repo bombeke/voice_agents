@@ -1,9 +1,9 @@
-import { useCachedTensorModel } from "@/components/ModelContext";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { runAsync, useFrameProcessor } from "react-native-vision-camera";
 import { useResizePlugin } from "vision-camera-resize-plugin";
+import { useCachedModel } from "./useCachedModel";
 
 export interface IBoundingBox {
   x: number; // normalized (0–1)
@@ -78,6 +78,7 @@ export const useDetectionQueues = () => {
   const inferenceQueue = useSharedValue<any[]>([]);
   const detectionResults = useSharedValue<any[]>([]);
   const isInferring = useSharedValue(false);
+  const paused = useSharedValue(false);
 
   // FPS governor
   const lastInferenceTs = useSharedValue(0);
@@ -87,6 +88,7 @@ export const useDetectionQueues = () => {
     inferenceQueue,
     detectionResults,
     isInferring,
+    paused,
     lastInferenceTs,
     targetFps,
   };
@@ -134,45 +136,38 @@ export const useDetectionFrameProcessor = (
     (frame) => {
       "worklet";
 
+      if (queues.paused.value) {
+        return;
+      }
+
       const now = nowMs();
       const minInterval = 1000 / targetFps.value;
 
-      // 1️⃣ Drain inference results queue
+      // Drain results
       if (inferenceQueue.value.length > 0) {
         const detections = inferenceQueue.value.shift();
-
-        const objects = processDetection(
+        detectionResults.value = processDetection(
           detections,
           frame.width,
           frame.height,
           threshold,
         );
-
-        detectionResults.value = objects;
       }
 
-      // 2️⃣ FPS governor
-      if (now - lastInferenceTs.value < minInterval) {
-        return;
-      }
-
-      // 3️⃣ Backpressure lock
+      if (now - lastInferenceTs.value < minInterval) return;
       if (!model.isReady || isInferring.value) return;
 
       isInferring.value = true;
       lastInferenceTs.value = now;
 
-      // 4️⃣ Resize frame (cheap, worklet-safe)
       const resized = resize(frame, {
         scale: { width: 300, height: 300 },
         pixelFormat: "rgb",
         dataType: "uint8",
       });
 
-      // 5️⃣ Fire async inference
-      return runAsync(frame, () => {
-        "worklet";
-        return runOnJS(runModelInferenceJS)(
+      runAsync(frame, () => {
+        runOnJS(runModelInferenceJS)(
           model,
           resized,
           inferenceQueue,
@@ -180,7 +175,7 @@ export const useDetectionFrameProcessor = (
         );
       });
     },
-    [threshold, model.isReady],
+    [model.isReady, threshold],
   );
 
   return frameProcessor;
@@ -188,7 +183,7 @@ export const useDetectionFrameProcessor = (
 
 export const usePoleDetection = () => {
   const labels = require("@/assets/labels.json");
-  const model = useCachedTensorModel();
+  const { model, predict } = useCachedModel();
   console.log("Model is Ready:", model.isReady);
   const queues = useDetectionQueues();
   const lastInference = useRef(0);
@@ -206,14 +201,23 @@ export const usePoleDetection = () => {
     queues,
   );
 
-  return useMemo(
-    () => ({
-      detections: queues.detectionResults.value,
-      frameProcessor,
-      fps,
-      confidenceThreshold,
-      setConfidenceThreshold,
-    }),
-    [frameProcessor, fps, confidenceThreshold],
-  );
+  const pauseDetection = () => {
+    queues.paused.value = true;
+    queues.inferenceQueue.value = [];
+    queues.isInferring.value = false;
+  };
+
+  const resumeDetection = () => {
+    queues.paused.value = false;
+  };
+
+  return {
+    queues,
+    frameProcessor,
+    pauseDetection,
+    resumeDetection,
+    fps,
+    confidenceThreshold,
+    setConfidenceThreshold,
+  };
 };
