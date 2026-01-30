@@ -1,9 +1,9 @@
 import { useAuth } from "@/providers/AuthProvider";
 import { Redirect, Stack, usePathname } from "expo-router";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-export default function AuthLayout() {
+function AuthLayout() {
   const {
     isAuthenticated,
     loading,
@@ -14,9 +14,6 @@ export default function AuthLayout() {
   const pathname = usePathname();
   const capturedRef = useRef<string | null>(null);
 
-  /**
-   * Capture intended route ONCE while unauthenticated
-   */
   useEffect(() => {
     if (loading) return;
     if (isAuthenticated) return;
@@ -29,10 +26,8 @@ export default function AuthLayout() {
     capturedRef.current = pathname;
   }, [pathname, loading, isAuthenticated]);
 
-  /**
-   * Once authenticated, redirect and clear intent
-   */
   if (loading) {
+    console.log("Loading M0");
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <ActivityIndicator size="large" />
@@ -41,9 +36,12 @@ export default function AuthLayout() {
   }
 
   if (isAuthenticated) {
+    console.log("Loading M1");
     const target = redirectAfterLogin ?? "/(tabs)";
     return <Redirect href={target as any} />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
+
+export default memo(AuthLayout);

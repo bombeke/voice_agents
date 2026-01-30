@@ -5,7 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 
 export default function TabsLayout() {
   const { isAuthenticated, loading } = useAuth();
-
+  console.log("Loading Tab0", loading, "auth:", isAuthenticated);
   if (loading) {
     return (
       <View

@@ -67,7 +67,7 @@ export const useCachedModel = () => {
 
   const runModel = useCallback(
     async (image: any) => {
-      if (!cachedModel) return [];
+      if (!cachedModel?.isReady) return [];
 
       const detections = await cachedModel.forward(image);
 
@@ -79,7 +79,7 @@ export const useCachedModel = () => {
 
       return detections;
     },
-    [cachedModel],
+    [cachedModel?.isReady],
   );
 
   return {

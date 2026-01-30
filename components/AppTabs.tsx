@@ -2,15 +2,20 @@ import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
 import { Tabs } from "expo-router";
+import { useMemo } from "react";
 
 export default function AppTabs() {
   const { isAdmin, claims, adminMode } = useAuth();
 
-  const menu = filterMenu(MENU_CONFIG, {
-    isAdmin,
-    claims,
-    adminMode,
-  });
+  const menu = useMemo(
+    () =>
+      filterMenu(MENU_CONFIG, {
+        isAdmin,
+        claims,
+        adminMode,
+      }),
+    [isAdmin, claims, adminMode],
+  );
 
   return (
     <Tabs screenOptions={{ headerShown: false }}>

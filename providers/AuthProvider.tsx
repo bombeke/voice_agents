@@ -129,6 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSetRedirectAfterLogin = useCallback((path?: string) => {
     setRedirectAfterLogin((prev) => prev ?? path);
   }, []);
+
   const isAdmin = !!claims?.roles?.includes("admin");
 
   // Offline admin read-only mode

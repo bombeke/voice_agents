@@ -3,8 +3,7 @@ import {
   ResponseType,
   useAuthRequest,
 } from "expo-auth-session";
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,9 +24,8 @@ import {
 
 maybeCompleteAuthSession();
 
-export default function LoginScreen() {
-  const router = useRouter();
-  const { login, redirectAfterLogin, setRedirectAfterLogin } = useAuth();
+function LoginScreen() {
+  const { login } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const handledRef = useRef(false);
   /*const { data } = useQuery({
@@ -97,7 +95,7 @@ export default function LoginScreen() {
     };
 
     completeLogin();
-  }, [response?.type]);
+  }, [response?.type, login]);
 
   if (submitting) {
     return (
@@ -146,3 +144,5 @@ export default function LoginScreen() {
     </View>
   );
 }
+
+export default memo(LoginScreen);

@@ -36,7 +36,7 @@ export function CachedModelBootstrap1({ children }: any) {
 
 export function CachedModelBootstrap({ children }: PropsWithChildren) {
   const ready = useInitCachedModel();
-
+  console.log("model ready:", ready);
   if (!ready) {
     return null; // or splash / loader
   }
