@@ -1,7 +1,8 @@
 import { useAuth } from "@/providers/AuthProvider";
 import { hasPerm } from "@/services/auth/AuthUtils";
-import { Redirect } from "expo-router";
-import { PropsWithChildren } from "react";
+import { Routes } from "@/services/Routes";
+import { useRouter } from "expo-router";
+import { PropsWithChildren, useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 type Props = PropsWithChildren<{
@@ -12,28 +13,58 @@ type Props = PropsWithChildren<{
 
 export function RequirePermission({
   permission,
-  fallback = "/(tabs)",
+  fallback = Routes.TABS,
   allowOfflineReadonly = false,
   children,
 }: Props) {
   const { loading, isAuthenticated, claims, adminMode } = useAuth();
+  const router = useRouter();
 
-  if (loading) {
+  const redirectedRef = useRef(false);
+
+  useEffect(() => {
+    if (loading) return;
+    if (redirectedRef.current) return;
+
+    // Not logged in → login
+    if (!isAuthenticated) {
+      redirectedRef.current = true;
+      router.replace(Routes.LOGIN as any);
+      return;
+    }
+
+    // Claims not ready yet → wait
+    if (!claims) return;
+
+    // Permission denied
+    if (!hasPerm(claims as any, permission)) {
+      redirectedRef.current = true;
+      router.replace(fallback as any);
+      return;
+    }
+
+    // Offline admin restriction
+    if (adminMode === "offline-readonly" && !allowOfflineReadonly) {
+      // no redirect, UI message instead
+      return;
+    }
+  }, [
+    loading,
+    isAuthenticated,
+    claims,
+    permission,
+    fallback,
+    adminMode,
+    allowOfflineReadonly,
+    router,
+  ]);
+
+  if (loading || !isAuthenticated || !claims) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );
-  }
-
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  const permitted = hasPerm(claims as any, permission);
-
-  if (!permitted) {
-    return <Redirect href={fallback as any} />;
   }
 
   if (adminMode === "offline-readonly" && !allowOfflineReadonly) {
@@ -44,6 +75,10 @@ export function RequirePermission({
         </Text>
       </View>
     );
+  }
+
+  if (!hasPerm(claims as any, permission)) {
+    return null;
   }
 
   return <>{children}</>;

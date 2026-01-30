@@ -1,4 +1,5 @@
 import NetInfo from "@react-native-community/netinfo";
+import * as SplashScreen from "expo-splash-screen";
 import { jwtDecode } from "jwt-decode";
 import React, {
   createContext,
@@ -56,54 +57,73 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [offlineMode, setOfflineMode] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     const bootstrap = async () => {
-      const net = await NetInfo.fetch();
-      const token = await getToken();
-      const expiry = await getExpiry();
-      //const cachedClaims = getClaims();
+      try {
+        const net = await NetInfo.fetch();
+        const token = await getToken();
+        const expiry = await getExpiry();
 
-      if (!token || !expiry) {
-        setLoading(false);
-        return;
+        if (!token || !expiry) {
+          if (!cancelled) {
+            setLoading(false);
+          }
+          return;
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const expired = expiry < now;
+
+        if (!expired) {
+          if (!cancelled) {
+            setIsAuthenticated(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Offline & expired
+        if (!net.isConnected) {
+          if (!cancelled) {
+            setOfflineMode(true);
+            setIsAuthenticated(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Online refresh
+        const refreshed = await refreshSession();
+        if (refreshed) {
+          const newToken = await getToken();
+          if (newToken && !cancelled) {
+            setClaims(jwtDecode(newToken));
+            setIsAuthenticated(true);
+          }
+        } else {
+          await clearAuth();
+          if (!cancelled) {
+            setIsAuthenticated(false);
+          }
+        }
+
+        if (!cancelled) {
+          setLoading(false);
+        }
+      } finally {
+        // 🔥 Release splash ONLY when auth is fully resolved
+        if (!cancelled) {
+          await SplashScreen.hideAsync();
+        }
       }
-
-      // token valid
-      const now = Math.floor(Date.now() / 1000);
-      const expired = expiry < now;
-
-      if (!expired) {
-        //setClaims(cachedClaims ?? jwtDecode(token));
-        setIsAuthenticated(true);
-        setLoading(false);
-        return;
-      }
-
-      // offline & expired → downgrade
-      if (!net.isConnected) {
-        setOfflineMode(true);
-        //setClaims(cachedClaims);
-        setIsAuthenticated(true);
-        setLoading(false);
-        return;
-      }
-
-      // online → refresh token
-      const refreshed = await refreshSession();
-      if (refreshed) {
-        const newToken = await getToken();
-        const decoded = jwtDecode<IClaims>(newToken!);
-        //setClaims(decoded);
-        setIsAuthenticated(true);
-      } else {
-        await clearAuth();
-        //setClaims(null);
-        setIsAuthenticated(false);
-      }
-
-      setLoading(false);
     };
 
     bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (token: string, expiresAt: number) => {
@@ -123,11 +143,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setClaims(null);
     setIsAuthenticated(false);
     setOfflineMode(false);
+    setRedirectAfterLogin(undefined);
     return;
   }, []);
 
   const handleSetRedirectAfterLogin = useCallback((path?: string) => {
-    setRedirectAfterLogin((prev) => prev ?? path);
+    setRedirectAfterLogin((prev) => {
+      if (!path) return undefined;
+      return prev ?? path;
+    });
   }, []);
 
   const isAdmin = !!claims?.roles?.includes("admin");

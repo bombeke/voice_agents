@@ -64,6 +64,7 @@ function LoginScreen() {
   }, []);
 
   useEffect(() => {
+    if (!response) return;
     if (response?.type !== "success") return;
     if (handledRef.current) return;
 
@@ -81,7 +82,7 @@ function LoginScreen() {
           //device_public_key: publicKey,
         });
         const token = res.data.token || res.data.access_token;
-        if (!token) {
+        if (!token || !res.data.expires_at) {
           Alert.alert("Login failed", "Please try again");
           return;
         }
@@ -95,7 +96,7 @@ function LoginScreen() {
     };
 
     completeLogin();
-  }, [response?.type, login]);
+  }, [response, login]);
 
   if (submitting) {
     return (
