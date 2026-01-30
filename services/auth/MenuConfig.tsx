@@ -15,9 +15,9 @@ export type MenuItem = {
 
 export const MENU_CONFIG: MenuItem[] = [
   {
-    key: "home",
+    key: "index",
     title: "Home",
-    route: Routes.TABS,
+    route: "/index",
     icon: <FontAwesome name="home" size={18} />,
   },
 
