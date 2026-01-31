@@ -155,7 +155,7 @@ export const useDetectionFrameProcessor = (
       }
 
       if (now - lastInferenceTs.value < minInterval) return;
-      if (!model.isReady || isInferring.value) return;
+      if (!model?.isReady || isInferring.value) return;
 
       isInferring.value = true;
       lastInferenceTs.value = now;
@@ -175,7 +175,7 @@ export const useDetectionFrameProcessor = (
         );
       });
     },
-    [model.isReady, threshold],
+    [model?.isReady, threshold],
   );
 
   return frameProcessor;
@@ -184,7 +184,7 @@ export const useDetectionFrameProcessor = (
 export const usePoleDetection = () => {
   const labels = require("@/assets/labels.json");
   const { model, predict } = useCachedModel();
-  console.log("Model is Ready:", model.isReady);
+  console.log("Model is Ready:", model?.isReady);
   const queues = useDetectionQueues();
   const lastInference = useRef(0);
   const [fps, setFps] = useState(0);

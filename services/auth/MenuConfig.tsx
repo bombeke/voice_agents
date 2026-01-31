@@ -74,15 +74,6 @@ export const MENU_CONFIG: MenuItem[] = [
       },
     ],
   },
-
-  {
-    key: "offline",
-    title: "Offline",
-    route: "/offline",
-    icon: <FontAwesome name="wifi" size={18} />,
-    offlineVisible: true,
-  },
-
   {
     key: "settings",
     title: "Settings",
