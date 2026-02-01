@@ -137,9 +137,9 @@ export const useDetectionFrameProcessor = (
   const frameProcessor = useFrameProcessor(
     (frame) => {
       "worklet";
-      console.log("M0");
+
       if (paused.value) return;
-      console.log("M1");
+
       const now = nowMs();
       const minInterval = 1000 / targetFps.value;
 
@@ -157,13 +157,12 @@ export const useDetectionFrameProcessor = (
       }
 
       // 2) FPS gate
-      console.log("M2");
+
       if (now - lastInferenceTs.value < minInterval) return;
-      console.log("M3");
 
       // 3) In-flight gate
       if (!model || isInferring.value) return;
-      console.log("M4");
+
       // 4) Lock + timestamp BEFORE scheduling
       isInferring.value = true;
       lastInferenceTs.value = now;
@@ -173,7 +172,7 @@ export const useDetectionFrameProcessor = (
         pixelFormat: "rgb",
         dataType: "uint8",
       });
-      console.log("M5");
+
       // 5) Schedule async inference
       runAsync(frame, () => {
         console.log("M6");
@@ -198,7 +197,6 @@ export const usePoleDetection = () => {
   const { model, predict } = useCachedModel();
 
   const queues = useDetectionQueues();
-  console.log("Model is Ready:", queues);
   const lastInference = useRef(0);
   const [fps, setFps] = useState(0);
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.5);
@@ -216,7 +214,7 @@ export const usePoleDetection = () => {
 
   const pauseDetection = () => {
     queues.paused.value = true;
-    queues.inferenceQueue.value = [];
+    queues.inferenceResult.value = null;
     queues.isInferring.value = false;
   };
 

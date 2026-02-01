@@ -69,6 +69,7 @@ function CameraPage(): React.ReactElement {
   const [enableNightMode, setEnableNightMode] = useState(false);
   const { queues, frameProcessor, pauseDetection, resumeDetection } =
     usePoleDetection();
+  console.log("queues::", queues.detectionResults.value);
   const [detectionsSafe, setDetectionsSafe] = useState<any[]>([]);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -118,11 +119,14 @@ function CameraPage(): React.ReactElement {
   useAnimatedReaction(
     () => queues.detectionResults.value,
     (val) => {
+      console.log("XXX1");
       const now = Date.now();
       if (now - lastTs.value < 150) return;
 
       lastTs.value = now;
+      console.log("XXX2");
       runOnJS(setDetectionsSafe)(val);
+      console.log("XXX3");
     },
   );
 
