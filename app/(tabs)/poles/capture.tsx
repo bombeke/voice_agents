@@ -16,7 +16,7 @@ import CaptureButton from "@/views/CaptureButton";
 import IonIcon from "@expo/vector-icons/Ionicons";
 import { useIsFocused } from "@react-navigation/core";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 import {
   runOnJS,
@@ -43,7 +43,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Accuracy, getCurrentPositionAsync } from "expo-location";
 import { Camera as CameraIcon, Check, X } from "lucide-react-native";
 
-export default function CameraPage(): React.ReactElement {
+function CameraPage(): React.ReactElement {
   const camera = useRef<Camera>(null);
   const [isCameraInitialized, setIsCameraInitialized] = useState(false);
   const microphone = useMicrophonePermission();
@@ -78,13 +78,17 @@ export default function CameraPage(): React.ReactElement {
 
   // camera device settings
   const [preferredDevice] = usePreferredCameraDevice();
-  let device = useCameraDevice(cameraPosition);
+  const defaultDevice = useCameraDevice(cameraPosition);
 
-  if (preferredDevice != null && preferredDevice.position === cameraPosition) {
-    // override default device with the one selected by the user in settings
-    device = preferredDevice;
-  }
-
+  const device = useMemo(() => {
+    if (
+      preferredDevice != null &&
+      preferredDevice.position === cameraPosition
+    ) {
+      return preferredDevice;
+    }
+    return defaultDevice;
+  }, [preferredDevice, cameraPosition, defaultDevice]);
   const [targetFps, setTargetFps] = useState(60);
 
   const screenAspectRatio = SCREEN_HEIGHT / SCREEN_WIDTH;
@@ -100,18 +104,25 @@ export default function CameraPage(): React.ReactElement {
 
   const supportsFlash = device?.hasFlash ?? false;
   const supportsHdr = format?.supportsPhotoHdr;
-  const supports60Fps = useMemo(
-    () => device?.formats.some((f) => f.maxFps >= 60),
-    [device?.formats],
-  );
+
+  const supports60Fps = useMemo(() => {
+    return device?.formats?.some((f) => f.maxFps >= 60) ?? false;
+  }, [device]);
+
   const canToggleNightMode = device?.supportsLowLightBoost ?? false;
   const minZoom = device?.minZoom ?? 1;
   const maxZoom = Math.min(device?.maxZoom ?? 1, MAX_ZOOM_FACTOR);
-  // safely bridge sharedValue -> React state
+
+  const lastTs = useSharedValue(0);
+
   useAnimatedReaction(
-    () => queues.detectionResults.value, // track the worklet shared value
+    () => queues.detectionResults.value,
     (val) => {
-      runOnJS(setDetectionsSafe)(val); // update React state on JS thread
+      const now = Date.now();
+      if (now - lastTs.value < 150) return;
+
+      lastTs.value = now;
+      runOnJS(setDetectionsSafe)(val);
     },
   );
 
@@ -200,10 +211,11 @@ export default function CameraPage(): React.ReactElement {
   const onFlashPressed = useCallback(() => {
     setFlash((f) => (f === "off" ? "on" : "off"));
   }, []);
+  const neutralZoom = device?.neutralZoom ?? 1;
 
   useEffect(() => {
-    zoom.value = device?.neutralZoom ?? 1;
-  }, [zoom, device?.neutralZoom]);
+    zoom.value = neutralZoom;
+  }, [neutralZoom, zoom]);
 
   useEffect(() => {
     const f =
@@ -213,12 +225,16 @@ export default function CameraPage(): React.ReactElement {
   }, [format, fps]);
 
   useEffect(() => {
-    location.requestPermission();
-  }, [location]);
+    if (!location.hasPermission) {
+      location.requestPermission();
+    }
+  }, [location.hasPermission]);
 
   useEffect(() => {
-    requestPermission();
-  }, []);
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission, requestPermission]);
 
   const videoHdr = format?.supportsVideoHdr && enableHdr;
   const photoHdr = format?.supportsPhotoHdr && enableHdr && !videoHdr;
@@ -690,3 +706,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+export default memo(CameraPage);

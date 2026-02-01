@@ -75,17 +75,17 @@ export const handlePredictJS = async (model: any, image: Uint8Array | any) => {
   }
 };
 export const useDetectionQueues = () => {
-  const inferenceQueue = useSharedValue<any[]>([]);
+  const inferenceResult = useSharedValue<any[] | null>(null); // single-slot
   const detectionResults = useSharedValue<any[]>([]);
   const isInferring = useSharedValue(false);
   const paused = useSharedValue(false);
 
   // FPS governor
   const lastInferenceTs = useSharedValue(0);
-  const targetFps = useSharedValue(5); // default cap
+  const targetFps = useSharedValue(5);
 
   return {
-    inferenceQueue,
+    inferenceResult,
     detectionResults,
     isInferring,
     paused,
@@ -97,18 +97,19 @@ export const useDetectionQueues = () => {
 export const runModelInferenceJS = async (
   model: any,
   image: any,
-  inferenceQueue: { value: any[] },
+  inferenceResult: { value: any[] | null },
   isInferring: { value: boolean },
 ) => {
   try {
     const detections = await model.forward(image);
-    if (detections?.length) {
-      inferenceQueue.value = [...inferenceQueue.value, detections];
-    }
+    inferenceResult.value = detections ?? [];
+    return detections ?? [];
   } catch (e) {
     console.error("Inference error:", e);
+    inferenceResult.value = [];
+    return [];
   } finally {
-    isInferring.value = false;
+    isInferring.value = false; // ALWAYS unlock
   }
 };
 
@@ -125,27 +126,28 @@ export const useDetectionFrameProcessor = (
   const { resize } = useResizePlugin();
 
   const {
-    inferenceQueue,
+    inferenceResult,
     detectionResults,
     isInferring,
     lastInferenceTs,
     targetFps,
+    paused,
   } = queues;
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
       "worklet";
-
-      if (queues.paused.value) {
-        return;
-      }
-
+      console.log("M0");
+      if (paused.value) return;
+      console.log("M1");
       const now = nowMs();
       const minInterval = 1000 / targetFps.value;
 
-      // Drain results
-      if (inferenceQueue.value.length > 0) {
-        const detections = inferenceQueue.value.shift();
+      // 1) Consume latest result (if any)
+      if (inferenceResult.value != null) {
+        const detections = inferenceResult.value;
+        inferenceResult.value = null; // clear slot
+
         detectionResults.value = processDetection(
           detections,
           frame.width,
@@ -154,9 +156,15 @@ export const useDetectionFrameProcessor = (
         );
       }
 
+      // 2) FPS gate
+      console.log("M2");
       if (now - lastInferenceTs.value < minInterval) return;
-      if (!model?.isReady || isInferring.value) return;
+      console.log("M3");
 
+      // 3) In-flight gate
+      if (!model || isInferring.value) return;
+      console.log("M4");
+      // 4) Lock + timestamp BEFORE scheduling
       isInferring.value = true;
       lastInferenceTs.value = now;
 
@@ -165,27 +173,32 @@ export const useDetectionFrameProcessor = (
         pixelFormat: "rgb",
         dataType: "uint8",
       });
-
+      console.log("M5");
+      // 5) Schedule async inference
       runAsync(frame, () => {
+        console.log("M6");
         runOnJS(runModelInferenceJS)(
           model,
           resized,
-          inferenceQueue,
+          inferenceResult,
           isInferring,
         );
+        console.log("M7");
       });
+      console.log("M8");
     },
-    [model?.isReady, threshold],
+    [model, threshold],
   );
-
+  console.log("M9");
   return frameProcessor;
 };
 
 export const usePoleDetection = () => {
   const labels = require("@/assets/labels.json");
   const { model, predict } = useCachedModel();
-  console.log("Model is Ready:", model?.isReady);
+
   const queues = useDetectionQueues();
+  console.log("Model is Ready:", queues);
   const lastInference = useRef(0);
   const [fps, setFps] = useState(0);
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.5);
