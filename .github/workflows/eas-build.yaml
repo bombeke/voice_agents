@@ -24,7 +24,6 @@ env:
   GRADLE_OPTS: "-Xmx6g"
 
 jobs:
-
   setup-cache-keys:
     runs-on: ubuntu-latest
     outputs:
@@ -41,7 +40,7 @@ jobs:
         run: |
           # include gradle wrapper and gradle.properties checksum for cache invalidation
           echo "::set-output name=key::gradle-cache-$(sha1sum android/gradle/wrapper/gradle-wrapper.jar android/gradle.properties | sha1sum | awk '{print $1}')"
-      
+
       #- name: Compute pnpm key
       #  id: pnpm-key
       #  run: |
@@ -69,7 +68,7 @@ jobs:
           # this might remove tools that are actually needed,
           # when set to "true" but frees about 6 GB
           tool-cache: true
-          
+
           # all of these default to true, but feel free to set to
           # "false" if necessary for your workflow
           android: false
@@ -77,7 +76,6 @@ jobs:
           haskell: true
           large-packages: false
           swap-storage: true
-
 
       # Set up Java & Android SDK
       - name: Set up JDK 17 (required for RN 0.75+)
@@ -126,8 +124,7 @@ jobs:
           packager: pnpm
           patch-watchers: false
           expo-version: latest
-  
-    
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -144,7 +141,7 @@ jobs:
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
 
       - name: Clean & regenerate native project
-        run: npx expo prebuild --clean
+        run: cd mobile && npx expo prebuild --clean
 
       #- name: Build on EAS (Android)
       #  run: eas build --platform android --profile development --non-interactive --no-wait --local
