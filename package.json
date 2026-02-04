@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "install": "pnpm install",
+    "build": "pnpm build --filter executorch-vision-plugin",
     "android": "pnpm --filter mobile android",
     "ios": "pnpm --filter mobile ios",
     "start": "pnpm --filter mobile start"

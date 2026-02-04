@@ -141,6 +141,9 @@ jobs:
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
 
       - name: Clean & regenerate native project
+        run: pnpm build
+
+      - name: Clean & regenerate native project
         run: cd mobile && npx expo prebuild --clean
 
       #- name: Build on EAS (Android)
