@@ -7,11 +7,26 @@
     "packages/*"
   ],
   "scripts": {
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
     "install": "pnpm install",
     "build": "pnpm -r --filter ./packages/executorch-vision-plugin build",
     "build:all": "pnpm -r build",
     "android": "pnpm --filter mobile android",
     "ios": "pnpm --filter mobile ios",
     "start": "pnpm --filter mobile start"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
+    "eslint": "^9.39.1",
+    "eslint-config-expo": "~10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "5.5.4",
+    "expo-build-properties": "^1.0.9",
+    "expo-dev-client": "^6.0.18",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "typescript": "~5.8.3"
   }
 }
