@@ -4,6 +4,12 @@
   "description": "Executorch Yolo vision frame processor",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "ios",
+    "android",
+    "src"
+  ],
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",

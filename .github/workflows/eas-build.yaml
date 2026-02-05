@@ -114,7 +114,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           #version: ${{ env.PNPM_VERSION }}
-          run_install: true
+          run_install: false
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -140,11 +140,14 @@ jobs:
       - name: Fix Hermes executable permissions
         run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
 
-      - name: Clean & regenerate native project
-        run: pnpm build
+      - name: Build executorch-vision-plugin
+        run: pnpm --filter executorch-vision-plugin build
+        #run: pnpm -r --filter ./packages/executorch-vision-plugin build
 
       - name: Clean & regenerate native project
-        run: cd mobile && npx expo prebuild --clean
+        run: |
+          cd apps/mobile
+          npx expo prebuild --clean
 
       #- name: Build on EAS (Android)
       #  run: eas build --platform android --profile development --non-interactive --no-wait --local
@@ -165,7 +168,7 @@ jobs:
       #    grep -q "android.enableDexInProcess" $FILE || echo "android.enableDexInProcess=false" >> $FILE
 
       - name: Build Release APK
-        working-directory: android
+        working-directory: apps/mobile/android
         run: |
           ./gradlew clean assembleRelease --stacktrace --no-daemon
 
@@ -173,7 +176,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: ignore
 
       #- name: Upload build artifacts
