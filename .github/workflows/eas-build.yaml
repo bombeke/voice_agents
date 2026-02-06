@@ -136,10 +136,8 @@ jobs:
       #    sudo rm -rf /opt/ghc
       #    sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       #    df -h
-
-      - name: Fix Hermes executable permissions
-        run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
-
+      # name: Fix Hermes executable permissions
+      #  run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
       - name: Build executorch-vision-plugin
         run: pnpm --filter executorch-vision-plugin build
         #run: pnpm -r --filter ./packages/executorch-vision-plugin build
