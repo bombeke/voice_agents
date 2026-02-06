@@ -1,4 +1,6 @@
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+}
 
 group = 'expo.modules.executorchvisionplugin'
 version = '0.1.0'
@@ -40,9 +42,10 @@ android {
   lintOptions {
     abortOnError false
   }
-}
-externalNativeBuild {
-  cmake {
-    path "src/main/cpp/CMakeLists.txt"
+  externalNativeBuild {
+    cmake {
+      path "src/main/cpp/CMakeLists.txt",
+      version "4.2.1"
+    }
   }
 }
