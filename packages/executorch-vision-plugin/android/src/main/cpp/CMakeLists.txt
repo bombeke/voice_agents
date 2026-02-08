@@ -10,14 +10,7 @@ add_library(executorch-vision-plugin SHARED
   JsiResultsHostObject.cpp
 )
 
-# ExecuTorch static lib
-add_library(executorch STATIC IMPORTED)
-set_target_properties(executorch PROPERTIES
-  IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/executorch/lib/libexecutorch.a
-)
-
 target_include_directories(executorch-vision-plugin PRIVATE
-  ${CMAKE_SOURCE_DIR}/executorch/include
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
@@ -25,6 +18,5 @@ find_library(log-lib log)
 
 target_link_libraries(
   executorch-vision-plugin
-  executorch
   ${log-lib}
 )
