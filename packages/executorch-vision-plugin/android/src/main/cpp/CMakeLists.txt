@@ -25,13 +25,16 @@ target_include_directories(executorch-vision-plugin PRIVATE
 )
 
 find_library(log-lib log)
-find_package(ReactAndroid REQUIRED CONFIG)
 find_package(visioncamera REQUIRED CONFIG)
+find_package(ReactAndroid REQUIRED)
+find_package(fbjni REQUIRED)
+
 
 target_link_libraries(
   executorch-vision-plugin
   ${log-lib}
-  ReactAndroid::jsi
-  ReactAndroid::reactnativejni
+  reactnativejni
+  fbjni
+  android
   visioncamera::visioncamera
 )
