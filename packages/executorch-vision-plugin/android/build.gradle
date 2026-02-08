@@ -48,4 +48,17 @@ android {
       version "3.22.1"
     }
   }
+  packagingOptions {
+    pickFirst "**/*.so"
+  }
+}
+dependencies {
+  // React Native core (provides JSI, fbjni, reactnativejni)
+  implementation("com.facebook.react:react-android")
+
+  // VisionCamera native library (provides FrameProcessorPlugin.h + prefab)
+  implementation("com.mrousavy.camera:vision-camera")
+
+  // Expo modules core (already usually added, but safe)
+  implementation project(":expo-modules-core")
 }
