@@ -57,7 +57,7 @@ dependencies {
   implementation("com.facebook.react:react-android")
 
   // VisionCamera native library (provides FrameProcessorPlugin.h + prefab)
-  implementation("com.mrousavy.camera:vision-camera")
+  implementation("com.mrousavy.camera:vision-camera:4.7.3")
 
   // Expo modules core (already usually added, but safe)
   implementation project(":expo-modules-core")
