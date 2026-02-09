@@ -38,6 +38,11 @@ android {
   defaultConfig {
     versionCode 1
     versionName "0.1.0"
+    externalNativeBuild {
+      cmake {
+        arguments "-DANDROID_STL=c++_shared"
+      }
+    }
   }
   lintOptions {
     abortOnError false
@@ -49,6 +54,7 @@ android {
     cmake {
       path "src/main/cpp/CMakeLists.txt"
       version "3.22.1"
+      arguments "-DANDROID_STL=c++_shared"
     }
   }
   packagingOptions {
