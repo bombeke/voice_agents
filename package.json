@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "build": "pnpm -r --filter ./packages/executorch-vision-plugin build",
+    "build": "pnpm -r --filter ./packages/react-native-vision-camera-executorch build",
     "build:all": "pnpm -r build",
     "android": "pnpm --filter mobile android",
     "ios": "pnpm --filter mobile ios",

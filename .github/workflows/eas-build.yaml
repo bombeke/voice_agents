@@ -138,8 +138,8 @@ jobs:
       #    df -h
       # name: Fix Hermes executable permissions
       #  run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
-      - name: Build executorch-vision-plugin
-        run: pnpm --filter executorch-vision-plugin build
+      - name: Build react-native-vision-camera-executorch plugin
+        run: pnpm --filter react-native-vision-camera-executorch build
         #run: pnpm -r --filter ./packages/executorch-vision-plugin build
 
       - name: Clean & regenerate native project

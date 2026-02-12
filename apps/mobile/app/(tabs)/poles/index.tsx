@@ -9,13 +9,13 @@ export default function PolesIndex() {
       <Text className="text-2xl font-semibold">PoleVision™ Dashboard</Text>
       <View className="flex w-full gap-3">
         <Link href="/poles/capture" asChild>
-          <Button>Scan Pole</Button>
+          <Button>Scan Tags</Button>
         </Link>
         <Link href="/poles/maps" asChild>
           <Button>Dashboard</Button>
         </Link>
       </View>
-      <DashboardMaps/>
+      <DashboardMaps />
     </View>
   );
 }

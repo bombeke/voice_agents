@@ -88,7 +88,7 @@
     "tamagui": "^1.137.1",
     "uniwind": "^1.0.1",
     "vision-camera-resize-plugin": "^3.2.0",
-    "executorch-vision-plugin": "workspace:*"
+    "react-native-vision-camera-executorch": "workspace:*"
   },
   "devDependencies": {
     "@expo/metro-runtime": "^6.1.2"

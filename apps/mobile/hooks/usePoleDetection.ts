@@ -2,8 +2,17 @@ import { useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { runAsync, useFrameProcessor } from "react-native-vision-camera";
+import VisionCameraExecutorch, {
+  detectTags,
+} from "react-native-vision-camera-executorch";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 import { useCachedModel } from "./useCachedModel";
+
+// Pre-allocate buffers to avoid Garbage Collection (GC) pressure during video frames
+const inputSize = 224 * 224 * 3; // Example for MobileNet
+const outputSize = 1000;
+const inputData = new Float32Array(inputSize);
+const outputData = new Float32Array(outputSize);
 
 export interface IBoundingBox {
   x: number; // normalized (0–1)
@@ -94,14 +103,24 @@ export const useDetectionQueues = () => {
   };
 };
 
-export const runModelInferenceJS = async (
+export const runModelInferenceJS = (
   model: any,
-  image: any,
+  frame: any,
   inferenceResult: { value: any[] | null },
   isInferring: { value: boolean },
 ) => {
   try {
-    const detections = await model.forward(image);
+    //const detections = await model.forward(frame);
+    //const inputData = new Float32Array(frame.width * frame.height);
+    // ... fill inputData ...
+
+    const detections = VisionCameraExecutorch.forward(inputData);
+
+    console.log("Inference result:", detections);
+    const result = detectTags(frame, {
+      modelPath: "/data/data/your.app.package/files/model.et",
+    });
+    console.log("Inference result2:", result);
     inferenceResult.value = detections ?? [];
     return detections ?? [];
   } catch (e) {

@@ -1,9 +1,0 @@
-{
-  "platforms": ["apple", "android", "web", "ios"],
-  "apple": {
-    "modules": ["ExecutorchVisionPluginModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.executorchvisionplugin.ExecutorchVisionPluginModule"]
-  }
-}
