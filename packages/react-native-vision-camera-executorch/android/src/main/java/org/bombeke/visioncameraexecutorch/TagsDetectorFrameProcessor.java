@@ -5,7 +5,7 @@ import com.mrousavy.camera.frameprocessors.FrameProcessorPlugin;
 import com.mrousavy.camera.frameprocessors.VisionCameraProxy;
 
 import androidx.camera.core.ImageProxy;
-import androidx.annotation.NotNull;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import org.pytorch.executorch.EValue;
@@ -40,7 +40,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
     private int framesInBatch = 0;
 
-    public TagsDetectorFrameProcessor(@NotNull VisionCameraProxy proxy, @Nullable Map<String, Object> options) {
+    public TagsDetectorFrameProcessor(@NonNull VisionCameraProxy proxy, @Nullable Map<String, Object> options) {
         super();
 
         String modelPath = "/data/local/tmp/model.pte";
@@ -53,7 +53,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
     @Nullable
     @Override
-    public Object callback(@NotNull Frame frame, @Nullable Map<String, Object> arguments) {
+    public Object callback(@NonNull Frame frame, @Nullable Map<String, Object> arguments) {
         ImageProxy image = frame.getImage();
         if (image == null) return null;
 

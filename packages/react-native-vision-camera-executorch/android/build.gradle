@@ -55,4 +55,6 @@ android {
 dependencies {
   implementation project(':react-native-vision-camera')
   implementation("org.pytorch:executorch-android:0.7.0")
+  implementation("androidx.annotation:annotation:1.9.1")
+  implementation("androidx.camera:camera-core:1.5.3")
 }

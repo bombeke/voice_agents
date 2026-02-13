@@ -9,6 +9,7 @@ import org.pytorch.executorch.Module as ETModule
 import org.pytorch.executorch.Tensor
 import org.pytorch.executorch.EValue
 import java.net.URL
+import org.bombeke.visioncameraexecutorch.TagsDetectorFrameProcessor
 
 class VisionCameraExecutorchModule : Module() {
     private var module: ETModule? = null
