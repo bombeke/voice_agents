@@ -9,7 +9,6 @@ import org.pytorch.executorch.Module as ETModule
 import org.pytorch.executorch.Tensor
 import org.pytorch.executorch.EValue
 import java.net.URL
-import org.bombeke.visioncameraexecutorch.TagsDetectorFrameProcessor
 
 class VisionCameraExecutorchModule : Module() {
     private var module: ETModule? = null
@@ -17,8 +16,8 @@ class VisionCameraExecutorchModule : Module() {
     init {
         FrameProcessorPluginRegistry.addFrameProcessorPlugin(
             "detectTags"
-        ) { proxy: VisionCameraProxy?, options: Map<String?, Any?>? ->
-            TagsDetectorFrameProcessor(proxy, options)
+        ) { proxy: VisionCameraProxy, options: Map<String?, Any?>? ->
+            TagsDetectorFrameProcessor(requireNotNull(proxy), options)
         }
     }
 
@@ -40,7 +39,7 @@ class VisionCameraExecutorchModule : Module() {
         }
 
         // ===== Forward using raw FloatArray =====
-        Function("forward") { input: Array<Double>, height: Int, width: Int ->
+        Function("forward") { input: DoubleArray, height: Int, width: Int ->
             val m = module ?: throw IllegalStateException("Model not loaded. Call loadModel(path) first.")
 
             if (input.size != height * width * 3) {
@@ -52,7 +51,7 @@ class VisionCameraExecutorchModule : Module() {
             val inputTensor = Tensor.fromBlob(inputData, shape)
 
             val outputTensor = m.forward(EValue.from(inputTensor))[0].toTensor()
-            outputTensor.dataAsFloatArray.toList()
+            outputTensor.getDataAsFloatArray.toList()
         }
 
         // ===== Bitmap helper =====
@@ -86,7 +85,7 @@ class VisionCameraExecutorchModule : Module() {
             val shape = longArrayOf(1, 3, height.toLong(), width.toLong())
             val inputTensor = Tensor.fromBlob(floatArray, shape)
             val outputTensor = m.forward(EValue.from(inputTensor))[0].toTensor()
-            outputTensor.dataAsFloatArray.toList()
+            outputTensor.getDataAsFloatArray.toList()
         }
 
         View(VisionCameraExecutorchView::class) {
