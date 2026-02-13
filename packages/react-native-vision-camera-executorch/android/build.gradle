@@ -54,5 +54,5 @@ android {
 
 dependencies {
   implementation project(':react-native-vision-camera')
-  implementation("org.pytorch:executorch-android:1.1.0")
+  //implementation("org.pytorch:executorch-android:1.1.0")
 }
