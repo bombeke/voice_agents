@@ -13,6 +13,7 @@ import java.util.Map;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.camera.core.ImageProxy;
 
 public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
@@ -59,8 +60,12 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
             framesInBatch = 0;
         }
 
-        // Get Y plane
-        Frame.Plane yPlane = frame.getPlanes()[0];
+        ImageProxy image = frame.getImage();
+        if (image == null) {
+            return null;
+        }
+
+        ImageProxy.PlaneProxy yPlane = image.getPlanes()[0];
         ByteBuffer buffer = yPlane.getBuffer();
         final int rowStride = yPlane.getRowStride();
 
