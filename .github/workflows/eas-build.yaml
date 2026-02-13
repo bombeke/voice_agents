@@ -165,10 +165,12 @@ jobs:
       #    # optional: disable dex in process on CI
       #    grep -q "android.enableDexInProcess" $FILE || echo "android.enableDexInProcess=false" >> $FILE
 
+      #    ./gradlew clean assembleRelease --stacktrace --no-daemon
       - name: Build Release APK
         working-directory: apps/mobile/android
         run: |
-          ./gradlew clean assembleRelease --stacktrace --no-daemon
+          ./gradlew :react-native-vision-camera-executorch:compileReleaseKotlin --stacktrace --info
+
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
