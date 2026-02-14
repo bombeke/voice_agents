@@ -1,5 +1,5 @@
 import { ConfigContext, ExpoConfig } from "expo/config";
-import { withFixCompileSdk } from "./withFixCompileSdk";
+import withFixCompileSdk from "./plugins/withFixCompileSdk";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,

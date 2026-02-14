@@ -1,6 +1,6 @@
 import { withProjectBuildGradle } from "@expo/config-plugins";
 
-export function withFixCompileSdk(config) {
+export default function withFixCompileSdk(config) {
   return withProjectBuildGradle(config, (config) => {
     let contents = config.modResults.contents;
 
