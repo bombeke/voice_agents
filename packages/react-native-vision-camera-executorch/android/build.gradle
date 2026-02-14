@@ -9,13 +9,6 @@ version = '0.1.0'
 
 configurations.all {
   exclude group: "org.pytorch", module: "executorch-android"
-  resolutionStrategy.eachDependency { details ->
-    if (details.requested.group == "org.pytorch" &&
-        details.requested.name == "executorch-android") {
-      details.useVersion("0.0.0")
-      details.because("Use react-native-executorch bundled classes.jar instead of Maven AAR")
-    }
-  }
 }
 // =====================
 
@@ -71,11 +64,7 @@ android {
 
 dependencies {
   implementation project(':react-native-vision-camera')
-  implementation project(path: ':react-native-executorch', configuration: 'default') {
-        version {
-            strictly("0.7.1")
-        }
-  }
+  implementation project(':react-native-executorch')
   implementation files(
     "${rootDir}/../node_modules/react-native-executorch/android/libs/classes.jar"
   )
