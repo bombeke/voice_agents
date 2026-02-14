@@ -1,4 +1,5 @@
 import { ConfigContext, ExpoConfig } from "expo/config";
+import { withFixCompileSdk } from "./withFixCompileSdk";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -123,7 +124,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           "Allow $(PRODUCT_NAME) to access your Face ID biometric data.",
       },
     ],
-    "withFixCompileSdk",
+    withFixCompileSdk as any,
   ],
   experiments: {
     typedRoutes: true,
