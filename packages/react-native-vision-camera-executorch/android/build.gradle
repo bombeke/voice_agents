@@ -55,6 +55,9 @@ android {
 dependencies {
   implementation project(':react-native-vision-camera')
   implementation project(':react-native-executorch')
+  api files(
+    "${rootDir}/../node_modules/react-native-executorch/android/libs/classes.jar"
+  )
   implementation("androidx.annotation:annotation:1.9.1")
   implementation("androidx.camera:camera-core:1.5.3")
 }
