@@ -6,11 +6,9 @@ version = '0.1.0'
 // =====================
 // 🚫 BLOCK MAVEN EXECUTORCH
 // =====================
-configurations.all {
-  exclude group: "org.pytorch", module: "executorch-android"
-}
 
 configurations.all {
+  exclude group: "org.pytorch", module: "executorch-android"
   resolutionStrategy.eachDependency { details ->
     if (details.requested.group == "org.pytorch" &&
         details.requested.name == "executorch-android") {
@@ -73,8 +71,12 @@ android {
 
 dependencies {
   implementation project(':react-native-vision-camera')
-  implementation project(':react-native-executorch')
-  api files(
+  implementation project(path: ':react-native-executorch', configuration: 'default') {
+        version {
+            strictly("0.7.1")
+        }
+  }
+  implementation files(
     "${rootDir}/../node_modules/react-native-executorch/android/libs/classes.jar"
   )
   implementation("androidx.annotation:annotation:1.9.1")
