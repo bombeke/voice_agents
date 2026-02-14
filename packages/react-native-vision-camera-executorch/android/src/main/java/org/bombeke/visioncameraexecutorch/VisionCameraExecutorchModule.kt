@@ -51,7 +51,7 @@ class VisionCameraExecutorchModule : Module() {
             val inputTensor = Tensor.fromBlob(inputData, shape)
 
             val outputTensor = m.forward(EValue.from(inputTensor))[0].toTensor()
-            outputTensor.getDataAsFloatArray.toList()
+            outputTensor.getDataAsFloatArray().toList()
         }
 
         // ===== Bitmap helper =====
@@ -85,7 +85,7 @@ class VisionCameraExecutorchModule : Module() {
             val shape = longArrayOf(1, 3, height.toLong(), width.toLong())
             val inputTensor = Tensor.fromBlob(floatArray, shape)
             val outputTensor = m.forward(EValue.from(inputTensor))[0].toTensor()
-            outputTensor.getDataAsFloatArray.toList()
+            outputTensor.getDataAsFloatArray().toList()
         }
 
         View(VisionCameraExecutorchView::class) {

@@ -3,6 +3,25 @@ apply plugin: 'com.android.library'
 group = 'org.bombeke.visioncameraexecutorch'
 version = '0.1.0'
 
+// =====================
+// 🚫 BLOCK MAVEN EXECUTORCH
+// =====================
+configurations.all {
+  exclude group: "org.pytorch", module: "executorch-android"
+}
+
+configurations.all {
+  resolutionStrategy.eachDependency { details ->
+    if (details.requested.group == "org.pytorch" &&
+        details.requested.name == "executorch-android") {
+      details.useVersion("0.0.0")
+      details.because("Use react-native-executorch bundled classes.jar instead of Maven AAR")
+    }
+  }
+}
+// =====================
+
+
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
 applyKotlinExpoModulesCorePlugin()
