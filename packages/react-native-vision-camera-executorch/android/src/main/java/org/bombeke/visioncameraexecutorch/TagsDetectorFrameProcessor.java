@@ -54,7 +54,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
     @Nullable
     @Override
     public Object callback(@NonNull Frame frame, @Nullable Map<String, Object> arguments) {
-        ImageProxy image = frame.getImage();
+        ImageProxy image = frame.getImageProxy();
         if (image == null) return null;
 
         // Allocate buffers once
