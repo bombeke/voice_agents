@@ -6,22 +6,27 @@ module.exports = function withFixCompileSdk(config) {
 
     const snippet = `
 subprojects { subproject ->
-  afterEvaluate {
-    if (subproject.plugins.hasPlugin("com.android.library") ||
-        subproject.plugins.hasPlugin("com.android.application")) {
 
-      def androidExt = subproject.extensions.findByName("android")
-      if (androidExt != null) {
-        if (androidExt.compileSdkVersion == null) {
-          androidExt.compileSdkVersion 36
-        }
-      }
+  subproject.plugins.withId("com.android.library") {
+    def androidExt = subproject.extensions.findByName("android")
+    if (androidExt != null && androidExt.compileSdk == null) {
+      androidExt.compileSdk = 36
     }
   }
+
+  subproject.plugins.withId("com.android.application") {
+    def androidExt = subproject.extensions.findByName("android")
+    if (androidExt != null && androidExt.compileSdk == null) {
+      androidExt.compileSdk = 36
+    }
+  }
+
 }
 `;
 
-    if (!contents.includes("subprojects { subproject ->")) {
+    if (
+      !contents.includes('subproject.plugins.withId("com.android.library")')
+    ) {
       contents += "\n" + snippet;
     }
 
