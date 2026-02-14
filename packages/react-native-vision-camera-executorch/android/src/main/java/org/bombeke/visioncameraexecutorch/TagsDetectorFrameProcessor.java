@@ -3,6 +3,7 @@ package org.bombeke.visioncameraexecutorch;
 import com.mrousavy.camera.frameprocessors.Frame;
 import com.mrousavy.camera.frameprocessors.FrameProcessorPlugin;
 import com.mrousavy.camera.frameprocessors.VisionCameraProxy;
+import com.mrousavy.camera.core.FrameInvalidError;
 
 import androidx.camera.core.ImageProxy;
 import androidx.annotation.NonNull;
