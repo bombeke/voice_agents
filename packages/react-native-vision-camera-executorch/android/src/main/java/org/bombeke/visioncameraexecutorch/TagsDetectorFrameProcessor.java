@@ -54,7 +54,13 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
     @Nullable
     @Override
     public Object callback(@NonNull Frame frame, @Nullable Map<String, Object> arguments) {
-        ImageProxy image = frame.getImageProxy();
+        ImageProxy image;
+        try {
+            image = frame.getImageProxy();
+        } catch (FrameInvalidError e) {
+            // Handle invalid frame (skip this frame, log, etc.)
+            return null;
+        }
         if (image == null) return null;
 
         // Allocate buffers once
