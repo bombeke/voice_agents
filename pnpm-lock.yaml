@@ -60,8 +60,8 @@ importers:
         specifier: 3.0.0-beta.42
         version: 3.0.0-beta.42(expo-sqlite@16.0.10(expo@54.0.33)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react@19.1.0)
       '@lodev09/react-native-exify':
-        specifier: ^0.2.7
-        version: 0.2.7(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        specifier: ^1.0.0
+        version: 1.0.0(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@maplibre/maplibre-react-native':
         specifier: ^10.4.0
         version: 10.4.2(@expo/config-plugins@54.0.4)(@types/geojson@7946.0.16)(@types/react@19.1.17)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -1386,8 +1386,8 @@ packages:
       expo-sqlite:
         optional: true
 
-  '@lodev09/react-native-exify@0.2.7':
-    resolution: {integrity: sha512-BEFYnzpiM93q6sd2kVwYH4uTwGeCrKNMURbtt50ycC31yVfEK+/GFqEC4aMiciNuocisjGvZGPlpF2Q4vaCEWw==}
+  '@lodev09/react-native-exify@1.0.0':
+    resolution: {integrity: sha512-nqrpmlAenKi5YGQ5G1KXpMfd4EnHjcrl/8nbMi36f+HZZ8y9qE46ebrCQkEBSpM+qFvnqqfk1Uoz/1gEt0+pHA==}
     peerDependencies:
       react: '*'
       react-native: '*'
@@ -8607,7 +8607,7 @@ snapshots:
     transitivePeerDependencies:
       - react
 
-  '@lodev09/react-native-exify@0.2.7(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
+  '@lodev09/react-native-exify@1.0.0(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
     dependencies:
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
