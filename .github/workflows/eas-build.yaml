@@ -169,9 +169,7 @@ jobs:
       - name: Build Release APK
         working-directory: apps/mobile/android
         run: |
-          cat build.gradle
-          ./gradlew dependencies
-      #    ./gradlew clean assembleRelease --stacktrace --no-daemon --info
+          ./gradlew clean assembleRelease --stacktrace --no-daemon --info
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
