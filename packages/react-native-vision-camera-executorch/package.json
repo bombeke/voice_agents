@@ -34,14 +34,14 @@
     "expo-module-scripts": "^5.0.8",
     "expo": "^54.0.27",
     "react-native": "0.81.5",
-    "react-native-executorch": "^0.7.0",
+    "react-native-executorch": "0.7.1",
     "react-native-vision-camera": "^4.7.3"
   },
   "peerDependencies": {
     "expo": "*",
     "react": "*",
     "react-native": "*",
-    "react-native-executorch": "*",
+    "react-native-executorch": "0.7.1",
     "react-native-vision-camera": "*"
   }
 }
