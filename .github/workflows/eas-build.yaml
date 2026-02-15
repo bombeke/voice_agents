@@ -169,7 +169,7 @@ jobs:
       - name: Build Release APK
         working-directory: apps/mobile/android
         run: |
-          ./gradlew :packages:react-native-vision-camera-executorch:dependencies | grep pytorch
+          ./gradlew :mobile:react-native-vision-camera-executorch:dependencies | grep pytorch
       #    ./gradlew :packages:react-native-vision-camera-executorch:dependencies | grep executorch
       #    ./gradlew clean assembleRelease --stacktrace --no-daemon --info
 
