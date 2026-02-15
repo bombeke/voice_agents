@@ -7,13 +7,13 @@ version = '0.1.0'
 // 🚫 BLOCK MAVEN EXECUTORCH
 // =====================
 
-configurations.all {
+/*configurations.all {
   exclude group: "org.pytorch", module: "executorch-android"
   exclude group: "org.pytorch", module: "executorch-core"
   resolutionStrategy {
       force "org.pytorch:executorch-android:0.7.0"
   }
-}
+}*/
 // =====================
 
 
