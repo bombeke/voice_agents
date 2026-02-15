@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  react-native-executorch: 0.7.0
   node-forge: 1.3.2
 
 importers:

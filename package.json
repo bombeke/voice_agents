@@ -41,7 +41,6 @@
     }
   },
   "resolutions": {
-    "org.pytorch:pytorch_android": "2.1.0",
-    "org.pytorch:executorch-android": "0.7.0"
+    "react-native-executorch": "0.7.0"
   }
 }
