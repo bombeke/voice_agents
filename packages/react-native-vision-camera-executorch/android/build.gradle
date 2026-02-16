@@ -68,9 +68,9 @@ android {
 
 dependencies {
   implementation project(':react-native-vision-camera')
-  implementation project(':react-native-executorch'){
+  /*implementation project(':react-native-executorch'){
     exclude group: 'org.pytorch', module: 'executorch-android'
-  }
+  }*/
   implementation('org.pytorch:executorch-android:0.7.0')
   /*implementation files(
     "${rootDir}/../node_modules/react-native-executorch/android/libs/classes.jar"
