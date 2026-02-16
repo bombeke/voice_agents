@@ -126,7 +126,7 @@ jobs:
           expo-version: latest
 
       - name: Install dependencies
-        run: pnpm install #--frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       # ❗️ Free up system space
       #- name: Cleanup system to free disk space
