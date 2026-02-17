@@ -6,7 +6,7 @@ import VisionCameraExecutorch, {
   detectTags,
 } from "react-native-vision-camera-executorch";
 import { useResizePlugin } from "vision-camera-resize-plugin";
-import { useCachedModel } from "./useCachedModel";
+//import { useCachedModel } from "./useCachedModel";
 
 // Pre-allocate buffers to avoid Garbage Collection (GC) pressure during video frames
 const inputSize = 224 * 224 * 3; // Example for MobileNet
@@ -114,7 +114,11 @@ export const runModelInferenceJS = (
     //const inputData = new Float32Array(frame.width * frame.height);
     // ... fill inputData ...
 
-    const detections = VisionCameraExecutorch.forward(inputData);
+    const detections = VisionCameraExecutorch.forward(
+      inputData as any,
+      frame.height,
+      frame.width,
+    );
 
     console.log("Inference result:", detections);
     const result = detectTags(frame, {
@@ -213,7 +217,7 @@ export const useDetectionFrameProcessor = (
 
 export const usePoleDetection = () => {
   const labels = require("@/assets/labels.json");
-  const { model, predict } = useCachedModel();
+  //const { model, predict } = useCachedModel();
 
   const queues = useDetectionQueues();
   const lastInference = useRef(0);
@@ -226,7 +230,7 @@ export const usePoleDetection = () => {
 
   //const detectionResults = useDetectionResults();
   const frameProcessor = useDetectionFrameProcessor(
-    model,
+    null, // model
     confidenceThreshold,
     queues,
   );

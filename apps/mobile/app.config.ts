@@ -71,14 +71,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-web-browser",
     "expo-font",
     [
-      "expo-camera",
-      {
-        cameraPermission: "Allow $(PRODUCT_NAME) to access your camera",
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone",
-        recordAudioAndroid: true,
-      },
-    ],
-    [
       "react-native-vision-camera",
       {
         cameraPermissionText: "$(PRODUCT_NAME) needs access to your Camera.",
@@ -87,13 +79,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         enableMicrophonePermission: true,
         microphonePermissionText:
           "$(PRODUCT_NAME) needs access to your Microphone.",
-      },
-    ],
-    [
-      "react-native-fast-tflite",
-      {
-        enableCoreMLDelegate: true,
-        enableAndroidGpuLibraries: ["libOpenCL-pixel.so", "libGLES_mali.so"],
       },
     ],
     "@maplibre/maplibre-react-native",

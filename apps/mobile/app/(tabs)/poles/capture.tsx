@@ -36,7 +36,7 @@ import {
   useMicrophonePermission,
   VideoFile,
 } from "react-native-vision-camera";
-import { Button, YStack } from "tamagui";
+import { Button, Input, Select, YStack } from "tamagui";
 
 import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -272,45 +272,53 @@ function CameraPage(): React.ReactElement {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.text}>Choose Tag</Text>
+      <Select />
+      <Text style={styles.text}>Choose Tag Category</Text>
+      <Select />
+      <Text style={styles.text}>Comments</Text>
+      <Input />
       {device != null ? (
-        <AnimatedCamera
-          style={styles.cameraContainer}
-          device={device}
-          isActive={isActive}
-          ref={camera}
-          onInitialized={onInitialized}
-          onError={onError}
-          onStarted={() => console.log("Camera started!")}
-          onStopped={() => console.log("Camera stopped!")}
-          onPreviewStarted={() => console.log("Preview started!")}
-          onPreviewStopped={() => console.log("Preview stopped!")}
-          onOutputOrientationChanged={(o: any) =>
-            console.log(`Output orientation changed to ${o}!`)
-          }
-          onPreviewOrientationChanged={(o: any) =>
-            console.log(`Preview orientation changed to ${o}!`)
-          }
-          onUIRotationChanged={(degrees: any) =>
-            console.log(`UI Rotation changed: ${degrees}°`)
-          }
-          format={format}
-          fps={fps}
-          photoHdr={photoHdr}
-          videoHdr={videoHdr}
-          photoQualityBalance="quality"
-          lowLightBoost={device.supportsLowLightBoost || true}
-          enableZoomGesture={false}
-          animatedProps={cameraAnimatedProps}
-          exposure={5}
-          enableFpsGraph={true}
-          outputOrientation="device"
-          photo={true}
-          video={true}
-          audio={microphone.hasPermission}
-          enableLocation={location.hasPermission}
-          frameProcessor={isCapturing ? undefined : frameProcessor}
-          frameProcessorFps={isCapturing ? 0 : 10}
-        />
+        <View className="space-y-10">
+          <AnimatedCamera
+            style={styles.cameraContainer}
+            device={device}
+            isActive={isActive}
+            ref={camera}
+            onInitialized={onInitialized}
+            onError={onError}
+            onStarted={() => console.log("Camera started!")}
+            onStopped={() => console.log("Camera stopped!")}
+            onPreviewStarted={() => console.log("Preview started!")}
+            onPreviewStopped={() => console.log("Preview stopped!")}
+            onOutputOrientationChanged={(o: any) =>
+              console.log(`Output orientation changed to ${o}!`)
+            }
+            onPreviewOrientationChanged={(o: any) =>
+              console.log(`Preview orientation changed to ${o}!`)
+            }
+            onUIRotationChanged={(degrees: any) =>
+              console.log(`UI Rotation changed: ${degrees}°`)
+            }
+            format={format}
+            fps={fps}
+            photoHdr={photoHdr}
+            videoHdr={videoHdr}
+            photoQualityBalance="quality"
+            lowLightBoost={device.supportsLowLightBoost || true}
+            enableZoomGesture={false}
+            animatedProps={cameraAnimatedProps}
+            exposure={5}
+            enableFpsGraph={true}
+            outputOrientation="device"
+            photo={true}
+            video={true}
+            audio={microphone.hasPermission}
+            enableLocation={location.hasPermission}
+            frameProcessor={isCapturing ? undefined : frameProcessor}
+            frameProcessorFps={isCapturing ? 0 : 10}
+          />
+        </View>
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.text}>Your phone does not have a Camera.</Text>

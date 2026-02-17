@@ -1,4 +1,5 @@
 import { Frame, VisionCameraProxy } from "react-native-vision-camera";
+
 const plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {});
 
 /**
