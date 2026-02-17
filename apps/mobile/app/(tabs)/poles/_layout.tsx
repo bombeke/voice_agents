@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
 
 export default function PolesTabsLayout() {
   return (
@@ -7,7 +7,6 @@ export default function PolesTabsLayout() {
       <Stack.Screen name="capture" options={{ headerShown: false }} />
       <Stack.Screen name="maps" options={{ headerShown: false }} />
       <Stack.Screen name="media" options={{ headerShown: false }} />
-      <Stack.Screen name="camera" options={{ headerShown: false }} />
       <Stack.Screen name="dashboard" options={{ headerShown: false }} />
     </Stack>
   );

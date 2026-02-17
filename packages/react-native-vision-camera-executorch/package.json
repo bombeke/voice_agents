@@ -28,18 +28,18 @@
   "author": "Alex Tumwesigye <atumwesigye@gmail.com> (https://github.com/talexie)",
   "license": "MIT",
   "homepage": "https://github.com/bombeke/voice_agents#readme",
-  "dependencies": {
-    "react-native-vision-camera": "^4.7.3"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/react": "~19.1.0",
     "expo-module-scripts": "^5.0.8",
     "expo": "^54.0.27",
-    "react-native": "0.81.5"
+    "react-native": "0.81.5",
+    "react-native-vision-camera": "^4.7.3"
   },
   "peerDependencies": {
     "expo": "*",
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-vision-camera": "*"
   }
 }
