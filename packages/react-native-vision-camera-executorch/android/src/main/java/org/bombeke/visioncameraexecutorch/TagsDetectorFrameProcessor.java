@@ -312,7 +312,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
         float areaA = (a.x2 - a.x1) * (a.y2 - a.y1);
         float areaB = (b.x2 - b.x1) * (b.y2 - b.y1);
-
+ 
         return interArea / (areaA + areaB - interArea + 1e-6f);
     }
 }
