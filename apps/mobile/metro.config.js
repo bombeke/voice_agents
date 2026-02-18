@@ -1,6 +1,8 @@
 // metro.config.js
 const { getDefaultConfig } = require("expo/metro-config");
 const { withUniwindConfig } = require("uniwind/metro");
+const path = require("path");
+
 const projectRoot = __dirname;
 //const config = getDefaultConfig(__dirname);
 const workspaceRoot = path.resolve(projectRoot, "../..");
