@@ -2,9 +2,9 @@ import { useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { runAsync, useFrameProcessor } from "react-native-vision-camera";
-import VisionCameraExecutorch, {
+/*import VisionCameraExecutorch, {
   detectTags,
-} from "react-native-vision-camera-executorch";
+} from "react-native-vision-camera-executorch";*/
 import { useResizePlugin } from "vision-camera-resize-plugin";
 //import { useCachedModel } from "./useCachedModel";
 
@@ -110,11 +110,12 @@ export const runModelInferenceJS = (
   isInferring: { value: boolean },
 ) => {
   try {
+    const detections: any = [];
     //const detections = await model.forward(frame);
     //const inputData = new Float32Array(frame.width * frame.height);
     // ... fill inputData ...
 
-    const detections = VisionCameraExecutorch.forward(
+    /*const detections = VisionCameraExecutorch.forward(
       inputData as any,
       frame.height,
       frame.width,
@@ -125,6 +126,7 @@ export const runModelInferenceJS = (
       modelPath: "/data/data/your.app.package/files/model.et",
     });
     console.log("Inference result2:", result);
+    */
     inferenceResult.value = detections ?? [];
     return detections ?? [];
   } catch (e) {
