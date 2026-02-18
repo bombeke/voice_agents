@@ -122,7 +122,7 @@ export const runModelInferenceJS = (
 
     //console.log("Inference result:", detections);
     const result = detectTags(frame, {
-      modelPath: "/data/data/your.app.package/files/model.et",
+      modelPath: "/data/local/tmp/model.pte",
     });
     console.log("Inference result2:", result);
 

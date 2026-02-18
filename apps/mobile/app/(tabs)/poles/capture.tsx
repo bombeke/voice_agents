@@ -119,14 +119,11 @@ function CameraPage(): React.ReactElement {
   useAnimatedReaction(
     () => queues.detectionResults.value,
     (val) => {
-      console.log("XXX1");
       const now = Date.now();
       if (now - lastTs.value < 150) return;
 
       lastTs.value = now;
-      console.log("XXX2");
       runOnJS(setDetectionsSafe)(val);
-      console.log("XXX3");
     },
   );
 
@@ -249,7 +246,7 @@ function CameraPage(): React.ReactElement {
     return;
   };
 
-  if (!hasPermission) {
+  if (hasPermission !== true) {
     return (
       <YStack justify="center" verticalAlign="center" flex={1} gap="$4">
         <View style={styles.permissionContainer}>
@@ -278,12 +275,12 @@ function CameraPage(): React.ReactElement {
       <Select />
       <Text style={styles.text}>Comments</Text>
       <Input />
-      {device != null ? (
+      {device && hasPermission === true ? (
         <View className="space-y-10">
           <AnimatedCamera
             style={styles.cameraContainer}
             device={device}
-            isActive={isActive}
+            isActive={isActive && hasPermission}
             ref={camera}
             onInitialized={onInitialized}
             onError={onError}
@@ -300,23 +297,23 @@ function CameraPage(): React.ReactElement {
             onUIRotationChanged={(degrees: any) =>
               console.log(`UI Rotation changed: ${degrees}°`)
             }
-            format={format}
-            fps={fps}
+            // format={format}
+            //fps={fps}
             photoHdr={photoHdr}
             videoHdr={videoHdr}
-            photoQualityBalance="quality"
-            lowLightBoost={device.supportsLowLightBoost || true}
+            ///photoQualityBalance="quality"
+            ///lowLightBoost={device.supportsLowLightBoost || true}
             enableZoomGesture={false}
             animatedProps={cameraAnimatedProps}
-            exposure={5}
-            enableFpsGraph={true}
-            outputOrientation="device"
+            //exposure={5}
+            //enableFpsGraph={true}
+            ///outputOrientation="device"
             photo={true}
             video={true}
             audio={microphone.hasPermission}
             enableLocation={location.hasPermission}
             frameProcessor={isCapturing ? undefined : frameProcessor}
-            frameProcessorFps={isCapturing ? 0 : 10}
+            frameProcessorFps={isCapturing ? 0 : 5}
           />
         </View>
       ) : (
