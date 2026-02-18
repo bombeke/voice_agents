@@ -312,8 +312,8 @@ function CameraPage(): React.ReactElement {
             video={true}
             audio={microphone.hasPermission}
             enableLocation={location.hasPermission}
-            frameProcessor={isCapturing ? undefined : frameProcessor}
-            frameProcessorFps={isCapturing ? 0 : 5}
+            frameProcessor={frameProcessor}
+            //frameProcessorFps={isCapturing ? 0 : 5}
           />
         </View>
       ) : (
