@@ -9,10 +9,7 @@ import {
   View,
   ViewProps,
 } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -20,20 +17,23 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
-  withTiming
+  withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { Camera, PhotoFile, VideoFile } from "react-native-vision-camera";
 
 export interface CaptureButtonProps extends ViewProps {
   camera: React.RefObject<Camera> | null;
-  onMediaCaptured: (media: PhotoFile | VideoFile, type: "photo" | "video") => void;
-  minZoom: number;
-  maxZoom: number;
-  cameraZoom: any;
-  flash: "off" | "on";
-  enabled: boolean;
-  setIsPressingButton: (v: boolean) => void;
+  onMediaCaptured: (
+    media: PhotoFile | VideoFile,
+    type: "photo" | "video",
+  ) => void;
+  minZoom?: number;
+  maxZoom?: number;
+  cameraZoom?: any;
+  flash?: "off" | "on";
+  enabled?: boolean;
+  setIsPressingButton?: (v: boolean) => void;
 }
 
 const START_RECORDING_DELAY = 200;
@@ -56,7 +56,6 @@ export default function CaptureButton({
   style,
   ...props
 }: CaptureButtonProps) {
-  
   const pressStart = useRef<number | null>(null);
   const isRecording = useRef(false);
 
@@ -69,16 +68,21 @@ export default function CaptureButton({
     if (!camera?.current) return;
     const photo = await camera.current.takePhoto({ flash });
     try {
-      const hasPermission = await requestSavePermission()
+      const hasPermission = await requestSavePermission();
       if (!hasPermission) {
-        Alert.alert('Permission denied!', 'Camera does not have permission to save the media.')
-        return
+        Alert.alert(
+          "Permission denied!",
+          "Camera does not have permission to save the media.",
+        );
+        return;
       }
-      await createAssetAsync(`file:///${photo.path}`, 'photo')
-    } 
-    catch (e) {
-      const message = e instanceof Error ? e.message : JSON.stringify(e)
-      Alert.alert('Failed to save!', `An unexpected error occured while trying to save. ${message}`)
+      await createAssetAsync(`file:///${photo.path}`, "photo");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : JSON.stringify(e);
+      Alert.alert(
+        "Failed to save!",
+        `An unexpected error occured while trying to save. ${message}`,
+      );
     }
     onMediaCaptured(photo, "photo");
   }, [camera, flash, onMediaCaptured]);
@@ -127,20 +131,19 @@ export default function CaptureButton({
 
       isPressing.value = true;
       //setIsPressingButton(true);
-      console.log("A1XXXX:")
+      console.log("A1XXXX:");
       setTimeout(() => {
         if (pressStart.current === now) startRecording();
       }, 200);
-      console.log("A2XXXX:")
+      console.log("A2XXXX:");
     })
     .onEnd(() => {
       const diff = Date.now() - (pressStart.current ?? 0);
 
       if (diff < 200) {
-        console.log("A3XXXX:")
+        console.log("A3XXXX:");
         takePhoto();
-      }
-      else if (isRecording.current) {
+      } else if (isRecording.current) {
         stopRecording();
       }
       pressStart.current = null;
@@ -153,12 +156,10 @@ export default function CaptureButton({
     .enabled(enabled)
     .onUpdate((e) => {
       const delta = e.translationY;
-      const newZoom = interpolate(
-        -delta,
-        [-200, 200],
-        [minZoom, maxZoom],
-        { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-      );
+      const newZoom = interpolate(-delta, [-200, 200], [minZoom, maxZoom], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      });
       cameraZoom.value = newZoom;
     });
 
@@ -167,11 +168,13 @@ export default function CaptureButton({
     opacity: isRecordingAnim.value
       ? withRepeat(withTiming(0.3, { duration: 700 }), -1, true)
       : 0,
-    transform: [{
-      scale: isRecordingAnim.value
-        ? withRepeat(withTiming(1.35, { duration: 700 }), -1, true)
-        : 1,
-    }],
+    transform: [
+      {
+        scale: isRecordingAnim.value
+          ? withRepeat(withTiming(1.35, { duration: 700 }), -1, true)
+          : 1,
+      },
+    ],
   }));
 
   /** ANIMATION: button */
@@ -185,7 +188,6 @@ export default function CaptureButton({
     strokeDashoffset: CIRC * (1 - progress.value),
   }));
 
-
   /** TOUCH BEHAVIOR USING TouchableOpacity */
   const handlePressIn = () => {
     if (!enabled) return;
@@ -194,28 +196,27 @@ export default function CaptureButton({
     pressStart.current = now;
     isPressing.value = true;
     //setIsPressingButton(true);
-    console.log("END TOUCH0")
+    console.log("END TOUCH0");
     // long press -> start recording
     setTimeout(() => {
       if (pressStart.current === now) startRecording();
     }, START_RECORDING_DELAY);
-    console.log("END TOUCH1")
+    console.log("END TOUCH1");
   };
 
   const handlePressOut = () => {
     const diff = Date.now() - (pressStart.current ?? 0);
 
     if (diff < START_RECORDING_DELAY) {
-      console.log("END TOUCHP0")
+      console.log("END TOUCHP0");
       takePhoto();
-    } 
-    else if (isRecording.current) {
+    } else if (isRecording.current) {
       stopRecording();
     }
 
     pressStart.current = null;
     isPressing.value = false;
-    console.log("END TOUCHP1")
+    console.log("END TOUCHP1");
     //setIsPressingButton(false);
   };
 
@@ -226,13 +227,17 @@ export default function CaptureButton({
           activeOpacity={0.7}
           //onPressIn={handlePressIn}
           //onPressOut={handlePressOut}
-          onPress={ takePhoto }
+          onPress={takePhoto}
           disabled={!enabled}
         >
           <View style={styles.container}>
             <Animated.View style={[styles.pulse, pulseStyle]} />
 
-            <Svg width={RING_SIZE} height={RING_SIZE} style={styles.progressSvg}>
+            <Svg
+              width={RING_SIZE}
+              height={RING_SIZE}
+              style={styles.progressSvg}
+            >
               <Circle
                 cx={RING_SIZE / 2}
                 cy={RING_SIZE / 2}
