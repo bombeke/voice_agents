@@ -23,7 +23,7 @@ export const CameraView = memo(
   ({
     device,
     isActive,
-    frameProcessor,
+    //frameProcessor,
     onInitialized,
     ref,
     selectedTag,
@@ -84,7 +84,7 @@ export const CameraView = memo(
           video={false}
           audio={false}
           enableZoomGesture
-          frameProcessor={frameProcessor}
+          //frameProcessor={frameProcessor}
           onInitialized={onInitialized}
         />
       </View>
