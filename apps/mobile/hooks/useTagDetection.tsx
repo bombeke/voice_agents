@@ -45,6 +45,6 @@ export function useTagDetection(enabled: boolean) {
 
   return {
     detections,
-    frameProcessor: enabled ? frameProcessor : undefined,
+    frameProcessor: frameProcessor,
   };
 }
