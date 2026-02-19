@@ -14,13 +14,14 @@ import { NoCameraDevice } from "@/components/camera/NoCameraDevice";
 import { PermissionsPage } from "@/components/camera/PermissionsPage";
 import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
+import { usePoleDetection } from "@/hooks/usePoleDetection";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { useTagDetection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
 import { useSharedValue } from "react-native-reanimated";
 
 export default function CameraScreen() {
-  const device = useCameraDevice("back");
+  // const device = useCameraDevice("back");
   const { hasPermission, requestPermission } = useCameraPermission();
   const location = useLocationPermission();
   const microphone = useMicrophonePermission();
@@ -39,14 +40,17 @@ export default function CameraScreen() {
   const { cameraRef, isInitialized, isCapturing, onInitialized, takePhoto } =
     useCameraController();
 
-  const { detections, frameProcessor } = useTagDetection(!isCapturing);
+  const { detections } = useTagDetection(!isCapturing);
+  const { queues, frameProcessor } = usePoleDetection();
+  console.log("queues::", queues.detectionResults.value);
+  const [detectionsSafe, setDetectionsSafe] = useState<any[]>([]);
   const [preferredDevice] = usePreferredCameraDevice();
-  /*let device = useCameraDevice(cameraPosition)
+  let device = useCameraDevice(cameraPosition);
 
   if (preferredDevice != null && preferredDevice.position === cameraPosition) {
     // override default device with the one selected by the user in settings
-    device = preferredDevice
-  }*/
+    device = preferredDevice;
+  }
 
   useEffect(() => {
     location.requestPermission();
@@ -67,29 +71,13 @@ export default function CameraScreen() {
     return;
   };
 
-  console.log(
-    "active:",
-    isActive,
-    "focussed:",
-    isFocussed,
-    "foreground:",
-    isForeground,
-    "X:",
-    hasPermission,
-    "Y:",
-    location,
-    "Z:",
-    microphone,
-    "A:",
-    device,
-  );
   if (!hasPermission)
     return (
       <PermissionsPage
         allowCameraLocationPermissions={allowCameraLocationPermissions}
       />
     );
-  if (device == null) return <NoCameraDevice />;
+  if (device === null) return <NoCameraDevice />;
 
   return (
     <View style={styles.container}>

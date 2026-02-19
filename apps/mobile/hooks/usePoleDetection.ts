@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
-import { runAsync, useFrameProcessor } from "react-native-vision-camera";
+import { useFrameProcessor } from "react-native-vision-camera";
 import { detectTags } from "react-native-vision-camera-executorch";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 //import { useCachedModel } from "./useCachedModel";
@@ -198,16 +198,16 @@ export const useDetectionFrameProcessor = (
       });
 
       // 5) Schedule async inference
-      runAsync(frame, () => {
-        console.log("M6");
-        runOnJS(runModelInferenceJS)(
-          model,
-          resized,
-          inferenceResult,
-          isInferring,
-        );
-        console.log("M7");
-      });
+      //runAsync(frame, () => {
+      console.log("M6");
+      runOnJS(runModelInferenceJS)(
+        model,
+        resized,
+        inferenceResult,
+        isInferring,
+      );
+      console.log("M7");
+      ///});
       console.log("M8");
     },
     [model, threshold],
