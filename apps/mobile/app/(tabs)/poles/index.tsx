@@ -5,7 +5,7 @@ import DashboardMaps from "./maps";
 
 export default function PolesIndex() {
   return (
-    <View style={{ padding: 16 }} className="gap-4">
+    <View style={{ padding: 16 }} className="gap-4  bg-white">
       <Text className="text-2xl font-semibold">PoleVision™ Dashboard</Text>
       <View className="flex w-full gap-3">
         <Link href="/poles/capture" asChild>
