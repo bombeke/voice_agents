@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { useFrameProcessor } from "react-native-vision-camera";
-//import { detectTags } from "react-native-vision-camera-executorch";
+import { detectTags } from "react-native-vision-camera-executorch";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 //import { useCachedModel } from "./useCachedModel";
 
@@ -121,11 +121,11 @@ export const runModelInferenceJS = (
     */
 
     //console.log("Inference result:", detections);
-    /*const result = detectTags(frame, {
+    const result = detectTags(frame, {
       modelPath: "/data/local/tmp/model.pte",
     });
     console.log("Inference result2:", result);
-    */
+
     inferenceResult.value = detections ?? [];
     return detections ?? [];
   } catch (e) {
@@ -162,10 +162,10 @@ export const useDetectionFrameProcessor = (
     (frame) => {
       "worklet";
 
-      if (paused.value) return;
+      //if (paused.value) return;
 
-      const now = nowMs();
-      const minInterval = 1000 / targetFps.value;
+      //const now = nowMs();
+      //const minInterval = 1000 / targetFps.value;
 
       // 1) Consume latest result (if any)
       if (inferenceResult.value != null) {
@@ -182,14 +182,14 @@ export const useDetectionFrameProcessor = (
 
       // 2) FPS gate
 
-      if (now - lastInferenceTs.value < minInterval) return;
+      //if (now - lastInferenceTs.value < minInterval) return;
 
       // 3) In-flight gate
-      if (!model || isInferring.value) return;
+      //if (!model || isInferring.value) return;
 
       // 4) Lock + timestamp BEFORE scheduling
       isInferring.value = true;
-      lastInferenceTs.value = now;
+      //lastInferenceTs.value = now;
 
       const resized = resize(frame, {
         scale: { width: 300, height: 300 },
@@ -207,10 +207,8 @@ export const useDetectionFrameProcessor = (
         isInferring,
       );
       console.log("M7");
-      ///});
-      console.log("M8");
     },
-    [model, threshold],
+    [threshold],
   );
   console.log("M9");
   return frameProcessor;

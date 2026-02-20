@@ -1,6 +1,6 @@
 import { Picker } from "@react-native-picker/picker";
 import { memo } from "react";
-import { Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { Camera } from "react-native-vision-camera";
 
 interface Props {
@@ -35,8 +35,11 @@ export const CameraView = memo(
     if (!device) return null;
 
     return (
-      <View className="flex-1 bg-black">
-        <View className="px-4 pt-6 pb-4 bg-background space-y-4 z-10">
+      <View style={styles.container}>
+        <View
+          style={styles.formContainer}
+          className="px-4 pt-6 pb-4 space-y-4 z-10"
+        >
           <View>
             <Text className="text-lg font-semibold text-foreground mb-2">
               Choose Tag
@@ -74,21 +77,61 @@ export const CameraView = memo(
             <Text className="text-red-500 font-medium">{error}</Text>
           ) : null}
         </View>
-
-        <Camera
-          ref={ref}
-          className="flex-1"
-          device={device}
-          isActive={isActive}
-          photo={true}
-          video={true}
-          audio={false}
-          preview={true}
-          enableZoomGesture
-          frameProcessor={frameProcessor}
-          onInitialized={onInitialized}
-        />
+        <View style={styles.cameraWrapper}>
+          <Camera
+            ref={ref}
+            style={StyleSheet.absoluteFill}
+            device={device}
+            isActive={isActive}
+            photo={true}
+            video={true}
+            audio={false}
+            preview={true}
+            enableZoomGesture
+            frameProcessor={frameProcessor}
+            onInitialized={onInitialized}
+            androidPreviewViewType="surface-view"
+          />
+        </View>
       </View>
     );
   },
 );
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000", // Ensures preview always has visible base
+  },
+  formContainer: {
+    padding: 16,
+    backgroundColor: "#fff",
+    zIndex: 10,
+  },
+  cameraWrapper: {
+    flex: 1,
+    backgroundColor: "#000", // Forces preview background visible
+    overflow: "hidden",
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  pickerWrapper: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  input: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 100,
+  },
+  error: {
+    color: "red",
+    marginTop: 8,
+    fontWeight: "500",
+  },
+});
