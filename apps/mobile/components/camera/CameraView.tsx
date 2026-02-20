@@ -83,6 +83,7 @@ export const CameraView = memo(
           photo={true}
           video={true}
           audio={false}
+          preview={true}
           enableZoomGesture
           frameProcessor={frameProcessor}
           onInitialized={onInitialized}

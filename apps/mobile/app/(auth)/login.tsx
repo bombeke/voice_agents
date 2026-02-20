@@ -100,7 +100,7 @@ function LoginScreen() {
 
   if (submitting) {
     return (
-      <View className="flex-1 justify-center items-center bg-gray-50">
+      <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#3B82F6" />
         <Text className="mt-4 text-gray-600 text-base">Logging you in...</Text>
       </View>
@@ -108,7 +108,7 @@ function LoginScreen() {
   }
 
   return (
-    <View className="flex-1 justify-center items-center bg-gray-50 px-6">
+    <View className="flex-1 justify-center items-center px-6">
       {/* Card */}
       <View className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 items-center">
         {/* Logo */}
