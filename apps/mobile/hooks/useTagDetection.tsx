@@ -20,41 +20,37 @@ export function useTagDetection(enabled: boolean) {
     setDetections(data);
   }, []);
 
-  const frameProcessor = useFrameProcessor(
-    (frame) => {
-      "worklet";
+  const frameProcessor = useFrameProcessor((frame) => {
+    "worklet";
 
-      if (!enabled) return;
+    //if (!enabled) return;
 
-      // Throttle on worklet thread (200ms)
-      if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
-      lastTimestamp.value = frame.timestamp;
+    // Throttle on worklet thread (200ms)
+    if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
+    lastTimestamp.value = frame.timestamp;
 
-      // TODO: Replace with real ML inference
-      const resized = resize(frame, {
-        scale: { width: 300, height: 300 },
-        pixelFormat: "rgb",
-        dataType: "uint8",
-      });
+    // TODO: Replace with real ML inference
+    const resized = resize(frame, {
+      scale: { width: 300, height: 300 },
+      pixelFormat: "rgb",
+      dataType: "uint8",
+    });
 
-      const mockDetection = [
-        {
-          id: "1",
-          box: { x: 100, y: 200, width: 120, height: 200 },
-          label: "Pole",
-          confidence: 0.87,
-        },
-      ];
-      console.log("detecting frames");
-      const result = detectTags(frame, {
-        modelPath: "/data/local/tmp/model.pte",
-      });
-      console.log("Inference result2:", result);
+    const mockDetection = [
+      {
+        id: "1",
+        box: { x: 100, y: 200, width: 120, height: 200 },
+        label: "Pole",
+        confidence: 0.87,
+      },
+    ];
+    const result = detectTags(frame, {
+      modelPath: "/data/local/tmp/model.pte",
+    });
+    runOnJS(console.log)("detecting frames", result);
 
-      runOnJS(updateDetections)(mockDetection);
-    },
-    [enabled],
-  );
+    runOnJS(updateDetections)(mockDetection);
+  }, []);
 
   return {
     detections,
