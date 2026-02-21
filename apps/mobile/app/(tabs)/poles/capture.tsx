@@ -14,7 +14,6 @@ import { NoCameraDevice } from "@/components/camera/NoCameraDevice";
 import { PermissionsPage } from "@/components/camera/PermissionsPage";
 import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
-import { usePoleDetection } from "@/hooks/usePoleDetection";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { useTagDetection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
@@ -40,9 +39,8 @@ export default function CameraScreen() {
   const { cameraRef, isInitialized, isCapturing, onInitialized, takePhoto } =
     useCameraController();
 
-  const { detections } = useTagDetection(!isCapturing);
-  const { queues, frameProcessor } = usePoleDetection();
-  console.log("queues::", queues.detectionResults.value);
+  const { detections, frameProcessor } = useTagDetection(!isCapturing);
+  //const { queues, frameProcessor } = usePoleDetection();
   const [detectionsSafe, setDetectionsSafe] = useState<any[]>([]);
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);

@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
 import { useFrameProcessor } from "react-native-vision-camera";
+import { detectTags } from "react-native-vision-camera-executorch";
+import { useResizePlugin } from "vision-camera-resize-plugin";
 
 export interface Detection {
   id: string;
@@ -12,6 +14,7 @@ export interface Detection {
 export function useTagDetection(enabled: boolean) {
   const [detections, setDetections] = useState<Detection[]>([]);
   const lastTimestamp = useSharedValue(0);
+  const { resize } = useResizePlugin();
 
   const updateDetections = useCallback((data: Detection[]) => {
     setDetections(data);
@@ -28,6 +31,12 @@ export function useTagDetection(enabled: boolean) {
       lastTimestamp.value = frame.timestamp;
 
       // TODO: Replace with real ML inference
+      const resized = resize(frame, {
+        scale: { width: 300, height: 300 },
+        pixelFormat: "rgb",
+        dataType: "uint8",
+      });
+
       const mockDetection = [
         {
           id: "1",
@@ -37,6 +46,10 @@ export function useTagDetection(enabled: boolean) {
         },
       ];
       console.log("detecting frames");
+      const result = detectTags(frame, {
+        modelPath: "/data/local/tmp/model.pte",
+      });
+      console.log("Inference result2:", result);
 
       runOnJS(updateDetections)(mockDetection);
     },
