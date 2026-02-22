@@ -32,7 +32,7 @@ export const CameraView = memo(
     onCommentChange,
     error,
   }: Props) => {
-    console.log("active:", isActive, "fp:", frameProcessor);
+    console.log("active:", isActive, "fp:", typeof frameProcessor);
 
     if (!device) return null;
 
@@ -90,7 +90,7 @@ export const CameraView = memo(
             audio={false}
             preview={true}
             enableZoomGesture
-            //frameProcessor={frameProcessor}
+            frameProcessor={frameProcessor}
             onInitialized={onInitialized}
             androidPreviewViewType="surface-view"
           />

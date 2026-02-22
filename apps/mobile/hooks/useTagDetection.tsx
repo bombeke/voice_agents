@@ -54,6 +54,6 @@ export function useTagDetection(enabled: boolean) {
 
   return {
     detections,
-    frameProcessor: frameProcessor,
+    frameProcessor,
   };
 }
