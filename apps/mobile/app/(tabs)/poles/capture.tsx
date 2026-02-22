@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import {
   useCameraDevice,
   useCameraPermission,
+  useFrameProcessor,
   useLocationPermission,
   useMicrophonePermission,
 } from "react-native-vision-camera";
@@ -15,9 +16,11 @@ import { PermissionsPage } from "@/components/camera/PermissionsPage";
 import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
-import { useTagDetection } from "@/hooks/useTagDetection";
+import { Detection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
-import { useSharedValue } from "react-native-reanimated";
+import { runOnJS, useSharedValue } from "react-native-reanimated";
+import { detectTags } from "react-native-vision-camera-executorch";
+import { useResizePlugin } from "vision-camera-resize-plugin";
 
 export default function CameraScreen() {
   // const device = useCameraDevice("back");
@@ -35,20 +38,53 @@ export default function CameraScreen() {
   const [enableHdr, setEnableHdr] = useState(false);
   const [flash, setFlash] = useState<"off" | "on">("off");
   const [enableNightMode, setEnableNightMode] = useState(false);
-
+  const { resize } = useResizePlugin();
   const { cameraRef, isInitialized, isCapturing, onInitialized, takePhoto } =
     useCameraController();
 
-  const { detections, frameProcessor } = useTagDetection(!isCapturing);
+  //const { detections } = useTagDetection(!isCapturing);
   //const { queues, frameProcessor } = usePoleDetection();
-  const [detectionsSafe, setDetectionsSafe] = useState<any[]>([]);
+  const [detections, setDetections] = useState<any[]>([]);
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);
 
-  if (preferredDevice != null && preferredDevice.position === cameraPosition) {
-    // override default device with the one selected by the user in settings
-    device = preferredDevice;
-  }
+  const updateDetections = useCallback((data: Detection[]) => {
+    setDetections(data);
+    return data;
+  }, []);
+  const frameProcessor = useFrameProcessor((frame) => {
+    "worklet";
+
+    //if (!enabled) return;
+
+    // Throttle on worklet thread (200ms)
+    //if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
+    //lastTimestamp.value = frame.timestamp;
+
+    // TODO: Replace with real ML inference
+    const resized = resize(frame, {
+      scale: { width: 300, height: 300 },
+      pixelFormat: "rgb",
+      dataType: "uint8",
+    });
+
+    const mockDetection = [
+      {
+        id: "1",
+        box: { x: 100, y: 200, width: 120, height: 200 },
+        label: "Pole",
+        confidence: 0.87,
+      },
+    ];
+    runOnJS(console.log)("detecting frames");
+    const result = detectTags(frame, {
+      modelPath: "/data/local/tmp/model.pte",
+    });
+    runOnJS(console.log)("detecting frames", result);
+
+    runOnJS(updateDetections)(mockDetection);
+    return result;
+  }, []);
 
   useEffect(() => {
     location.requestPermission();
@@ -69,6 +105,11 @@ export default function CameraScreen() {
     return;
   };
 
+  if (preferredDevice != null && preferredDevice.position === cameraPosition) {
+    // override default device with the one selected by the user in settings
+    device = preferredDevice;
+  }
+
   if (!hasPermission)
     return (
       <PermissionsPage
@@ -82,7 +123,8 @@ export default function CameraScreen() {
       <CameraView
         device={device}
         isActive={isActive}
-        frameProcessor={frameProcessor?.frameProcessor}
+        //frameProcessor={frameProcessor?.frameProcessor}
+        frameProcessor={frameProcessor}
         onInitialized={onInitialized}
         ref={cameraRef}
       />

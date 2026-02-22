@@ -46,6 +46,7 @@ export function useTagDetection(enabled: boolean) {
           confidence: 0.87,
         },
       ];
+      runOnJS(console.log)("detecting frames");
       const result = detectTags(frame, {
         modelPath: "/data/local/tmp/model.pte",
       });
