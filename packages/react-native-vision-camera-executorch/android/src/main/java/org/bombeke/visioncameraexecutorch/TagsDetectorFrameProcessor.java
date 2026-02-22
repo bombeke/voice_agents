@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
@@ -54,15 +55,21 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
     @Nullable
     @Override
-    public Object callback(@NonNull Frame frame, @Nullable Map<String, Object> arguments) {
+    public Object callback(@NonNull Frame frame,
+                        @Nullable Map<String, Object> arguments) {
+
         ImageProxy image;
+
         try {
             image = frame.getImageProxy();
         } catch (FrameInvalidError e) {
-            // Handle invalid frame (skip this frame, log, etc.)
-            return null;
+            // Skip invalid frame
+            return Collections.emptyList();
         }
-        if (image == null) return null;
+
+        if (image == null) {
+            return Collections.emptyList();
+        }
 
         // Allocate buffers once
         if (batchFloatBuffer == null) {
@@ -77,27 +84,36 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
         framesInBatch++;
 
+        // If batch not ready → return empty result instead of null
         if (framesInBatch < batchSize) {
-            return null; // wait until batch is full
+            return Collections.emptyList();
         }
 
-        // Run inference
         Tensor inputTensor = Tensor.fromBlob(batchFloatBuffer, batchShape);
 
         float[] outData = null;
-        for (int i = 0; i < warmupIters; i++) {
-            EValue[] outputs = module.forward(EValue.from(inputTensor));
-            outData = outputs[0].toTensor().getDataAsFloatArray();
+
+        try {
+            for (int i = 0; i < warmupIters; i++) {
+                EValue[] outputs = module.forward(EValue.from(inputTensor));
+                outData = outputs[0].toTensor().getDataAsFloatArray();
+            }
+        } catch (Exception e) {
+            framesInBatch = 0;
+            return Collections.emptyList();
         }
 
         framesInBatch = 0;
 
-        if (outData == null || outData.length == 0) return null;
+        if (outData == null || outData.length == 0) {
+            return Collections.emptyList();
+        }
 
-        // Parse YOLO output for LAST frame in batch
-        List<Map<String, Object>> detections = parseYoloOutputForLastFrame(outData);
+        List<Map<String, Object>> detections =
+            parseYoloOutputForLastFrame(outData);
 
-        return detections;
+        // Never return null
+        return detections != null ? detections : Collections.emptyList();
     }
 
     // ============================================================

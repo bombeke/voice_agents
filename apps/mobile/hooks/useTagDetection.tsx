@@ -18,6 +18,7 @@ export function useTagDetection(enabled: boolean) {
 
   const updateDetections = useCallback((data: Detection[]) => {
     setDetections(data);
+    return data;
   }, []);
 
   const frameProcessor = useFrameProcessor(
@@ -51,6 +52,7 @@ export function useTagDetection(enabled: boolean) {
       runOnJS(console.log)("detecting frames", result);
 
       runOnJS(updateDetections)(mockDetection);
+      return result;
     },
     [enabled],
   );

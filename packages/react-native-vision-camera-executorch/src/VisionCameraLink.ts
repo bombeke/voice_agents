@@ -7,7 +7,8 @@ const plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {});
  */
 export function detectTags(frame: Frame, options?: any): object | any {
   "worklet";
-  if (plugin == null)
-    throw new Error('Failed to load Frame Processor Plugin "scanFaces"!');
+  if (plugin == null) {
+    return {};
+  }
   return plugin.call(frame, options);
 }
