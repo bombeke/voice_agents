@@ -82,7 +82,7 @@ export default function CameraScreen() {
       <CameraView
         device={device}
         isActive={isActive}
-        frameProcessor={frameProcessor}
+        frameProcessor={frameProcessor?.frameProcessor}
         onInitialized={onInitialized}
         ref={cameraRef}
       />
