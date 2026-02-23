@@ -50,7 +50,6 @@ export default function CameraScreen() {
 
   const updateDetections = Worklets.createRunOnJS((data: Detection[]) => {
     setDetections(data);
-    return data;
   });
 
   const frameProcessor = useFrameProcessor(
@@ -80,12 +79,16 @@ export default function CameraScreen() {
       ];
 
       console.log("Frame0");
-      const result = detectTags(frame, {
-        modelPath: "/data/local/tmp/model.pte",
-      });
-      console.log("Frame1", result);
-      updateDetections(result);
-      console.log("Frame2");
+      try {
+        const result = detectTags(frame, {
+          modelPath: "/data/local/tmp/model.pte",
+        });
+        console.log("Frame1", result);
+        updateDetections(result);
+        console.log("Frame2");
+      } catch (e: any) {
+        console.log("error:", e);
+      }
     },
     [updateDetections],
   );

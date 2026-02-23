@@ -4,7 +4,7 @@ import { StyleSheet, Text, TextInput, View } from "react-native";
 import {
   Camera,
   DrawableFrameProcessor,
-  ReadonlyFrameProcessor
+  ReadonlyFrameProcessor,
 } from "react-native-vision-camera";
 
 interface Props {
@@ -36,15 +36,6 @@ export const CameraView = memo(
     onCommentChange,
     error,
   }: Props) => {
-    console.log(
-      "active:",
-      isActive,
-      "fp:",
-      typeof frameProcessor,
-      "device:",
-      device,
-    );
-
     //if (!device) return null;
 
     return (
