@@ -1,12 +1,16 @@
 import { Picker } from "@react-native-picker/picker";
 import { memo } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { Camera } from "react-native-vision-camera";
+import {
+  Camera,
+  DrawableFrameProcessor,
+  ReadonlyFrameProcessor
+} from "react-native-vision-camera";
 
 interface Props {
   device: any;
   isActive: boolean;
-  frameProcessor?: any;
+  frameProcessor?: ReadonlyFrameProcessor | DrawableFrameProcessor;
   onInitialized: () => void;
   ref?: React.Ref<Camera | null>;
 
@@ -32,9 +36,16 @@ export const CameraView = memo(
     onCommentChange,
     error,
   }: Props) => {
-    console.log("active:", isActive, "fp:", typeof frameProcessor);
+    console.log(
+      "active:",
+      isActive,
+      "fp:",
+      typeof frameProcessor,
+      "device:",
+      device,
+    );
 
-    if (!device) return null;
+    //if (!device) return null;
 
     return (
       <View style={styles.container}>

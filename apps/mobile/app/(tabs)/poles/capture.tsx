@@ -19,7 +19,6 @@ import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
-import { detectTags } from "react-native-vision-camera-executorch";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 export default function CameraScreen() {
@@ -77,13 +76,14 @@ export default function CameraScreen() {
       },
     ];
     runOnJS(console.log)("detecting frames");
-    const result = detectTags(frame, {
+    /*const result = detectTags(frame, {
       modelPath: "/data/local/tmp/model.pte",
     });
     runOnJS(console.log)("detecting frames", result);
+    */
 
     runOnJS(updateDetections)(mockDetection);
-    return result;
+    //return result;
   }, []);
 
   useEffect(() => {
