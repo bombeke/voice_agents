@@ -18,7 +18,7 @@ import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
-import { runOnJS, useSharedValue } from "react-native-reanimated";
+import { useSharedValue } from "react-native-reanimated";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 export default function CameraScreen() {
@@ -51,6 +51,7 @@ export default function CameraScreen() {
     setDetections(data);
     return data;
   }, []);
+
   const frameProcessor = useFrameProcessor((frame) => {
     "worklet";
 
@@ -61,6 +62,7 @@ export default function CameraScreen() {
     //lastTimestamp.value = frame.timestamp;
 
     // TODO: Replace with real ML inference
+    console.log("detecting frames1");
     const resized = resize(frame, {
       scale: { width: 300, height: 300 },
       pixelFormat: "rgb",
@@ -75,14 +77,14 @@ export default function CameraScreen() {
         confidence: 0.87,
       },
     ];
-    runOnJS(console.log)("detecting frames");
+    console.log("detecting frames2");
     /*const result = detectTags(frame, {
       modelPath: "/data/local/tmp/model.pte",
     });
     runOnJS(console.log)("detecting frames", result);
     */
 
-    runOnJS(updateDetections)(mockDetection);
+    //runOnJS(updateDetections)(mockDetection);
     //return result;
   }, []);
 
