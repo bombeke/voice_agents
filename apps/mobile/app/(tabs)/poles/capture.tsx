@@ -18,7 +18,8 @@ import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
-import { useSharedValue } from "react-native-reanimated";
+import { detectTags } from "react-native-vision-camera-executorch";
+import { Worklets, useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 export default function CameraScreen() {
@@ -47,46 +48,47 @@ export default function CameraScreen() {
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);
 
-  const updateDetections = useCallback((data: Detection[]) => {
+  const updateDetections = Worklets.createRunOnJS((data: Detection[]) => {
     setDetections(data);
     return data;
-  }, []);
+  });
 
-  const frameProcessor = useFrameProcessor((frame) => {
-    "worklet";
+  const frameProcessor = useFrameProcessor(
+    (frame) => {
+      "worklet";
 
-    //if (!enabled) return;
+      //if (!enabled) return;
 
-    // Throttle on worklet thread (200ms)
-    //if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
-    //lastTimestamp.value = frame.timestamp;
+      // Throttle on worklet thread (200ms)
+      //if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
+      //lastTimestamp.value = frame.timestamp;
 
-    // TODO: Replace with real ML inference
-    console.log("detecting frames1");
-    const resized = resize(frame, {
-      scale: { width: 300, height: 300 },
-      pixelFormat: "rgb",
-      dataType: "uint8",
-    });
+      // TODO: Replace with real ML inference
+      const resized = resize(frame, {
+        scale: { width: 300, height: 300 },
+        pixelFormat: "rgb",
+        dataType: "uint8",
+      });
 
-    const mockDetection = [
-      {
-        id: "1",
-        box: { x: 100, y: 200, width: 120, height: 200 },
-        label: "Pole",
-        confidence: 0.87,
-      },
-    ];
-    console.log("detecting frames2");
-    /*const result = detectTags(frame, {
-      modelPath: "/data/local/tmp/model.pte",
-    });
-    runOnJS(console.log)("detecting frames", result);
-    */
+      const mockDetection = [
+        {
+          id: "1",
+          box: { x: 100, y: 200, width: 120, height: 200 },
+          label: "Pole",
+          confidence: 0.87,
+        },
+      ];
 
-    //runOnJS(updateDetections)(mockDetection);
-    //return result;
-  }, []);
+      console.log("Frame0");
+      const result = detectTags(frame, {
+        modelPath: "/data/local/tmp/model.pte",
+      });
+      console.log("Frame1", result);
+      updateDetections(result);
+      console.log("Frame2");
+    },
+    [updateDetections],
+  );
 
   useEffect(() => {
     location.requestPermission();

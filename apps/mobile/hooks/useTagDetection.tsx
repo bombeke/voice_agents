@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
-import { runOnJS, useSharedValue } from "react-native-reanimated";
+import { useState } from "react";
 import { useFrameProcessor } from "react-native-vision-camera";
 import { detectTags } from "react-native-vision-camera-executorch";
+import { Worklets, useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 export interface Detection {
@@ -16,10 +16,10 @@ export function useTagDetection(enabled: boolean) {
   const lastTimestamp = useSharedValue(0);
   const { resize } = useResizePlugin();
 
-  const updateDetections = useCallback((data: Detection[]) => {
+  const updateDetections = Worklets.createRunOnJS((data: Detection[]) => {
     setDetections(data);
     return data;
-  }, []);
+  });
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
@@ -46,16 +46,15 @@ export function useTagDetection(enabled: boolean) {
           confidence: 0.87,
         },
       ];
-      runOnJS(console.log)("detecting frames");
+      console.log("Frame0");
       const result = detectTags(frame, {
         modelPath: "/data/local/tmp/model.pte",
       });
-      runOnJS(console.log)("detecting frames", result);
-
-      runOnJS(updateDetections)(mockDetection);
-      return result;
+      console.log("Frame1");
+      updateDetections(result);
+      console.log("Frame2");
     },
-    [enabled],
+    [enabled, updateDetections],
   );
 
   return {
