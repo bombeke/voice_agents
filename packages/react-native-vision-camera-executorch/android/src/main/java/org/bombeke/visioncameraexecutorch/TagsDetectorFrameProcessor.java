@@ -23,7 +23,7 @@ import java.util.Collections;
 
 public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
-    private final Module module;
+   // private final Module module;
 
     // ===== Model params =====
     private static final int MODEL_W = 640;
@@ -58,7 +58,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
     @Override
     public Object callback(@NonNull Frame frame, @Nullable Map<String, Object> arguments) {
 
-        ImageProxy image;
+        //ImageProxy image;
         System.out.println("Started callback");
         /*try {
             image = frame.getImageProxy();
