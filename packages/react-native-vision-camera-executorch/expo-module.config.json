@@ -1,9 +1,11 @@
 {
-  "platforms": ["apple", "android", "web"],
+  "platforms": ["apple", "android"],
   "apple": {
     "modules": ["VisionCameraExecutorchModule"]
   },
   "android": {
-    "modules": ["org.bombeke.visioncameraexecutorch.VisionCameraExecutorchModule"]
+    "modules": [
+      "org.bombeke.visioncameraexecutorch.VisionCameraExecutorchModule"
+    ]
   }
 }

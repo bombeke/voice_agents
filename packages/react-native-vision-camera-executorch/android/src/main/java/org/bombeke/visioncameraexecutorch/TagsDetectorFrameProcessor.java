@@ -42,25 +42,25 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
     private int framesInBatch = 0;
 
-    public TagsDetectorFrameProcessor(@NonNull VisionCameraProxy proxy, @Nullable Map<String, Object> options) {
+    public TagsDetectorFrameProcessor(VisionCameraProxy proxy, @Nullable Map<String, Object> options) {
         super();
-
+        /*
         String modelPath = "/data/local/tmp/model.pte";
         if (options != null && options.get("modelPath") instanceof String) {
             modelPath = (String) options.get("modelPath");
         }
 
         module = Module.load(modelPath);
+        */
     }
 
     @Nullable
     @Override
-    public Object callback(@NonNull Frame frame,
-                        @Nullable Map<String, Object> arguments) {
+    public Object callback(@NonNull Frame frame, @Nullable Map<String, Object> arguments) {
 
         ImageProxy image;
         System.out.println("Started callback");
-        try {
+        /*try {
             image = frame.getImageProxy();
         } 
         catch (FrameInvalidError e) {
@@ -93,8 +93,10 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
         }
 
         return scores;
-    
-/*
+        */
+        return null;
+        
+        /*
         // Allocate buffers once
         if (batchFloatBuffer == null) {
             int elements = batchSize * CHANNELS * MODEL_H * MODEL_W;
