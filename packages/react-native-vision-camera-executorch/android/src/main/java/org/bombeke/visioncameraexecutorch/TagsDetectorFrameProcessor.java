@@ -94,7 +94,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
         return scores;
         */
-        return null;
+        return Collections.emptyList();
         
         /*
         // Allocate buffers once

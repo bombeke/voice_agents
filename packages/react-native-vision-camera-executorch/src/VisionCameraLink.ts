@@ -14,7 +14,7 @@ const plugin = VisionCameraProxy.initFrameProcessorPlugin(
 export function detectTags(frame: Frame, options?: any): object | any {
   "worklet";
 
-  console.log("detectTags");
+  console.log("detectTags", plugin);
   if (plugin == null)
     throw new Error('Failed to load Frame Processor Plugin "detectTags"!');
   return plugin.call(frame, options);

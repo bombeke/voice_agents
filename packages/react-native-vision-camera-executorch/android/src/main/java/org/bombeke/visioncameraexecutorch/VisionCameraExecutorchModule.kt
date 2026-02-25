@@ -5,6 +5,7 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import com.mrousavy.camera.frameprocessors.FrameProcessorPluginRegistry
 import com.mrousavy.camera.frameprocessors.VisionCameraProxy
 
+import android.util.Log
 
 class VisionCameraExecutorchModule : Module() {
  
@@ -13,7 +14,9 @@ class VisionCameraExecutorchModule : Module() {
             "detectTags"
         ) { proxy: VisionCameraProxy?, options: Map<String?, Any?>? ->
             TagsDetectorFrameProcessor(proxy, options)
+            
         }
+        Log.d("VisionCameraExecutorch", "detectTags plugin registered")
     }
 
     override fun definition() = ModuleDefinition {
