@@ -18,6 +18,7 @@ import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
+import { detectTags } from "react-native-vision-camera-executorch";
 import { Worklets, useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
@@ -63,7 +64,7 @@ export default function CameraScreen() {
 
       // TODO: Replace with real ML inference
       const resized = resize(frame, {
-        scale: { width: 300, height: 300 },
+        scale: { width: 320, height: 320 },
         pixelFormat: "rgb",
         dataType: "uint8",
       });
@@ -79,9 +80,9 @@ export default function CameraScreen() {
 
       console.log("Frame0");
 
-      /*const result = detectTags(frame, {
-          modelPath: "/data/local/tmp/model.pte",
-        });*/
+      const result = detectTags(frame, {
+        modelPath: "/data/local/tmp/model.pte",
+      });
       console.log("Frame1");
       updateDetections([]);
       console.log("Frame2");

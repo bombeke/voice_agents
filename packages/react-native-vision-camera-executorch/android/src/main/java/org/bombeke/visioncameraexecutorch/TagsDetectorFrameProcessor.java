@@ -59,10 +59,11 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
                         @Nullable Map<String, Object> arguments) {
 
         ImageProxy image;
-
+        System.out.println("Started callback");
         try {
             image = frame.getImageProxy();
-        } catch (FrameInvalidError e) {
+        } 
+        catch (FrameInvalidError e) {
             // Skip invalid frame
             return Collections.emptyList();
         }
@@ -70,7 +71,30 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
         if (image == null) {
             return Collections.emptyList();
         }
+        System.out.println("Started inference");
+        
+        float[] floatData = new float[1 * 3 * 640 * 640];
 
+        // Prepare input tensor
+        long[] shape = new long[]{1, 3, 640, 640};
+        Tensor inputTensor = Tensor.fromBlob(floatData, shape);
+        EValue inputEValue = EValue.from(inputTensor);
+
+        // Run inference
+        EValue[] outputs = module.forward(inputEValue);
+
+        // Extract output tensor
+        Tensor outputTensor = outputs[0].toTensor();
+        float[] scores = outputTensor.getDataAsFloatArray();
+
+        // Optional: print first few scores
+        for (int i = 0; i < Math.min(scores.length, 10); i++) {
+            System.out.println(scores[i]);
+        }
+
+        return scores;
+    
+/*
         // Allocate buffers once
         if (batchFloatBuffer == null) {
             int elements = batchSize * CHANNELS * MODEL_H * MODEL_W;
@@ -114,6 +138,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
         // Never return null
         return detections != null ? detections : Collections.emptyList();
+        */
     }
 
     // ============================================================
