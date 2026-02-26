@@ -1,11 +1,11 @@
 {
   "platforms": ["apple", "android"],
   "apple": {
-    "modules": ["VisionCameraExecutorchModule"]
+    "modules": ["TagsDetectorFrameProcessorModule"]
   },
   "android": {
     "modules": [
-      "org.bombeke.visioncameraexecutorch.VisionCameraExecutorchModule"
+      "org.bombeke.visioncameraexecutorch.TagsDetectorFrameProcessorModule"
     ]
   }
 }
