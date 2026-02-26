@@ -18,10 +18,13 @@ import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
-import { detectTags } from "react-native-vision-camera-executorch";
+import {
+  detectTags,
+} from "react-native-vision-camera-executorch";
 import { Worklets, useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
+//TagsDetectorFrameProcessor;
 export default function CameraScreen() {
   // const device = useCameraDevice("back");
   const { hasPermission, requestPermission } = useCameraPermission();

@@ -12,7 +12,7 @@ class TagsDetectorFrameProcessorModule : Module() {
     init {
         FrameProcessorPluginRegistry.addFrameProcessorPlugin(
             "detectTags"
-        ) { proxy: VisionCameraProxy?, options: Map<String?, Any?>? ->
+        ) { proxy: VisionCameraProxy, options: Map<String, Any> ->
             TagsDetectorFrameProcessorPlugin(proxy, options)
             
         }
