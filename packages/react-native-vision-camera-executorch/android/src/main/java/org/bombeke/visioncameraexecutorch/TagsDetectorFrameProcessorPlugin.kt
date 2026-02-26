@@ -8,7 +8,7 @@ import com.mrousavy.camera.core.FrameInvalidError;
 import android.util.Log
 
 
-class TagsDetectorFrameProcessorPlugin(proxy: VisionCameraProxy, options: Map<String, Any>?): FrameProcessorPlugin() {
+class TagsDetectorFrameProcessorPlugin(proxy: VisionCameraProxy?, options: Map<String, Any>?): FrameProcessorPlugin() {
     init {
         Log.d("TagsDetectorFrameProcessorPlugin", "TagsDetectorFrameProcessorPlugin initialized with options: " + options?.toString())
     }
