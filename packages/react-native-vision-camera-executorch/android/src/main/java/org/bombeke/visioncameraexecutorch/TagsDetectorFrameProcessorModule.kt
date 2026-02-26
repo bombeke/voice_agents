@@ -7,19 +7,19 @@ import com.mrousavy.camera.frameprocessors.VisionCameraProxy
 
 import android.util.Log
 
-class VisionCameraExecutorchModule : Module() {
+class TagsDetectorFrameProcessorModule : Module() {
  
     init {
         FrameProcessorPluginRegistry.addFrameProcessorPlugin(
             "detectTags"
         ) { proxy: VisionCameraProxy?, options: Map<String?, Any?>? ->
-            TagsDetectorFrameProcessor(proxy, options)
+            TagsDetectorFrameProcessorPlugin(proxy, options)
             
         }
-        Log.d("VisionCameraExecutorch", "detectTags plugin registered")
+        Log.d("TagsDetectorFrameProcessor", "detectTags plugin registered")
     }
 
     override fun definition() = ModuleDefinition {
-        Name("VisionCameraExecutorch")
+        Name("TagsDetectorFrameProcessor")
     }
 }

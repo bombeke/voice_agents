@@ -1,3 +1,3 @@
-export * from "./VisionCameraExecutorch.types";
-export { default } from "./VisionCameraExecutorchModule";
+export * from "./TagsDetectorFrameProcessor.types";
+export { default } from "./TagsDetectorFrameProcessorModule";
 export * from "./VisionCameraLink";

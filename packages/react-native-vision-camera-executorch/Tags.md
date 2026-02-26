@@ -23,7 +23,7 @@ import java.util.Collections;
 
 public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
-   // private final Module module;
+// private final Module module;
 
     // ===== Model params =====
     private static final int MODEL_W = 640;
@@ -62,7 +62,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
         System.out.println("Started callback");
         /*try {
             image = frame.getImageProxy();
-        } 
+        }
         catch (FrameInvalidError e) {
             // Skip invalid frame
             return Collections.emptyList();
@@ -72,7 +72,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
             return Collections.emptyList();
         }
         System.out.println("Started inference");
-        
+
         float[] floatData = new float[1 * 3 * 640 * 640];
 
         // Prepare input tensor
@@ -95,7 +95,7 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
         return scores;
         */
         return Collections.emptyList();
-        
+
         /*
         // Allocate buffers once
         if (batchFloatBuffer == null) {
@@ -355,7 +355,8 @@ public class TagsDetectorFrameProcessor extends FrameProcessorPlugin {
 
         float areaA = (a.x2 - a.x1) * (a.y2 - a.y1);
         float areaB = (b.x2 - b.x1) * (b.y2 - b.y1);
- 
+
         return interArea / (areaA + areaB - interArea + 1e-6f);
     }
+
 }
