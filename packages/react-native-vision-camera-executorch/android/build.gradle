@@ -76,6 +76,7 @@ dependencies {
     "${rootDir}/../node_modules/react-native-executorch/android/libs/classes.jar"
   )*/
   //implementation(files("libs/executorch.aar"))
+  implementation("com.squareup.okhttp3:okhttp:4.12.0")
   implementation("androidx.annotation:annotation:1.9.1")
   implementation("androidx.camera:camera-core:1.5.3")
 }

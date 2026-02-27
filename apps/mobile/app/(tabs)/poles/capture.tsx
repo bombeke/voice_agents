@@ -85,7 +85,7 @@ export default function CameraScreen() {
         modelPath: "/data/local/tmp/model.pte",
       });
       console.log("Frame1", result);
-      updateDetections([]);
+      updateDetections(result);
       console.log("Frame2");
     },
     [updateDetections],
