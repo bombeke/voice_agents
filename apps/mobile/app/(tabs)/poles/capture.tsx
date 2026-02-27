@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   useCameraDevice,
   useCameraPermission,
@@ -17,16 +17,15 @@ import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
-import { prepareModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
-import {
-  detectTags,
-  initializeDetectTags,
-} from "react-native-vision-camera-executorch";
+import { File, Paths } from "expo-file-system";
+import { detectTags } from "react-native-vision-camera-executorch";
 import { Worklets, useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
-//TagsDetectorFrameProcessor;
+const MODEL_NAME = "model.pte";
+const destination = new File(Paths.document, MODEL_NAME);
+
 export default function CameraScreen() {
   // const device = useCameraDevice("back");
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -52,15 +51,6 @@ export default function CameraScreen() {
   const [detections, setDetections] = useState<any[]>([]);
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);
-  const [modelPath, setModelPath] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const path = await prepareModel();
-      initializeDetectTags(path);
-      setModelPath(path);
-    })();
-  }, []);
 
   const updateDetections = Worklets.createRunOnJS((data: Detection[]) => {
     setDetections(data);
@@ -94,7 +84,9 @@ export default function CameraScreen() {
 
       console.log("Frame0");
 
-      const result = detectTags(frame);
+      const result = detectTags(frame, {
+        modelPath: destination.uri.replace("file://", ""),
+      });
       console.log("Frame1", result);
       updateDetections(result);
       console.log("Frame2");
@@ -133,9 +125,6 @@ export default function CameraScreen() {
       />
     );
   if (device === null) return <NoCameraDevice />;
-  if (!modelPath) {
-    return <ActivityIndicator size="large" />;
-  }
 
   return (
     <View style={styles.container}>
