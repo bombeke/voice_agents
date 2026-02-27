@@ -82,7 +82,7 @@ export default function CameraScreen() {
       console.log("Frame0");
 
       const result = detectTags(frame, {
-        modelPath: "/data/local/tmp/model.pte",
+        modelPath: "model.pte",
       });
       console.log("Frame1", result);
       updateDetections(result);

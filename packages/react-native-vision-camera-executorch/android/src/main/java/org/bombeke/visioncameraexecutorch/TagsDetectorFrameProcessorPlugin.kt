@@ -11,6 +11,7 @@ import org.pytorch.executorch.Tensor
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
+import com.facebook.react.bridge.ReactApplicationContext
 
 class TagsDetectorFrameProcessorPlugin(
     proxy: VisionCameraProxy?,
@@ -36,13 +37,13 @@ class TagsDetectorFrameProcessorPlugin(
     )
 
     private val module: Module
+    private val reactContext: ReactApplicationContext
 
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
 
-        val context = proxy!!.context as android.content.Context
-
-        val modelFile: File = resolveModelFile(context, options)
+        reactContext = proxy!!.context as ReactApplicationContext
+        val modelFile = resolveModelFile(reactContext, options)
 
         module = Module.load(modelFile.absolutePath)
         Log.d(TAG, "Model loaded from ${modelFile.absolutePath}")
@@ -54,6 +55,7 @@ class TagsDetectorFrameProcessorPlugin(
         Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
 
         val detections = runYolo(image)
+        Log.d(TAG, "Finished Detection")
 
         val detectionList = detections.map { det ->
             hashMapOf<String, Any>(
@@ -81,41 +83,40 @@ class TagsDetectorFrameProcessorPlugin(
     *   2. options["modelPath"] + options["modelUrl"]     → download to modelPath if missing
     *   3. fallback                                        → copy bundled asset to filesDir
     */
-    private fun resolveModelFile(context: android.content.Context, options: Map<String, Any>?): File {
-        val customPath = options?.get(OPTIONS_MODEL_PATH_KEY) as? String
-        val remoteUrl  = options?.get(OPTIONS_MODEL_URL_KEY)  as? String
 
-        if (customPath != null) {
-            val file = File(customPath)
+    private fun resolveModelFile(context: ReactApplicationContext, options: Map<String, Any>?): File {
+        val assetRelPath = (options?.get(OPTIONS_MODEL_PATH_KEY) as? String) ?: DEFAULT_MODEL_ASSET
+        val remoteUrl    = options?.get(OPTIONS_MODEL_URL_KEY) as? String
 
-            // Ensure parent directories exist
-            file.parentFile?.mkdirs()
+        // Cache target: app's private files dir, mirroring the asset sub-path
+        val destFile = File(context.filesDir, assetRelPath)
 
-            if (file.exists()) {
-                Log.d(TAG, "Using cached model at $customPath")
-                return file
+        if (destFile.exists()) {
+            Log.d(TAG, "Using cached model at ${destFile.absolutePath}")
+            return destFile
+        }
+
+        destFile.parentFile?.mkdirs()
+
+        // Try React Native / Android asset bundle first
+        return try {
+            context.assets.open(assetRelPath).use { input ->
+                destFile.outputStream().use { input.copyTo(it) }
             }
-
+            Log.d(TAG, "Copied from RN assets: $assetRelPath → ${destFile.absolutePath}")
+            destFile
+        } catch (e: java.io.FileNotFoundException) {
+            // Asset not bundled — fall back to downloading if URL provided
             if (remoteUrl != null) {
-                Log.d(TAG, "Downloading model from $remoteUrl → $customPath")
-                downloadFile(remoteUrl, file)
-                return file
-            }
-
-            throw IllegalArgumentException(
-                "modelPath '$customPath' does not exist and no modelUrl was provided to download it."
-            )
-        }
-
-        // Fallback: bundled asset
-        Log.d(TAG, "No modelPath in options, falling back to bundled asset")
-        val assetFile = File(context.filesDir, DEFAULT_MODEL_ASSET)
-        if (!assetFile.exists()) {
-            context.assets.open(DEFAULT_MODEL_ASSET).use { input ->
-                assetFile.outputStream().use { input.copyTo(it) }
+                Log.d(TAG, "Not in assets, downloading from $remoteUrl")
+                downloadFile(remoteUrl, destFile)
+                destFile
+            } else {
+                throw IllegalArgumentException(
+                    "Model '$assetRelPath' not found in RN assets and no modelUrl provided."
+                )
             }
         }
-        return assetFile
     }
 
     private fun downloadFile(url: String, dest: File) {
@@ -134,11 +135,14 @@ class TagsDetectorFrameProcessorPlugin(
         Log.d(TAG, "Model downloaded successfully to ${dest.absolutePath}")
     }
     private fun runYolo(image: Image): List<Detection> {
+        Log.d(TAG, "Convert")
         val floatInput  = yuv420ToNchwFloat(image)
+        Log.d(TAG, "Finished Convert")
         val inputTensor = Tensor.fromBlob(
             floatInput,
             longArrayOf(1L, 3L, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
         )
+        Log.d(TAG, "Forward")
 
         val outputs     = module.forward(EValue.from(inputTensor))
         val outputTensor = outputs[0].toTensor()
