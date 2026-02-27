@@ -40,7 +40,7 @@ class TagsDetectorFrameProcessorPlugin(
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
 
-        val context = proxy!!.context.applicationContext
+        val context = proxy!!.context as android.content.Context
 
         val modelFile: File = resolveModelFile(context, options)
 
@@ -49,7 +49,7 @@ class TagsDetectorFrameProcessorPlugin(
     }
 
     override fun callback(frame: Frame, params: Map<String, Any>?): Any? {
-        val image = frame.image
+        val image: Image = frame.image
 
         Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
 
