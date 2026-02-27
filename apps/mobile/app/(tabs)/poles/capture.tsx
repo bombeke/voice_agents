@@ -83,6 +83,7 @@ export default function CameraScreen() {
 
       const result = detectTags(frame, {
         modelPath: "model.pte",
+        //modelUrl: "https://raw.githubusercontent.com/bombeke/voice_agents/d844c7cbe2da6037fbbe6154b3961f5eb31204c1/apps/mobile/assets/model.pte"
       });
       console.log("Frame1", result);
       updateDetections(result);

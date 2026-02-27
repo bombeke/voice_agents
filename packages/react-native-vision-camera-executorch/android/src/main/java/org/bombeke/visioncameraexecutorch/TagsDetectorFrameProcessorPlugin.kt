@@ -100,13 +100,22 @@ class TagsDetectorFrameProcessorPlugin(
 
         Log.d(TAG, "File structure at ${destFile.absolutePath}")
         // Try React Native / Android asset bundle first
+        val assetManager = context.assets
+
+        val files = assetManager.list("")  // "" = root of assets folder
+
+        files?.forEach {
+            Log.d("AssetsList", it)
+        }
         return try {
+
             context.assets.open(assetRelPath).use { input ->
                 destFile.outputStream().use { input.copyTo(it) }
             }
             Log.d(TAG, "Copied from RN assets: $assetRelPath → ${destFile.absolutePath}")
             destFile
-        } catch (e: java.io.FileNotFoundException) {
+        } 
+        catch (e: java.io.FileNotFoundException) {
             // Asset not bundled — fall back to downloading if URL provided
             if (remoteUrl != null) {
                 Log.d(TAG, "Not in assets, downloading from $remoteUrl")
