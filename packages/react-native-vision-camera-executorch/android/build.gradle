@@ -68,14 +68,8 @@ android {
 
 dependencies {
   compileOnly project(':react-native-vision-camera')
-  /*implementation project(':react-native-executorch'){
-    exclude group: 'org.pytorch', module: 'executorch-android'
-  }*/
   implementation('org.pytorch:executorch-android:0.7.0')
-  /*implementation files(
-    "${rootDir}/../node_modules/react-native-executorch/android/libs/classes.jar"
-  )*/
-  //implementation(files("libs/executorch.aar"))
+  compileOnly("com.facebook.react:react-native:+")
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
   implementation("androidx.annotation:annotation:1.9.1")
   implementation("androidx.camera:camera-core:1.5.3")
