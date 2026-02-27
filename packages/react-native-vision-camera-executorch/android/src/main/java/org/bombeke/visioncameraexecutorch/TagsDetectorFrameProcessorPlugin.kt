@@ -40,7 +40,7 @@ class TagsDetectorFrameProcessorPlugin(
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
 
-        val context = proxy!!.context
+        val context = proxy!!.context.applicationContext
 
         val modelFile: File = resolveModelFile(context, options)
 
