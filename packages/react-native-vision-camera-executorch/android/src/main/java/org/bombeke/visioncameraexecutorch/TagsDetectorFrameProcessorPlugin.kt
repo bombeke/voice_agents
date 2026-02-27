@@ -102,7 +102,7 @@ class TagsDetectorFrameProcessorPlugin(
         // Try React Native / Android asset bundle first
         val assetManager = context.assets
 
-        val files = assetManager.list("")  // "" = root of assets folder
+        val files = assetManager.list("images")  // "" = root of assets folder
 
         files?.forEach {
             Log.d("AssetsList", it)
