@@ -98,6 +98,7 @@ class TagsDetectorFrameProcessorPlugin(
 
         destFile.parentFile?.mkdirs()
 
+        Log.d(TAG, "File structure at ${destFile.absolutePath}")
         // Try React Native / Android asset bundle first
         return try {
             context.assets.open(assetRelPath).use { input ->
@@ -111,7 +112,8 @@ class TagsDetectorFrameProcessorPlugin(
                 Log.d(TAG, "Not in assets, downloading from $remoteUrl")
                 downloadFile(remoteUrl, destFile)
                 destFile
-            } else {
+            } 
+            else {
                 throw IllegalArgumentException(
                     "Model '$assetRelPath' not found in RN assets and no modelUrl provided."
                 )

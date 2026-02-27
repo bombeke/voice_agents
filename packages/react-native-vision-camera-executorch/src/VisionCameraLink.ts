@@ -2,7 +2,7 @@ import type { Frame } from "react-native-vision-camera";
 import { VisionCameraProxy } from "react-native-vision-camera";
 
 const options = {
-  modelPath: "/data/local/tmp/model.pte",
+  modelPath: "model.pte",
 };
 const plugin = VisionCameraProxy.initFrameProcessorPlugin(
   "detectTags",
