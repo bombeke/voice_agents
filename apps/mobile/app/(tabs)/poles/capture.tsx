@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import {
   useCameraDevice,
   useCameraPermission,
@@ -17,8 +17,12 @@ import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
+import { prepareModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
-import { detectTags } from "react-native-vision-camera-executorch";
+import {
+  detectTags,
+  initializeDetectTags,
+} from "react-native-vision-camera-executorch";
 import { Worklets, useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
@@ -48,6 +52,15 @@ export default function CameraScreen() {
   const [detections, setDetections] = useState<any[]>([]);
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);
+  const [modelPath, setModelPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const path = await prepareModel();
+      initializeDetectTags(path);
+      setModelPath(path);
+    })();
+  }, []);
 
   const updateDetections = Worklets.createRunOnJS((data: Detection[]) => {
     setDetections(data);
@@ -81,10 +94,7 @@ export default function CameraScreen() {
 
       console.log("Frame0");
 
-      const result = detectTags(frame, {
-        modelPath: "model.pte",
-        //modelUrl: "https://raw.githubusercontent.com/bombeke/voice_agents/d844c7cbe2da6037fbbe6154b3961f5eb31204c1/apps/mobile/assets/model.pte"
-      });
+      const result = detectTags(frame);
       console.log("Frame1", result);
       updateDetections(result);
       console.log("Frame2");
@@ -123,6 +133,9 @@ export default function CameraScreen() {
       />
     );
   if (device === null) return <NoCameraDevice />;
+  if (!modelPath) {
+    return <ActivityIndicator size="large" />;
+  }
 
   return (
     <View style={styles.container}>

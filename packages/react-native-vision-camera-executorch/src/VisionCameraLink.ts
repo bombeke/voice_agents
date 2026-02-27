@@ -1,21 +1,36 @@
 import type { Frame } from "react-native-vision-camera";
 import { VisionCameraProxy } from "react-native-vision-camera";
 
-const options = {
-  modelPath: "model.pte",
-};
-const plugin = VisionCameraProxy.initFrameProcessorPlugin(
-  "detectTags",
-  options,
-);
+let plugin:
+  | ReturnType<typeof VisionCameraProxy.initFrameProcessorPlugin>
+  | null
+  | undefined = null;
 
 /**
- * Scans Tags.
+ * Initialize the detectTags frame processor plugin.
+ * Call this ONCE after prepareModel() resolves.
  */
-export function detectTags(frame: Frame, options?: any): object | any {
+export function initializeDetectTags(modelPath: string) {
+  plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {
+    modelPath,
+  });
+
+  if (!plugin) {
+    throw new Error('Failed to initialize Frame Processor Plugin "detectTags"');
+  }
+}
+
+/**
+ * Worklet-safe synchronous detector call.
+ */
+export function detectTags(frame: Frame): object | null {
   "worklet";
 
-  if (plugin == null)
-    throw new Error('Failed to load Frame Processor Plugin "detectTags"!');
-  return plugin.call(frame, options);
+  if (!plugin) {
+    throw new Error(
+      "detectTags plugin not initialized. Call initializeDetectTags() first.",
+    );
+  }
+
+  return plugin.call(frame);
 }

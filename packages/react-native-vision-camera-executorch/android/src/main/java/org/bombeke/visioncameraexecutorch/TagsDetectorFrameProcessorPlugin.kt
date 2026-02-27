@@ -42,8 +42,10 @@ class TagsDetectorFrameProcessorPlugin(
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
 
-        reactContext = proxy!!.context as ReactApplicationContext
-        val modelFile = resolveModelFile(reactContext, options)
+        requireNotNull(proxy) { "VisionCameraProxy cannot be null" }
+
+        reactContext = proxy.context as ReactApplicationContext
+        val modelFile = resolveModelFile(options)
 
         module = Module.load(modelFile.absolutePath)
         Log.d(TAG, "Model loaded from ${modelFile.absolutePath}")
@@ -77,57 +79,24 @@ class TagsDetectorFrameProcessorPlugin(
         )
     }
 
-    /**
-    * Resolution priority:
-    *   1. options["modelPath"] exists on disk            → use it directly
-    *   2. options["modelPath"] + options["modelUrl"]     → download to modelPath if missing
-    *   3. fallback                                        → copy bundled asset to filesDir
-    */
+    private fun resolveModelFile(options: Map<String, Any>?): File {
 
-    private fun resolveModelFile(context: ReactApplicationContext, options: Map<String, Any>?): File {
-        val assetRelPath = (options?.get(OPTIONS_MODEL_PATH_KEY) as? String) ?: DEFAULT_MODEL_ASSET
-        val remoteUrl    = options?.get(OPTIONS_MODEL_URL_KEY) as? String
+        val modelPath = options?.get(OPTIONS_MODEL_PATH_KEY) as? String
+            ?: throw IllegalArgumentException(
+                "modelPath must be provided from JS using expo-asset localUri"
+            )
 
-        // Cache target: app's private files dir, mirroring the asset sub-path
-        val destFile = File(context.filesDir, assetRelPath)
+        val modelFile = File(modelPath)
 
-        if (destFile.exists()) {
-            Log.d(TAG, "Using cached model at ${destFile.absolutePath}")
-            return destFile
+        if (!modelFile.exists()) {
+            throw IllegalArgumentException(
+                "Model file does not exist at path: $modelPath"
+            )
         }
 
-        destFile.parentFile?.mkdirs()
+        Log.d(TAG, "Using model file at $modelPath")
 
-        Log.d(TAG, "File structure at ${destFile.absolutePath}")
-        // Try React Native / Android asset bundle first
-        val assetManager = context.assets
-
-        val files = assetManager.list("images")  // "" = root of assets folder
-
-        files?.forEach {
-            Log.d("AssetsList", it)
-        }
-        return try {
-
-            context.assets.open(assetRelPath).use { input ->
-                destFile.outputStream().use { input.copyTo(it) }
-            }
-            Log.d(TAG, "Copied from RN assets: $assetRelPath → ${destFile.absolutePath}")
-            destFile
-        } 
-        catch (e: java.io.FileNotFoundException) {
-            // Asset not bundled — fall back to downloading if URL provided
-            if (remoteUrl != null) {
-                Log.d(TAG, "Not in assets, downloading from $remoteUrl")
-                downloadFile(remoteUrl, destFile)
-                destFile
-            } 
-            else {
-                throw IllegalArgumentException(
-                    "Model '$assetRelPath' not found in RN assets and no modelUrl provided."
-                )
-            }
-        }
+        return modelFile
     }
 
     private fun downloadFile(url: String, dest: File) {
