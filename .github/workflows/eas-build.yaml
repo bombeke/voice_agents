@@ -171,7 +171,7 @@ jobs:
       - name: Build Release APK
         working-directory: apps/mobile/android
         run: |
-          ls -l src/main/assets
+          ls -l 
           ./gradlew clean assembleRelease --stacktrace --no-daemon --info
 
       - name: Upload Release APK
