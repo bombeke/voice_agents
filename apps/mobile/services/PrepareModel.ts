@@ -1,5 +1,6 @@
 import { Asset } from "expo-asset";
 import { File, Paths } from "expo-file-system";
+import { initializeDetectTags } from "react-native-vision-camera-executorch";
 
 const MODEL_NAME = "model.pte";
 
@@ -24,4 +25,10 @@ export async function prepareModel(): Promise<string> {
   console.log("Model copied to:", destination.uri);
 
   return destination.uri.replace("file://", "");
+}
+
+export async function prepareAndInitializeModel() {
+  const path = await prepareModel();
+  initializeDetectTags(path);
+  return path;
 }

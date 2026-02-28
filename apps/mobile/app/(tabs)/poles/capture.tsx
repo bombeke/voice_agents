@@ -17,14 +17,17 @@ import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
+import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
-import { File, Paths } from "expo-file-system";
-import { detectTags } from "react-native-vision-camera-executorch";
+import * as Exec from "react-native-vision-camera-executorch";
+import {
+  detectTags,
+  isDetectTagsInitialized,
+} from "react-native-vision-camera-executorch";
 import { Worklets, useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
-const MODEL_NAME = "model.pte";
-const destination = new File(Paths.document, MODEL_NAME);
+console.log("Logging File:", Exec);
 
 export default function CameraScreen() {
   // const device = useCameraDevice("back");
@@ -39,6 +42,7 @@ export default function CameraScreen() {
   const [cameraPosition, setCameraPosition] = useState<"front" | "back">(
     "back",
   );
+  const [modelPath, setModelPath] = useState<string | null>(null);
   const [enableHdr, setEnableHdr] = useState(false);
   const [flash, setFlash] = useState<"off" | "on">("off");
   const [enableNightMode, setEnableNightMode] = useState(false);
@@ -55,6 +59,10 @@ export default function CameraScreen() {
   const updateDetections = Worklets.createRunOnJS((data: Detection[]) => {
     setDetections(data);
   });
+
+  useEffect(() => {
+    prepareAndInitializeModel().then(setModelPath);
+  }, []);
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
@@ -84,9 +92,7 @@ export default function CameraScreen() {
 
       console.log("Frame0");
 
-      const result = detectTags(frame, {
-        modelPath: destination.uri.replace("file://", ""),
-      });
+      const result = detectTags(frame);
       console.log("Frame1", result);
       updateDetections(result);
       console.log("Frame2");
@@ -107,6 +113,7 @@ export default function CameraScreen() {
     await location.requestPermission();
     return;
   }, [location]);
+
   const handleCapture = async () => {
     if (!isInitialized || isCapturing) return;
     await takePhoto({ flash });
@@ -117,6 +124,8 @@ export default function CameraScreen() {
     // override default device with the one selected by the user in settings
     device = preferredDevice;
   }
+
+  if (!modelPath) return null;
 
   if (!hasPermission)
     return (
@@ -132,7 +141,7 @@ export default function CameraScreen() {
         device={device}
         isActive={isActive}
         //frameProcessor={frameProcessor?.frameProcessor}
-        frameProcessor={frameProcessor}
+        frameProcessor={isDetectTagsInitialized ? frameProcessor : undefined}
         onInitialized={onInitialized}
         ref={cameraRef}
       />

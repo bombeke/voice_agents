@@ -1,3 +1,7 @@
 export * from "./TagsDetectorFrameProcessor.types";
 export { default } from "./TagsDetectorFrameProcessorModule";
-export * from "./VisionCameraLink";
+export {
+    detectTags,
+    initializeDetectTags,
+    isDetectTagsInitialized
+} from "./VisionCameraLink";

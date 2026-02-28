@@ -17,3 +17,14 @@ export type TagsDetectorFrameProcessorViewProps = {
   onLoad: (event: { nativeEvent: OnLoadEventPayload }) => void;
   style?: StyleProp<ViewStyle>;
 };
+
+export type BasicParameterType =
+  | string
+  | number
+  | boolean
+  | undefined
+  | ArrayBuffer;
+export type ParameterType =
+  | BasicParameterType
+  | BasicParameterType[]
+  | Record<string, BasicParameterType | undefined>;
