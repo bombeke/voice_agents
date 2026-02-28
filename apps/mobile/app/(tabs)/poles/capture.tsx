@@ -18,10 +18,11 @@ import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
+import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
 import {
   detectTags,
-  isDetectTagsInitialized,
+  isDetectTagsInitialized
 } from "react-native-vision-camera-executorch";
 import { useSharedValue, Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
@@ -46,6 +47,7 @@ export default function CameraScreen() {
   const { resize } = useResizePlugin();
   const { cameraRef, isInitialized, isCapturing, onInitialized, takePhoto } =
     useCameraController();
+  const [modelPath, setModelPath] = useState<string | null>(null);
 
   //const { detections } = useTagDetection(!isCapturing);
   //const { queues, frameProcessor } = usePoleDetection();
@@ -58,6 +60,14 @@ export default function CameraScreen() {
       setDetections(data);
     },
   );
+  useEffect(() => {
+    (async () => {
+      const path = await prepareAndInitializeModel();
+      setModelPath(path);
+      // Optional: initialize early in JS thread
+      //initializeDetectTags(path);
+    })();
+  }, []);
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
@@ -65,6 +75,12 @@ export default function CameraScreen() {
 
       //if (!enabled) return;
       console.log("Ready:", isDetectTagsInitialized());
+      if (!isDetectTagsInitialized() && modelPath) {
+        // @ts-ignore worklet can't access async JS directly
+        initializeDetectTagsOnce(modelPath);
+      }
+      console.log("Ready:", isDetectTagsInitialized());
+
       //if (!isDetectTagsInitialized()) return null;
 
       // Throttle on worklet thread (200ms)
@@ -94,7 +110,7 @@ export default function CameraScreen() {
       updateDetections(result as any[]);
       console.log("Frame2");
     },
-    [updateDetections],
+    [updateDetections, modelPath],
   );
 
   useEffect(() => {

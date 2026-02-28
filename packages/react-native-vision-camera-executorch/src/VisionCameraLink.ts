@@ -11,7 +11,7 @@ export function detectTags(
   "worklet";
 
   if (!plugin) {
-    console.log("detectTags not initialized");
+    console.log("detectTags not initialized", plugin);
     return null;
   }
 
@@ -24,11 +24,11 @@ export const isDetectTagsInitialized = () => {
 };
 
 export const initializeDetectTags = (modelPath: string) => {
-  plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {
-    modelPath,
-  }) as FrameProcessorPlugin | null;
-
   if (!plugin) {
-    throw new Error("Failed to initialize detectTags plugin");
+    plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {
+      modelPath,
+    }) as FrameProcessorPlugin | null;
   }
+  console.log("plugin::::", plugin);
+  return plugin;
 };
