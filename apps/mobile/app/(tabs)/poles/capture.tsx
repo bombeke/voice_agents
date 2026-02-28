@@ -136,7 +136,7 @@ export default function CameraScreen() {
         device={device}
         isActive={isActive}
         //frameProcessor={frameProcessor?.frameProcessor}
-        frameProcessor={isDetectTagsInitialized() ? frameProcessor : undefined}
+        frameProcessor={ready ? frameProcessor : undefined}
         onInitialized={onInitialized}
         ref={cameraRef}
       />

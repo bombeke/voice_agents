@@ -19,6 +19,7 @@ export function detectTags(
 }
 
 export const isDetectTagsInitialized = () => {
+  "worklet";
   return plugin !== null;
 };
 
