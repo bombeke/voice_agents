@@ -64,7 +64,8 @@ export default function CameraScreen() {
       "worklet";
 
       //if (!enabled) return;
-      if (!isDetectTagsInitialized()) return null;
+      console.log("Ready:", isDetectTagsInitialized());
+      //if (!isDetectTagsInitialized()) return null;
 
       // Throttle on worklet thread (200ms)
       //if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
@@ -93,7 +94,7 @@ export default function CameraScreen() {
       updateDetections(result as any[]);
       console.log("Frame2");
     },
-    [updateDetections, detectTags],
+    [updateDetections],
   );
 
   useEffect(() => {
@@ -115,6 +116,7 @@ export default function CameraScreen() {
     await takePhoto({ flash });
     return;
   };
+  console.log("is ready:", ready);
 
   if (preferredDevice != null && preferredDevice.position === cameraPosition) {
     // override default device with the one selected by the user in settings
