@@ -22,7 +22,8 @@ import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
 import {
   detectTags,
-  isDetectTagsInitialized
+  initializeDetectTags,
+  isDetectTagsInitialized,
 } from "react-native-vision-camera-executorch";
 import { useSharedValue, Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
@@ -64,8 +65,6 @@ export default function CameraScreen() {
     (async () => {
       const path = await prepareAndInitializeModel();
       setModelPath(path);
-      // Optional: initialize early in JS thread
-      //initializeDetectTags(path);
     })();
   }, []);
 
@@ -77,7 +76,7 @@ export default function CameraScreen() {
       console.log("Ready:", isDetectTagsInitialized());
       if (!isDetectTagsInitialized() && modelPath) {
         // @ts-ignore worklet can't access async JS directly
-        initializeDetectTagsOnce(modelPath);
+        initializeDetectTags(modelPath);
       }
       console.log("Ready:", isDetectTagsInitialized());
 
