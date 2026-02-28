@@ -7,11 +7,12 @@ let plugin: FrameProcessorPlugin | null = null;
 export function detectTags(
   frame: Frame,
   options?: Record<string, ParameterType>,
-): ParameterType {
+): ParameterType | null {
   "worklet";
 
   if (!plugin) {
-    throw new Error("detectTags not initialized");
+    console.log("detectTags not initialized");
+    return null;
   }
 
   return plugin.call(frame, options);

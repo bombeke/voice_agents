@@ -1,3 +1,6 @@
+import {
+  AppReadyProvider
+} from "@/components/AppReadyContext";
 import { MMKVProvider } from "@/components/MmkvContext";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
@@ -11,28 +14,33 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import {
-  initializeDetectTags,
-  isDetectTagsInitialized,
-} from "react-native-vision-camera-executorch";
+import { initializeDetectTags } from "react-native-vision-camera-executorch";
 import { TamaguiProvider } from "tamagui";
 import "../global.css";
 import { config } from "../tamagui.config";
 
 SplashScreen.preventAutoHideAsync();
 
-export function RootLayoutNav() {
+interface RootLayoutNavProps {
+  ready: boolean;
+}
+
+export function RootLayoutNav({ ready }: RootLayoutNavProps) {
   //const deviceId =  useValue(poleVisionDBDeviceId$)
 
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(admin)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(tabs)"
+        options={{ headerShown: false }}
+        initialParams={{ ready }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
@@ -50,20 +58,20 @@ const storage = createUserStorage(userId);
 initPersistence();
 
 export default function RootLayout() {
+  const [ready, setReady] = useState(false);
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
   useEffect(() => {
     (async () => {
       const path = await prepareAndInitializeModel();
-      if (!isDetectTagsInitialized()) {
-        initializeDetectTags(path);
-      }
+      initializeDetectTags(path);
+      setReady(true);
       await SplashScreen.hideAsync();
     })();
   }, []);
 
-  if (!loaded) {
+  if (!loaded || !ready) {
     return null;
   }
 
@@ -78,7 +86,9 @@ export default function RootLayout() {
                 <SafeAreaProvider>
                   <BackendSyncObserver />
                   <OpQueueReplayObserver />
-                  <RootLayoutNav />
+                  <AppReadyProvider ready={ready}>
+                    <RootLayoutNav ready={ready} />
+                  </AppReadyProvider>
                 </SafeAreaProvider>
                 {/*</CachedModelBootstrap>*/}
               </UtilityStoreProvider>

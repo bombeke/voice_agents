@@ -8,6 +8,7 @@ import {
   useMicrophonePermission,
 } from "react-native-vision-camera";
 
+import { useAppReady } from "@/components/AppReadyContext";
 import { CameraControls } from "@/components/camera/CameraControl";
 import { CameraView } from "@/components/camera/CameraView";
 import { DetectionOverlay } from "@/components/camera/DetectionOverlay";
@@ -18,18 +19,16 @@ import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { useIsFocused } from "@react-navigation/core";
-import * as Exec from "react-native-vision-camera-executorch";
 import {
   detectTags,
-  isDetectTagsInitialized
+  isDetectTagsInitialized,
 } from "react-native-vision-camera-executorch";
 import { useSharedValue, Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
-console.log("Logging File:", Exec);
-
 export default function CameraScreen() {
   // const device = useCameraDevice("back");
+  const ready = useAppReady();
   const { hasPermission, requestPermission } = useCameraPermission();
   const location = useLocationPermission();
   const microphone = useMicrophonePermission();
@@ -65,6 +64,7 @@ export default function CameraScreen() {
       "worklet";
 
       //if (!enabled) return;
+      if (!isDetectTagsInitialized()) return null;
 
       // Throttle on worklet thread (200ms)
       //if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
@@ -93,7 +93,7 @@ export default function CameraScreen() {
       updateDetections(result as any[]);
       console.log("Frame2");
     },
-    [updateDetections],
+    [updateDetections, detectTags],
   );
 
   useEffect(() => {
@@ -120,6 +120,7 @@ export default function CameraScreen() {
     // override default device with the one selected by the user in settings
     device = preferredDevice;
   }
+  if (!ready) return null;
 
   if (!hasPermission)
     return (
