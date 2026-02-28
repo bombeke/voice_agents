@@ -1,12 +1,16 @@
 import { Detection } from "@/hooks/useTagDetection";
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { ParameterType } from "react-native-vision-camera-executorch";
 
 interface Props {
-  detections: Detection[];
+  detections: Detection[] | Omit<ParameterType, "BasicParameterType">;
 }
 
 export const DetectionOverlay = memo(({ detections }: Props) => {
+  if (!Array.isArray(detections)) {
+    return null;
+  }
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {detections.map((d) => (

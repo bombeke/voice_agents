@@ -17,14 +17,13 @@ import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
-import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
 import * as Exec from "react-native-vision-camera-executorch";
 import {
   detectTags,
-  isDetectTagsInitialized,
+  isDetectTagsInitialized
 } from "react-native-vision-camera-executorch";
-import { Worklets, useSharedValue } from "react-native-worklets-core";
+import { useSharedValue, Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 console.log("Logging File:", Exec);
@@ -42,7 +41,6 @@ export default function CameraScreen() {
   const [cameraPosition, setCameraPosition] = useState<"front" | "back">(
     "back",
   );
-  const [modelPath, setModelPath] = useState<string | null>(null);
   const [enableHdr, setEnableHdr] = useState(false);
   const [flash, setFlash] = useState<"off" | "on">("off");
   const [enableNightMode, setEnableNightMode] = useState(false);
@@ -56,13 +54,11 @@ export default function CameraScreen() {
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);
 
-  const updateDetections = Worklets.createRunOnJS((data: Detection[]) => {
-    setDetections(data);
-  });
-
-  useEffect(() => {
-    prepareAndInitializeModel().then(setModelPath);
-  }, []);
+  const updateDetections = Worklets.createRunOnJS(
+    (data: Detection[] | any[]) => {
+      setDetections(data);
+    },
+  );
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
@@ -94,7 +90,7 @@ export default function CameraScreen() {
 
       const result = detectTags(frame);
       console.log("Frame1", result);
-      updateDetections(result);
+      updateDetections(result as any[]);
       console.log("Frame2");
     },
     [updateDetections],
@@ -125,8 +121,6 @@ export default function CameraScreen() {
     device = preferredDevice;
   }
 
-  if (!modelPath) return null;
-
   if (!hasPermission)
     return (
       <PermissionsPage
@@ -141,7 +135,7 @@ export default function CameraScreen() {
         device={device}
         isActive={isActive}
         //frameProcessor={frameProcessor?.frameProcessor}
-        frameProcessor={isDetectTagsInitialized ? frameProcessor : undefined}
+        frameProcessor={isDetectTagsInitialized() ? frameProcessor : undefined}
         onInitialized={onInitialized}
         ref={cameraRef}
       />
