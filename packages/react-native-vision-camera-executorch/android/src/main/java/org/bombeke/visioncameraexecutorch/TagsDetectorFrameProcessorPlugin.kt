@@ -1,0 +1,244 @@
+package org.bombeke.visioncameraexecutorch
+
+import android.media.Image
+import android.util.Log
+import com.mrousavy.camera.frameprocessors.Frame
+import com.mrousavy.camera.frameprocessors.FrameProcessorPlugin
+import com.mrousavy.camera.frameprocessors.VisionCameraProxy
+import org.pytorch.executorch.EValue
+import org.pytorch.executorch.Module
+import org.pytorch.executorch.Tensor
+import java.io.File
+import kotlin.math.max
+import kotlin.math.min
+import com.facebook.react.bridge.ReactApplicationContext
+
+class TagsDetectorFrameProcessorPlugin(
+    proxy: VisionCameraProxy?,
+    options: Map<String, Any>?
+) : FrameProcessorPlugin() {
+
+    companion object {
+        private const val TAG = "TagsDetectorPlugin"
+        private const val MODEL_INPUT_SIZE = 640
+        private const val NUM_CLASSES = 80
+        private const val CONF_THRESHOLD = 0.25f
+        private const val IOU_THRESHOLD = 0.45f
+        private const val DEFAULT_MODEL_ASSET = "yolo26n.pte"
+        private const val OPTIONS_MODEL_PATH_KEY = "modelPath"   // local absolute path
+        private const val OPTIONS_MODEL_URL_KEY  = "modelUrl"    // remote URL to download from
+    }
+
+    data class Detection(
+        val x1: Float, val y1: Float,
+        val x2: Float, val y2: Float,
+        val confidence: Float,
+        val classId: Int
+    )
+
+    private val module: Module
+    private val reactContext: ReactApplicationContext
+
+    init {
+        Log.d(TAG, "Initializing with options: ${options?.toString()}")
+
+        requireNotNull(proxy) { "VisionCameraProxy cannot be null" }
+
+        reactContext = proxy.context as ReactApplicationContext
+        val modelFile = resolveModelFile(options)
+
+        module = Module.load(modelFile.absolutePath)
+        Log.d(TAG, "Model loaded from ${modelFile.absolutePath}")
+    }
+
+    override fun callback(frame: Frame, params: Map<String, Any>?): Any? {
+        val image: Image = frame.image
+
+        Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
+
+        val detections = runYolo(image)
+        Log.d(TAG, "Finished Detection")
+
+        val detectionList = detections.map { det ->
+            hashMapOf<String, Any>(
+                "x1"         to det.x1.toDouble(),
+                "y1"         to det.y1.toDouble(),
+                "x2"         to det.x2.toDouble(),
+                "y2"         to det.y2.toDouble(),
+                "confidence" to det.confidence.toDouble(),
+                "classId"    to det.classId
+            )
+        }
+
+        Log.d(TAG, "Detected ${detections.size} object(s)")
+
+        return hashMapOf<String, Any>(
+            "detections" to detectionList,
+            "frameWidth"  to image.width,
+            "frameHeight" to image.height
+        )
+    }
+
+    private fun resolveModelFile(options: Map<String, Any>?): File {
+
+        val modelPath = options?.get(OPTIONS_MODEL_PATH_KEY) as? String
+            ?: throw IllegalArgumentException(
+                "modelPath must be provided from JS using expo-asset localUri"
+            )
+
+        val modelFile = File(modelPath)
+
+        if (!modelFile.exists()) {
+            throw IllegalArgumentException(
+                "Model file does not exist at path: $modelPath"
+            )
+        }
+
+        Log.d(TAG, "Using model file at $modelPath")
+
+        return modelFile
+    }
+
+    private fun downloadFile(url: String, dest: File) {
+        val client   = okhttp3.OkHttpClient()
+        val request  = okhttp3.Request.Builder().url(url).build()
+        val response = client.newCall(request).execute()
+
+        if (!response.isSuccessful) {
+            throw RuntimeException("Failed to download model: HTTP ${response.code} from $url")
+        }
+
+        response.body?.byteStream()?.use { input ->
+            dest.outputStream().use { input.copyTo(it) }
+        } ?: throw RuntimeException("Empty response body downloading model from $url")
+
+        Log.d(TAG, "Model downloaded successfully to ${dest.absolutePath}")
+    }
+    private fun runYolo(image: Image): List<Detection> {
+        Log.d(TAG, "Convert")
+        val floatInput  = yuv420ToNchwFloat(image)
+        Log.d(TAG, "Finished Convert")
+        val inputTensor = Tensor.fromBlob(
+            floatInput,
+            longArrayOf(1L, 3L, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
+        )
+        Log.d(TAG, "Forward")
+
+        val outputs     = module.forward(EValue.from(inputTensor))
+        val outputTensor = outputs[0].toTensor()
+        val rawData     = outputTensor.dataAsFloatArray
+        val shape       = outputTensor.shape()   // [1, 84, 8400]
+
+        val numAnchors  = shape[2].toInt()
+        val srcW        = image.width.toFloat()
+        val srcH        = image.height.toFloat()
+        val scale       = MODEL_INPUT_SIZE / max(srcW, srcH)
+        val padL        = (MODEL_INPUT_SIZE - srcW * scale) / 2f
+        val padT        = (MODEL_INPUT_SIZE - srcH * scale) / 2f
+
+        val detections  = mutableListOf<Detection>()
+
+        for (a in 0 until numAnchors) {
+            val cx = rawData[0 * numAnchors + a]
+            val cy = rawData[1 * numAnchors + a]
+            val w  = rawData[2 * numAnchors + a]
+            val h  = rawData[3 * numAnchors + a]
+
+            var maxScore = 0f
+            var classId  = 0
+            for (c in 0 until NUM_CLASSES) {
+                val score = rawData[(4 + c) * numAnchors + a]
+                if (score > maxScore) { maxScore = score; classId = c }
+            }
+
+            if (maxScore < CONF_THRESHOLD) continue
+
+            // Model-input coords → original image coords
+            val x1 = ((cx - w / 2f - padL) / scale).coerceIn(0f, srcW)
+            val y1 = ((cy - h / 2f - padT) / scale).coerceIn(0f, srcH)
+            val x2 = ((cx + w / 2f - padL) / scale).coerceIn(0f, srcW)
+            val y2 = ((cy + h / 2f - padT) / scale).coerceIn(0f, srcH)
+
+            detections.add(Detection(x1, y1, x2, y2, maxScore, classId))
+        }
+
+        return nonMaxSuppression(detections)
+    }
+
+    // ── YUV_420_888 (format 35) → float NCHW [1,3,640,640] ─────────────────
+    private fun yuv420ToNchwFloat(image: Image): FloatArray {
+        val yPlane  = image.planes[0]
+        val uPlane  = image.planes[1]
+        val vPlane  = image.planes[2]
+
+        val yBuffer       = yPlane.buffer
+        val uBuffer       = uPlane.buffer
+        val vBuffer       = vPlane.buffer
+        val yRowStride    = yPlane.rowStride
+        val uvRowStride   = uPlane.rowStride
+        val uvPixelStride = uPlane.pixelStride
+
+        val srcW     = image.width
+        val srcH     = image.height
+        val scale    = MODEL_INPUT_SIZE.toFloat() / max(srcW, srcH)
+        val scaledW  = (srcW * scale).toInt()
+        val scaledH  = (srcH * scale).toInt()
+        val padTop   = (MODEL_INPUT_SIZE - scaledH) / 2
+        val padLeft  = (MODEL_INPUT_SIZE - scaledW) / 2
+
+        val outSize  = MODEL_INPUT_SIZE * MODEL_INPUT_SIZE
+        // Pre-fill with 0.5 (grey) for letterbox padding
+        val rChannel = FloatArray(outSize) { 0.5f }
+        val gChannel = FloatArray(outSize) { 0.5f }
+        val bChannel = FloatArray(outSize) { 0.5f }
+
+        for (dstY in 0 until scaledH) {
+            val srcY   = (dstY / scale).toInt().coerceIn(0, srcH - 1)
+            val uvRow  = (srcY / 2) * uvRowStride
+
+            for (dstX in 0 until scaledW) {
+                val srcX  = (dstX / scale).toInt().coerceIn(0, srcW - 1)
+                val uvCol = (srcX / 2) * uvPixelStride
+
+                val yVal = (yBuffer[srcY * yRowStride + srcX].toInt() and 0xFF).toFloat()
+                val uVal = (uBuffer[uvRow + uvCol].toInt() and 0xFF).toFloat() - 128f
+                val vVal = (vBuffer[uvRow + uvCol].toInt() and 0xFF).toFloat() - 128f
+
+                // BT.601 YUV → RGB, normalise to [0, 1]
+                val r = (yVal + 1.370705f * vVal).coerceIn(0f, 255f) / 255f
+                val g = (yVal - 0.698001f * vVal - 0.337633f * uVal).coerceIn(0f, 255f) / 255f
+                val b = (yVal + 1.732446f * uVal).coerceIn(0f, 255f) / 255f
+
+                val idx = (padTop + dstY) * MODEL_INPUT_SIZE + (padLeft + dstX)
+                rChannel[idx] = r
+                gChannel[idx] = g
+                bChannel[idx] = b
+            }
+        }
+
+        // Concatenate R, G, B planes → NCHW flat array [1, 3, 640, 640]
+        return rChannel + gChannel + bChannel
+    }
+
+    // Greedy NMS
+    private fun nonMaxSuppression(dets: List<Detection>): List<Detection> {
+        val sorted = dets.sortedByDescending { it.confidence }.toMutableList()
+        val kept   = mutableListOf<Detection>()
+
+        while (sorted.isNotEmpty()) {
+            val best = sorted.removeAt(0)
+            kept.add(best)
+            sorted.removeAll { iou(best, it) > IOU_THRESHOLD }
+        }
+        return kept
+    }
+
+    private fun iou(a: Detection, b: Detection): Float {
+        val ix1 = max(a.x1, b.x1);  val iy1 = max(a.y1, b.y1)
+        val ix2 = min(a.x2, b.x2);  val iy2 = min(a.y2, b.y2)
+        val inter = max(0f, ix2 - ix1) * max(0f, iy2 - iy1)
+        val union = (a.x2 - a.x1) * (a.y2 - a.y1) +
+                    (b.x2 - b.x1) * (b.y2 - b.y1) - inter
+        return if (union == 0f) 0f else inter / union
+    }
+}

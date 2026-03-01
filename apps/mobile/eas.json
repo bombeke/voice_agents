@@ -1,0 +1,41 @@
+{
+  "cli": {
+    "version": ">= 16.16.0",
+    "appVersionSource": "remote"
+  },
+
+  "build": {
+    "development": {
+      "developmentClient": false,
+      "distribution": "internal",
+      "pnpm": "9.15.4",
+      "environment": "development",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "development",
+        "JAVA_OPTS": "-Xmx4g"
+      }
+    },
+
+    "preview": {
+      "distribution": "internal",
+      "environment": "preview",
+      "pnpm": "9.15.4",
+      "env": {
+        "APP_VARIANT": "preview"
+      }
+    },
+
+    "production": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "environment":"production",
+      "pnpm": "9.15.4",
+      "env": {
+        "APP_VARIANT": "production"
+      }
+    }
+  }
+}
