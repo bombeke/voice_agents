@@ -24,6 +24,7 @@ export const isDetectTagsInitialized = () => {
 };
 
 export const initializeDetectTags = (modelPath: string) => {
+  "worklets";
   if (!plugin) {
     plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {
       modelPath,
