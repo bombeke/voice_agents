@@ -1,6 +1,4 @@
-import {
-  AppReadyProvider
-} from "@/components/AppReadyContext";
+import { AppReadyProvider } from "@/components/AppReadyContext";
 import { MMKVProvider } from "@/components/MmkvContext";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
@@ -18,7 +16,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { initializeDetectTags } from "react-native-vision-camera-executorch";
+import "react-native-vision-camera-executorch";
 import { TamaguiProvider } from "tamagui";
 import "../global.css";
 import { config } from "../tamagui.config";
@@ -65,7 +63,7 @@ export default function RootLayout() {
   useEffect(() => {
     (async () => {
       const path = await prepareAndInitializeModel();
-      initializeDetectTags(path);
+      //initializeDetectTags(path);
       setReady(true);
       await SplashScreen.hideAsync();
     })();

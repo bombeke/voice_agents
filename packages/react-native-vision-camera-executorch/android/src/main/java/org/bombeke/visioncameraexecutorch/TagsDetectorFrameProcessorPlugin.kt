@@ -47,7 +47,7 @@ class TagsDetectorFrameProcessorPlugin(
 
         requireNotNull(proxy) { "VisionCameraProxy cannot be null" }
 
-        reactContext = proxy.context as ReactApplicationContext
+        // reactContext = proxy.context as ReactApplicationContext
         /*try {
             Log.v(TAG, "Opening asset resource " + modelFilename);
             AssetManager assetManager = reactContext.getAssets();
@@ -100,18 +100,14 @@ class TagsDetectorFrameProcessorPlugin(
     }
 
     private fun prepareModel(): String {
-        // Equivalent to expo-file-system's Paths.document
-        val destinationFile = File(reactApplicationContext.filesDir, MODEL_NAME)
+        val destinationFile = File(reactContext.filesDir, MODEL_NAME)
 
-        // If file exists, return the path (succinct equivalent to destination.exists)
         if (destinationFile.exists()) {
             return destinationFile.absolutePath
         }
 
         try {
-            // Access the asset bundled in the APK
-            // NOTE: Ensure your model.pte is in android/app/src/main/assets/
-            reactApplicationContext.assets.open(MODEL_NAME).use { inputStream ->
+            reactContext.assets.open(MODEL_NAME).use { inputStream ->
                 FileOutputStream(destinationFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }

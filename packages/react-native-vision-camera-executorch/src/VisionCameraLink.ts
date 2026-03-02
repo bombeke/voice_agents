@@ -2,7 +2,7 @@ import type { Frame, FrameProcessorPlugin } from "react-native-vision-camera";
 import { VisionCameraProxy } from "react-native-vision-camera";
 import { ParameterType } from "./TagsDetectorFrameProcessor.types";
 
-let plugin: FrameProcessorPlugin | null = null;
+let plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {});
 
 export function detectTags(
   frame: Frame,
@@ -28,7 +28,7 @@ export const initializeDetectTags = (modelPath: string) => {
   if (!plugin) {
     plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {
       modelPath,
-    }) as FrameProcessorPlugin | null;
+    }) as FrameProcessorPlugin | undefined;
   }
   console.log("plugin::::", plugin);
   return plugin;
