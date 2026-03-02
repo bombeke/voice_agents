@@ -52,27 +52,12 @@ class TagsDetectorFrameProcessorPlugin(
         requireNotNull(proxy) { "VisionCameraProxy cannot be null" }
 
         reactContext = proxy.context //as ReactApplicationContext
-        /*try {
-            Log.v(TAG, "Opening asset resource " + modelFilename);
-            AssetManager assetManager = reactContext.getAssets();
-            is = assetManager.open(modelFilename);
-            Log.v(TAG, "Opening asset resource successfully. Size=" + is.available());
-
-            Log.v(TAG, "Opening raw resource " + modelID);
-            is = reactContext.getResources().openRawResource(modelID);
-            Log.v(TAG, "Open raw resource " + modelID + ". Size=" + is.available());
-            byte[] b = new byte[is.available()];
-            is.read(b);
-            } catch (Exception e) {
-            // e.printStackTrace();
-            Log.e(TAG, "Error: failed to open raw resource " + modelID + ". " + e.getLocalizedMessage());
-            }*/
         modelPath = prepareModel(reactContext)
         Log.v(TAG, "Model file loaded: " + modelPath);
-        val modelFile = resolveModelFile(options)
+       // val modelFile = resolveModelFile(options)
 
-        module = Module.load(modelFile.absolutePath)
-        Log.d(TAG, "Model loaded from ${modelFile.absolutePath}")
+        module = Module.load( modelPath )
+        //Log.d(TAG, "Model loaded from ${modelFile.absolutePath}")
     }
 
     override fun callback(frame: Frame, params: Map<String, Any>?): Any? {
@@ -116,7 +101,8 @@ class TagsDetectorFrameProcessorPlugin(
                     inputStream.copyTo(outputStream)
                 }
             }
-        } catch (e: Exception) {
+        } 
+        catch (e: Exception) {
             e.printStackTrace()
             return ""
         }
@@ -158,6 +144,7 @@ class TagsDetectorFrameProcessorPlugin(
 
         Log.d(TAG, "Model downloaded successfully to ${dest.absolutePath}")
     }
+
     private fun runYolo(image: Image): List<Detection> {
         Log.d(TAG, "Convert")
         val floatInput  = yuv420ToNchwFloat(image)
