@@ -22,6 +22,7 @@ import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
 import {
   detectTags,
+  initializeDetectTags,
   isDetectTagsInitialized,
 } from "react-native-vision-camera-executorch";
 import { useSharedValue, Worklets } from "react-native-worklets-core";
@@ -73,7 +74,10 @@ export default function CameraScreen() {
 
       //if (!enabled) return;
       console.log("Ready:", isDetectTagsInitialized());
-
+      if (!isDetectTagsInitialized() && modelPath) {
+        initializeDetectTags(modelPath);
+      }
+      console.log("Ready after:", isDetectTagsInitialized());
       //if (!isDetectTagsInitialized()) return null;
 
       // Throttle on worklet thread (200ms)

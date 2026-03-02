@@ -45,6 +45,21 @@ class TagsDetectorFrameProcessorPlugin(
         requireNotNull(proxy) { "VisionCameraProxy cannot be null" }
 
         reactContext = proxy.context as ReactApplicationContext
+        /*try {
+            Log.v(TAG, "Opening asset resource " + modelFilename);
+            AssetManager assetManager = reactContext.getAssets();
+            is = assetManager.open(modelFilename);
+            Log.v(TAG, "Opening asset resource successfully. Size=" + is.available());
+
+            Log.v(TAG, "Opening raw resource " + modelID);
+            is = reactContext.getResources().openRawResource(modelID);
+            Log.v(TAG, "Open raw resource " + modelID + ". Size=" + is.available());
+            byte[] b = new byte[is.available()];
+            is.read(b);
+            } catch (Exception e) {
+            // e.printStackTrace();
+            Log.e(TAG, "Error: failed to open raw resource " + modelID + ". " + e.getLocalizedMessage());
+            }*/
         val modelFile = resolveModelFile(options)
 
         module = Module.load(modelFile.absolutePath)
