@@ -41,13 +41,17 @@ class TagsDetectorFrameProcessorPlugin(
     private val reactContext: ReactApplicationContext
     private val MODEL_NAME = "model.pte"
     private var modelPath: String = ""
+    private val rChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
+    private val gChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
+    private val bChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
+    private val floatInput = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE * 3)
 
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
 
         requireNotNull(proxy) { "VisionCameraProxy cannot be null" }
 
-        // reactContext = proxy.context as ReactApplicationContext
+        reactContext = proxy.context //as ReactApplicationContext
         /*try {
             Log.v(TAG, "Opening asset resource " + modelFilename);
             AssetManager assetManager = reactContext.getAssets();
@@ -63,7 +67,7 @@ class TagsDetectorFrameProcessorPlugin(
             // e.printStackTrace();
             Log.e(TAG, "Error: failed to open raw resource " + modelID + ". " + e.getLocalizedMessage());
             }*/
-        modelPath = prepareModel()
+        modelPath = prepareModel(reactContext)
         Log.v(TAG, "Model file loaded: " + modelPath);
         val modelFile = resolveModelFile(options)
 
@@ -99,8 +103,8 @@ class TagsDetectorFrameProcessorPlugin(
         )
     }
 
-    private fun prepareModel(): String {
-        val destinationFile = File(reactContext.filesDir, MODEL_NAME)
+    private fun prepareModel(context:  ReactApplicationContext): String {
+        val destinationFile = File(context.filesDir, MODEL_NAME)
 
         if (destinationFile.exists()) {
             return destinationFile.absolutePath
@@ -225,12 +229,6 @@ class TagsDetectorFrameProcessorPlugin(
         val scaledH  = (srcH * scale).toInt()
         val padTop   = (MODEL_INPUT_SIZE - scaledH) / 2
         val padLeft  = (MODEL_INPUT_SIZE - scaledW) / 2
-
-        val outSize  = MODEL_INPUT_SIZE * MODEL_INPUT_SIZE
-        // Pre-fill with 0.5 (grey) for letterbox padding
-        val rChannel = FloatArray(outSize) { 0.5f }
-        val gChannel = FloatArray(outSize) { 0.5f }
-        val bChannel = FloatArray(outSize) { 0.5f }
 
         for (dstY in 0 until scaledH) {
             val srcY   = (dstY / scale).toInt().coerceIn(0, srcH - 1)

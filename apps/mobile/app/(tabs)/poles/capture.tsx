@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   useCameraDevice,
@@ -18,11 +18,9 @@ import { useCameraController } from "@/hooks/useCameraController";
 import { useIsForeground } from "@/hooks/useIsForeground";
 import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
+import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
-import {
-  detectTags,
-  isDetectTagsInitialized
-} from "react-native-vision-camera-executorch";
+import { detectTags } from "react-native-vision-camera-executorch";
 import { useSharedValue, Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
@@ -54,6 +52,20 @@ export default function CameraScreen() {
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);
 
+  const [modelPath, setModelPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const path = await prepareAndInitializeModel();
+      setModelPath(path);
+    })();
+  }, []);
+
+  const detectTagsProcessor = useMemo(() => {
+    if (!modelPath) return undefined;
+    return detectTags(modelPath);
+  }, [modelPath]);
+
   const updateDetections = Worklets.createRunOnJS(
     (data: Detection[] | any[]) => {
       setDetections(data);
@@ -72,8 +84,8 @@ export default function CameraScreen() {
       "worklet";
 
       //if (!enabled) return;
-      console.log("Ready:", isDetectTagsInitialized());
-      //if (!isDetectTagsInitialized()) return null;
+      //console.log("Ready:", isDetectTagsInitialized());
+      if (!detectTagsProcessor) return null;
 
       // Throttle on worklet thread (200ms)
       //if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
@@ -97,7 +109,7 @@ export default function CameraScreen() {
 
       console.log("Frame0");
 
-      const result = detectTags(frame);
+      const result = detectTagsProcessor(frame);
       console.log("Frame1", result);
       updateDetections(result as any[]);
       console.log("Frame2");
@@ -131,7 +143,7 @@ export default function CameraScreen() {
     device = preferredDevice;
   }
 
-  if (!ready) return null;
+  if (!ready || !modelPath) return null;
 
   if (!hasPermission)
     return (
