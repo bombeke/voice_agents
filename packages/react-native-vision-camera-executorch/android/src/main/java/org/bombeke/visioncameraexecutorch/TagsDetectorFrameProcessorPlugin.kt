@@ -12,6 +12,7 @@ import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 import com.facebook.react.bridge.ReactApplicationContext
+import java.io.FileOutputStream
 
 class TagsDetectorFrameProcessorPlugin(
     proxy: VisionCameraProxy?,
@@ -38,6 +39,8 @@ class TagsDetectorFrameProcessorPlugin(
 
     private val module: Module
     private val reactContext: ReactApplicationContext
+    private val MODEL_NAME = "model.pte"
+    private var modelPath: String = ""
 
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
@@ -60,6 +63,8 @@ class TagsDetectorFrameProcessorPlugin(
             // e.printStackTrace();
             Log.e(TAG, "Error: failed to open raw resource " + modelID + ". " + e.getLocalizedMessage());
             }*/
+        modelPath = prepareModel()
+        Log.v(TAG, "Model file loaded: " + modelPath);
         val modelFile = resolveModelFile(options)
 
         module = Module.load(modelFile.absolutePath)
@@ -94,6 +99,30 @@ class TagsDetectorFrameProcessorPlugin(
         )
     }
 
+    private fun prepareModel(): String {
+        // Equivalent to expo-file-system's Paths.document
+        val destinationFile = File(reactApplicationContext.filesDir, MODEL_NAME)
+
+        // If file exists, return the path (succinct equivalent to destination.exists)
+        if (destinationFile.exists()) {
+            return destinationFile.absolutePath
+        }
+
+        try {
+            // Access the asset bundled in the APK
+            // NOTE: Ensure your model.pte is in android/app/src/main/assets/
+            reactApplicationContext.assets.open(MODEL_NAME).use { inputStream ->
+                FileOutputStream(destinationFile).use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return ""
+        }
+
+        return destinationFile.absolutePath
+    }
     private fun resolveModelFile(options: Map<String, Any>?): File {
 
         val modelPath = options?.get(OPTIONS_MODEL_PATH_KEY) as? String
