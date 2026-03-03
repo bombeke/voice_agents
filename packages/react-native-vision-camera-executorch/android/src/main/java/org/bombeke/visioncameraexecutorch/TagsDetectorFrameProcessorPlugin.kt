@@ -155,10 +155,23 @@ class TagsDetectorFrameProcessorPlugin(
         )
         Log.d(TAG, "Forward")
         Log.d(TAG,"Testing")
-        Tensor input_tensor = Tensor.fromBlob(float_data, new long[] { 1, 3, height, width });
-        EValue input_evalue = EValue.from(input_tensor);
-        EValue[] output = model.forward(input_evalue);
-        float[] scores = output[0].toTensor().getDataAsFloatArray();
+        val height = 640
+        val width = 640
+
+        // Create a dummy float array (1 * 3 * height * width)
+        val floatData = FloatArray(1 * 3 * height * width) { 0.0f } 
+        // Create a Tensor from a float array
+        val inputTensor = Tensor.fromBlob(floatData, longArrayOf(1, 3, height.toLong(), width.toLong()))
+
+        // Wrap it into an EValue
+        val inputEValue = EValue.from(inputTensor)
+
+        // Forward pass through the model
+        val output: Array<EValue> = model.forward(inputEValue)
+
+        // Extract float scores from the first output tensor
+        val scores: FloatArray = output[0].toTensor().dataAsFloatArray
+
         Log.d(TAG,"Scores")
         Log.d(TAG,scores)
         val outputs     = module.forward(EValue.from(inputTensor))
