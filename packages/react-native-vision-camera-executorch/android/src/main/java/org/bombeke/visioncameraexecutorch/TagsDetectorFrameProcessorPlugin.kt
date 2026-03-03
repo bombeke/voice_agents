@@ -167,10 +167,10 @@ class TagsDetectorFrameProcessorPlugin(
         val inputEValue = EValue.from(inputTensorx)
 
         // Forward pass through the model
-        val output: Array<EValue> = model.forward(inputEValue)
+        val output = module.forward(inputEValue)
 
         // Extract float scores from the first output tensor
-        val scores: FloatArray = output[0].toTensor().dataAsFloatArray
+        val scores = output[0].toTensor().dataAsFloatArray
 
         Log.d(TAG,"Scores")
         Log.d(TAG,scores)
