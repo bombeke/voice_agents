@@ -161,10 +161,10 @@ class TagsDetectorFrameProcessorPlugin(
         // Create a dummy float array (1 * 3 * height * width)
         val floatData = FloatArray(1 * 3 * height * width) { 0.0f } 
         // Create a Tensor from a float array
-        val inputTensor = Tensor.fromBlob(floatData, longArrayOf(1, 3, height.toLong(), width.toLong()))
+        val inputTensorx = Tensor.fromBlob(floatData, longArrayOf(1, 3, height.toLong(), width.toLong()))
 
         // Wrap it into an EValue
-        val inputEValue = EValue.from(inputTensor)
+        val inputEValue = EValue.from(inputTensorx)
 
         // Forward pass through the model
         val output: Array<EValue> = model.forward(inputEValue)
