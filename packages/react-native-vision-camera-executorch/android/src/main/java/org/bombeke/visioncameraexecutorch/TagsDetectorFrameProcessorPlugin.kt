@@ -173,10 +173,9 @@ class TagsDetectorFrameProcessorPlugin(
         val scores = output[0].toTensor().dataAsFloatArray
 
         Log.d(TAG,"Scores")
-        Log.d(TAG,scores)
+        Log.d(TAG,scorescontentToString())
         val outputs     = module.forward(EValue.from(inputTensor))
         Log.d(TAG, "Outputs")
-        Log.d(TAG, outputs)
 
         val outputTensor = outputs[0].toTensor()
         val rawData     = outputTensor.dataAsFloatArray
