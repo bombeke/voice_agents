@@ -44,7 +44,7 @@ class TagsDetectorFrameProcessorPlugin(
     private val rChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
     private val gChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
     private val bChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
-    private val floatInput = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE * 3)
+    //private val floatInput = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE * 3)
 
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
@@ -154,8 +154,17 @@ class TagsDetectorFrameProcessorPlugin(
             longArrayOf(1L, 3L, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
         )
         Log.d(TAG, "Forward")
-
+        Log.d(TAG,"Testing")
+        Tensor input_tensor = Tensor.fromBlob(float_data, new long[] { 1, 3, height, width });
+        EValue input_evalue = EValue.from(input_tensor);
+        EValue[] output = model.forward(input_evalue);
+        float[] scores = output[0].toTensor().getDataAsFloatArray();
+        Log.d(TAG,"Scores")
+        Log.d(TAG,scores)
         val outputs     = module.forward(EValue.from(inputTensor))
+        Log.d(TAG, "Outputs")
+        Log.d(TAG, outputs)
+
         val outputTensor = outputs[0].toTensor()
         val rawData     = outputTensor.dataAsFloatArray
         val shape       = outputTensor.shape()   // [1, 84, 8400]
