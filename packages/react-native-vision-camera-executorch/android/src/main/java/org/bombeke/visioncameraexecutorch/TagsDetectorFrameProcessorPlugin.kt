@@ -154,27 +154,17 @@ class TagsDetectorFrameProcessorPlugin(
             longArrayOf(1L, 3L, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
         )
         Log.d(TAG, "Forward")
-        Log.d(TAG,"Testing")
-        val height = 640
-        val width = 640
-
-        // Create a dummy float array (1 * 3 * height * width)
-        val floatData = FloatArray(1 * 3 * height * width) { 0.0f } 
-        // Create a Tensor from a float array
-        val inputTensorx = Tensor.fromBlob(floatData, longArrayOf(1, 3, height.toLong(), width.toLong()))
-
-        // Wrap it into an EValue
-        val inputEValue = EValue.from(inputTensorx)
-
         // Forward pass through the model
-        val output = module.forward(inputEValue)
-
-        // Extract float scores from the first output tensor
-        val scores = output[0].toTensor().dataAsFloatArray
-
-        Log.d(TAG,"Scores")
-        Log.d(TAG,scores.contentToString())
-        val outputs     = module.forward(EValue.from(inputTensor))
+        lateinit var outputs: List<EValue>
+        try {
+            Log.d(TAG,"Before creating tensor")
+            val outputs     = module.forward(EValue.from(inputTensor))
+            Log.d(TAG,"Tensor created successfully")
+        } catch (e: Exception) {
+            Log.d(TAG,"Error creating tensor: ${e.message}")
+            return emptyList()
+        }
+        
         Log.d(TAG, "Outputs")
 
         val outputTensor = outputs[0].toTensor()
