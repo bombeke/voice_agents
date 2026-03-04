@@ -5,9 +5,12 @@ import android.util.Log
 import com.mrousavy.camera.frameprocessors.Frame
 import com.mrousavy.camera.frameprocessors.FrameProcessorPlugin
 import com.mrousavy.camera.frameprocessors.VisionCameraProxy
-import executorch.extension.Module
-import executorch.extension.Tensor
-import executorch.extension.EValue
+//import executorch.extension.Module
+//import executorch.extension.Tensor
+//import executorch.extension.EValue
+import org.pytorch.executorch.Module
+import org.pytorch.executorch.Tensor
+import org.pytorch.executorch.EValue
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
