@@ -254,7 +254,7 @@ class TagsDetectorFrameProcessorPlugin(
         Log.d(TAG, "Finished Convert")
         val inputTensor = Tensor.fromBlob(
             floatInput,
-            longArrayOf(1, 3, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE)
+            longArrayOf(1, 3, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
         )
         Log.d(TAG, "Forward")
         // Forward pass through the model
