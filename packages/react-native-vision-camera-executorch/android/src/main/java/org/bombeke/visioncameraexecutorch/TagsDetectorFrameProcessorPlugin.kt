@@ -5,9 +5,9 @@ import android.util.Log
 import com.mrousavy.camera.frameprocessors.Frame
 import com.mrousavy.camera.frameprocessors.FrameProcessorPlugin
 import com.mrousavy.camera.frameprocessors.VisionCameraProxy
-import org.pytorch.executorch.EValue
-import org.pytorch.executorch.Module
-import org.pytorch.executorch.Tensor
+import executorch.extension.Module
+import executorch.extension.Tensor
+import executorch.extension.EValue
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
@@ -36,7 +36,9 @@ class TagsDetectorFrameProcessorPlugin(
         val confidence: Float,
         val classId: Int
     )
-
+    private val INPUT_SIZE = 640
+    private val floatBuffer =
+        FloatArray(1 * 3 * INPUT_SIZE * INPUT_SIZE)
     private val module: Module
     private val reactContext: ReactApplicationContext
     private val MODEL_NAME = "model.pte"
@@ -64,6 +66,20 @@ class TagsDetectorFrameProcessorPlugin(
         val image: Image = frame.image
 
         Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
+
+        processImage(image)
+        Log.d(TAG,"Finished processing image")
+
+        val imageTensor = Tensor.fromBlob(
+            floatBuffer,
+            longArrayOf(1, 3, 640, 640)
+        )
+        Log.d(TAG,"Started inference")
+        Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
+        val output = module.forward(
+            EValue.from(imageTensor)
+        )
+        Log.d(TAG,"Finished inference")
 
         val detections = runYolo(image)
         Log.d(TAG, "Finished Detection")
@@ -145,13 +161,97 @@ class TagsDetectorFrameProcessorPlugin(
         Log.d(TAG, "Model downloaded successfully to ${dest.absolutePath}")
     }
 
+    // ------------------------------------------------------------
+    // Zero-Copy YUV → YOLO Float
+    // ------------------------------------------------------------
+
+    private fun processImage(image: Image) {
+
+        val yPlane = image.planes[0]
+        val uPlane = image.planes[1]
+        val vPlane = image.planes[2]
+
+        val yBuffer = yPlane.buffer
+        val uBuffer = uPlane.buffer
+        val vBuffer = vPlane.buffer
+
+        val width = image.width
+        val height = image.height
+
+        val yRowStride = yPlane.rowStride
+        val uvRowStride = uPlane.rowStride
+        val uvPixelStride = uPlane.pixelStride
+
+        val scale = min(
+            INPUT_SIZE.toFloat() / width,
+            INPUT_SIZE.toFloat() / height
+        )
+
+        val resizedW = (width * scale).toInt()
+        val resizedH = (height * scale).toInt()
+
+        val padX = (INPUT_SIZE - resizedW) / 2
+        val padY = (INPUT_SIZE - resizedH) / 2
+
+        val padValue = 114f / 255f
+
+        // Fill padding
+        for (i in floatBuffer.indices) {
+            floatBuffer[i] = padValue
+        }
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+
+                val yIndex = y * yRowStride + x
+                val uvIndex =
+                    (y / 2) * uvRowStride +
+                    (x / 2) * uvPixelStride
+
+                val Y = yBuffer.get(yIndex).toInt() and 0xFF
+                val U = uBuffer.get(uvIndex).toInt() and 0xFF
+                val V = vBuffer.get(uvIndex).toInt() and 0xFF
+
+                var r = Y + (1.370705f * (V - 128)).toInt()
+                var g = Y - (0.337633f * (U - 128)).toInt() -
+                        (0.698001f * (V - 128)).toInt()
+                var b = Y + (1.732446f * (U - 128)).toInt()
+
+                r = r.coerceIn(0, 255)
+                g = g.coerceIn(0, 255)
+                b = b.coerceIn(0, 255)
+
+                val newX = (x * scale).toInt() + padX
+                val newY = (y * scale).toInt() + padY
+
+                if (newX in 0 until INPUT_SIZE &&
+                    newY in 0 until INPUT_SIZE) {
+
+                    val index =
+                        newY * INPUT_SIZE + newX
+
+                    floatBuffer[index] =
+                        r / 255f
+
+                    floatBuffer[index +
+                        INPUT_SIZE * INPUT_SIZE] =
+                        g / 255f
+
+                    floatBuffer[index +
+                        2 * INPUT_SIZE * INPUT_SIZE] =
+                        b / 255f
+                }
+            }
+        }
+    }
+
     private fun runYolo(image: Image): List<Detection> {
         Log.d(TAG, "Convert")
         val floatInput  = yuv420ToNchwFloat(image)
         Log.d(TAG, "Finished Convert")
         val inputTensor = Tensor.fromBlob(
             floatInput,
-            longArrayOf(1L, 3L, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
+            longArrayOf(1, 3, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE)
         )
         Log.d(TAG, "Forward")
         // Forward pass through the model
