@@ -14,7 +14,6 @@ export function detectTags(
   const plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {
     modelPath,
   });
-  //@ts-ignore
   return (frame: Frame) => {
     "worklet";
     if (!plugin) {

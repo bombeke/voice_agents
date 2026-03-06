@@ -65,7 +65,7 @@ class TagsDetectorFrameProcessorPlugin(
         //Log.d(TAG, "Model loaded from ${modelFile.absolutePath}")
     }
 
-    override fun callback(frame: Any , params: Map<String, Any>?): Any? {
+    override fun callback(frame: Frame , params: Map<String, Any>?): Any? {
         when (frame) {
             is Frame -> {
                 val image = frame.image
