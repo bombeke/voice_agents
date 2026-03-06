@@ -65,46 +65,72 @@ class TagsDetectorFrameProcessorPlugin(
         //Log.d(TAG, "Model loaded from ${modelFile.absolutePath}")
     }
 
-    override fun callback(frame: Frame, params: Map<String, Any>?): Any? {
-        val image: Image = frame.image
+    override fun callback(frame: Any , params: Map<String, Any>?): Any? {
+        when (frame) {
+            is Frame -> {
+                val image = frame.image
+                Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
 
-        Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
+                processImage(image)
+                Log.d(TAG,"Finished processing image")
 
-        processImage(image)
-        Log.d(TAG,"Finished processing image")
+                val imageTensor = Tensor.fromBlob(
+                    floatBuffer,
+                    longArrayOf(1, 3, 640, 640)
+                )
+                Log.d(TAG,"Started inference")
+                Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
+                val output = module.forward(
+                    EValue.from(imageTensor)
+                )
+                Log.d(TAG,"Finished inference")
+                
+                val detections = runYolo(image)
+                Log.d(TAG, "Finished Detection")
 
-        val imageTensor = Tensor.fromBlob(
-            floatBuffer,
-            longArrayOf(1, 3, 640, 640)
-        )
-        Log.d(TAG,"Started inference")
-        Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
-        val output = module.forward(
-            EValue.from(imageTensor)
-        )
-        Log.d(TAG,"Finished inference")
+                val detectionList = detections.map { det ->
+                    hashMapOf<String, Any>(
+                        "x1"         to det.x1.toDouble(),
+                        "y1"         to det.y1.toDouble(),
+                        "x2"         to det.x2.toDouble(),
+                        "y2"         to det.y2.toDouble(),
+                        "confidence" to det.confidence.toDouble(),
+                        "classId"    to det.classId
+                    )
+                }
 
-        val detections = runYolo(image)
-        Log.d(TAG, "Finished Detection")
+                Log.d(TAG, "Detected ${detections.size} object(s)")
 
-        val detectionList = detections.map { det ->
-            hashMapOf<String, Any>(
-                "x1"         to det.x1.toDouble(),
-                "y1"         to det.y1.toDouble(),
-                "x2"         to det.x2.toDouble(),
-                "y2"         to det.y2.toDouble(),
-                "confidence" to det.confidence.toDouble(),
-                "classId"    to det.classId
-            )
+                return hashMapOf<String, Any>(
+                    "detections" to detectionList,
+                    "frameWidth"  to image.width,
+                    "frameHeight" to image.height
+                )
+
+            }
+
+            is FloatArray -> {
+                //Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
+
+                //processImage(image)
+                Log.d(TAG,"Finished processing image")
+
+                val imageTensor = Tensor.fromBlob(
+                    image,
+                    longArrayOf(1, 3, 640, 640)
+                )
+                Log.d(TAG,"Started inference")
+                //Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
+                val output = module.forward(
+                    EValue.from(imageTensor)
+                )
+                Log.d(TAG,"Finished inference")
+
+                return emptyList()
+            }
         }
 
-        Log.d(TAG, "Detected ${detections.size} object(s)")
-
-        return hashMapOf<String, Any>(
-            "detections" to detectionList,
-            "frameWidth"  to image.width,
-            "frameHeight" to image.height
-        )
+        
     }
 
     private fun prepareModel(context:  ReactApplicationContext): String {

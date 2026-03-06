@@ -93,9 +93,9 @@ export default function CameraScreen() {
 
       // TODO: Replace with real ML inference
       const resized = resize(frame, {
-        scale: { width: 320, height: 320 },
+        scale: { width: 640, height: 640 },
         pixelFormat: "rgb",
-        dataType: "uint8",
+        dataType: "float32",
       });
 
       const mockDetection = [
@@ -109,7 +109,7 @@ export default function CameraScreen() {
 
       console.log("Frame0");
 
-      const result = detectTagsProcessor(frame);
+      const result = detectTagsProcessor(resized);
       console.log("Frame1", result);
       updateDetections(result as any[]);
       console.log("Frame2");
