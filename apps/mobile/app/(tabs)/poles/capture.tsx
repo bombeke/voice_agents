@@ -109,7 +109,7 @@ export default function CameraScreen() {
 
       console.log("Frame0");
 
-      const result = detectTagsProcessor(resized);
+      const result = detectTagsProcessor(resized as any);
       console.log("Frame1", result);
       updateDetections(result as any[]);
       console.log("Frame2");

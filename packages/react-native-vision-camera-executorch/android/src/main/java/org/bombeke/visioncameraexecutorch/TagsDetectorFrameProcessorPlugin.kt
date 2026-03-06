@@ -78,6 +78,16 @@ class TagsDetectorFrameProcessorPlugin(
                     floatBuffer,
                     longArrayOf(1, 3, 640, 640)
                 )
+                Log.d("Tensor", "Shape: ${imageTensor.shape().contentToString()}")
+                Log.d("Tensor", "Num Elements: ${imageTensor.numel()}")
+                val expectedSize = 1 * 3 * 640 * 640
+                Log.d("Tensor", "Buffer capacity: ${floatBuffer.capacity()}")
+                Log.d("Tensor", "Expected size: $expectedSize")
+                val test = FloatArray(10)
+                floatBuffer.rewind()
+                floatBuffer.get(test)
+
+                Log.d("Tensor", "First values: ${test.joinToString()}")
                 Log.d(TAG,"Started inference")
                 Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
                 val output = module.forward(
