@@ -116,7 +116,7 @@ class TagsDetectorFrameProcessorPlugin(
                 Log.d(TAG,"Finished processing image")
 
                 val imageTensor = Tensor.fromBlob(
-                    image,
+                    frame,
                     longArrayOf(1, 3, 640, 640)
                 )
                 Log.d(TAG,"Started inference")

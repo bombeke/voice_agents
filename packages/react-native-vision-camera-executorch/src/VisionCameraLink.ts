@@ -14,7 +14,8 @@ export function detectTags(
   const plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {
     modelPath,
   });
-  return (frame: Frame | Float32Array<ArrayBufferLike>) => {
+  //@ts-ignore
+  return (frame: Frame) => {
     "worklet";
     if (!plugin) {
       console.log("detectTags not initialized", plugin);
