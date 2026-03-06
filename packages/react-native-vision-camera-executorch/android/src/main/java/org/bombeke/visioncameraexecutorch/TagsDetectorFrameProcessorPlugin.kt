@@ -126,7 +126,7 @@ class TagsDetectorFrameProcessorPlugin(
                 )
                 Log.d(TAG,"Finished inference")
 
-                return emptyList()
+                return output
             }
         }
 

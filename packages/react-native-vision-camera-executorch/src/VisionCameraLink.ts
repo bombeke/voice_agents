@@ -8,7 +8,7 @@ import { ParameterType } from "./TagsDetectorFrameProcessor.types";
 export function detectTags(
   modelPath: string,
   options?: Record<string, ParameterType>,
-): (frame: Frame | Float32Array<ArrayBufferLike>) => ParameterType | null {
+): (frame: Frame) => ParameterType | null {
   "worklet";
   console.log("ModelPath:", modelPath);
   const plugin = VisionCameraProxy.initFrameProcessorPlugin("detectTags", {
@@ -21,7 +21,7 @@ export function detectTags(
       console.log("detectTags not initialized", plugin);
       return null;
     }
-    return plugin.call(frame as any, options ?? {});
+    return plugin.call(frame, options ?? {});
   };
 }
 
