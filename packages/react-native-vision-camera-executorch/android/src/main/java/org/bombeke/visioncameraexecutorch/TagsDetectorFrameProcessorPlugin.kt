@@ -66,76 +66,58 @@ class TagsDetectorFrameProcessorPlugin(
     }
 
     override fun callback(frame: Frame , params: Map<String, Any>?): Any? {
-        when (frame) {
-            is Frame -> {
-                val image = frame.image
-                Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
 
-                processImage(image)
-                Log.d(TAG,"Finished processing image")
+        val image = frame.image
+        Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
 
-                val imageTensor = Tensor.fromBlob(
-                    floatBuffer,
-                    longArrayOf(1, 3, 640, 640)
-                )
-                Log.d("Tensor", "Shape: ${imageTensor.shape().contentToString()}")
-                Log.d("Tensor", "Num Elements: ${imageTensor.numel()}")
-                val expectedSize = 1 * 3 * 640 * 640
-                //Log.d("Tensor", "Buffer capacity: ${floatBuffer.capacity()}")
-                Log.d("Tensor", "Expected size: $expectedSize")
+        processImage(image)
+        Log.d(TAG,"Finished processing image")
 
-                Log.d(TAG,"Started inference")
-                Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
-                val output = module.forward(
-                    EValue.from(imageTensor)
-                )
-                Log.d(TAG,"Finished inference")
+        val imageTensor = Tensor.fromBlob(
+            floatBuffer,
+            longArrayOf(1, 3, 640, 640)
+        )
+        Log.d("Tensor", "Shape: ${imageTensor.shape().contentToString()}")
+        Log.d("Tensor", "Num Elements: ${imageTensor.numel()}")
+        Log.d(TAG,"Started inference")
+        Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
+        val output = module.forward(
+            EValue.from(imageTensor)
+        )
+        output.forEachIndexed { index, eValue ->
+            if (eValue.isTensor) {
+                val tensor = eValue.toTensor()
+                val shape = tensor.shape().contentToString()
+                val firstVal = tensor.getDataAsFloatArray().getOrNull(0)
                 
-                val detections = runYolo(image)
-                Log.d(TAG, "Finished Detection")
-
-                val detectionList = detections.map { det ->
-                    hashMapOf<String, Any>(
-                        "x1"         to det.x1.toDouble(),
-                        "y1"         to det.y1.toDouble(),
-                        "x2"         to det.x2.toDouble(),
-                        "y2"         to det.y2.toDouble(),
-                        "confidence" to det.confidence.toDouble(),
-                        "classId"    to det.classId
-                    )
-                }
-
-                Log.d(TAG, "Detected ${detections.size} object(s)")
-
-                return hashMapOf<String, Any>(
-                    "detections" to detectionList,
-                    "frameWidth"  to image.width,
-                    "frameHeight" to image.height
-                )
-
-            }
-
-            is FloatArray -> {
-                //Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
-
-                //processImage(image)
-                Log.d(TAG,"Finished processing image")
-
-                val imageTensor = Tensor.fromBlob(
-                    frame,
-                    longArrayOf(1, 3, 640, 640)
-                )
-                Log.d(TAG,"Started inference")
-                //Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
-                val output = module.forward(
-                    EValue.from(imageTensor)
-                )
-                Log.d(TAG,"Finished inference")
-
-                return output
+                Log.d("ExecuTorch", "Output[$index] Shape: $shape, First Value: $firstVal")
+            } else {
+                Log.d("ExecuTorch", "Output[$index] is not a tensor (Type: ${eValue.javaClass.simpleName})")
             }
         }
+        Log.d(TAG,"Finished inference")
+        
+        val detections = runYolo(image)
+        Log.d(TAG, "Finished Detection")
 
+        val detectionList = detections.map { det ->
+            hashMapOf<String, Any>(
+                "x1"         to det.x1.toDouble(),
+                "y1"         to det.y1.toDouble(),
+                "x2"         to det.x2.toDouble(),
+                "y2"         to det.y2.toDouble(),
+                "confidence" to det.confidence.toDouble(),
+                "classId"    to det.classId
+            )
+        }
+
+        Log.d(TAG, "Detected ${detections.size} object(s)")
+
+        return hashMapOf<String, Any>(
+            "detections" to detectionList,
+            "frameWidth"  to image.width,
+            "frameHeight" to image.height
+        )
         
     }
 
@@ -282,6 +264,7 @@ class TagsDetectorFrameProcessorPlugin(
 
     private fun runYolo(image: Image): List<Detection> {
         Log.d(TAG, "Convert")
+        val startTime = System.currentTimeMillis()
         val floatInput  = yuv420ToNchwFloat(image)
         Log.d(TAG, "Finished Convert")
         val inputTensor = Tensor.fromBlob(
@@ -299,11 +282,25 @@ class TagsDetectorFrameProcessorPlugin(
             Log.d(TAG,"Error creating tensor: ${e.message}")
             return emptyList()
         }
-        
-        Log.d(TAG, "Outputs")
+        val endTime = System.currentTimeMillis()
+        Log.d(TAG, "Inference took: ${endTime - startTime} ms")
+        outputs.forEachIndexed { index, eValue ->
+            if (eValue.isTensor) {
+                val tensor = eValue.toTensor()
+                val shape = tensor.shape().contentToString()
+                val firstVal = tensor.getDataAsFloatArray().getOrNull(0)
+                
+                Log.d("ExecuTorch", "Output[$index] Shape: $shape, First Value: $firstVal")
+            } else {
+                Log.d("ExecuTorch", "Output[$index] is not a tensor (Type: ${eValue.javaClass.simpleName})")
+            }
+        }
 
         val outputTensor = outputs[0].toTensor()
         val rawData     = outputTensor.dataAsFloatArray
+        Log.d(TAG, "Output Data Size: ${rawData.size}")
+        Log.d(TAG, "Output Top Results: ${rawData.take(5)}")
+
         val shape       = outputTensor.shape()   // [1, 84, 8400]
 
         val numAnchors  = shape[2].toInt()
