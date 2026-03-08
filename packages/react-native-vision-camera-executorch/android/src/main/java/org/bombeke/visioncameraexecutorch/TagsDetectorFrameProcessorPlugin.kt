@@ -5,9 +5,10 @@ import android.util.Log
 import com.mrousavy.camera.frameprocessors.Frame
 import com.mrousavy.camera.frameprocessors.FrameProcessorPlugin
 import com.mrousavy.camera.frameprocessors.VisionCameraProxy
-//import executorch.extension.Module
-//import executorch.extension.Tensor
-//import executorch.extension.EValue
+import org.bombeke.visioncameraexecutorch.utils.Bbox
+import org.bombeke.visioncameraexecutorch.utils.CocoLabel
+import org.bombeke.visioncameraexecutorch.utils.Detection
+import org.bombeke.visioncameraexecutorch.utils.nms
 import org.pytorch.executorch.Module
 import org.pytorch.executorch.Tensor
 import org.pytorch.executorch.EValue
@@ -27,7 +28,8 @@ class TagsDetectorFrameProcessorPlugin(
         private const val MODEL_INPUT_SIZE = 640
         private const val NUM_CLASSES = 80
         private const val CONF_THRESHOLD = 0.25f
-        private const val IOU_THRESHOLD = 0.45f
+        private const val IOU_THRESHOLD = 0.55f
+        private const val DETECTION_SCORE_THRESHOLD = .7f
         private const val DEFAULT_MODEL_ASSET = "yolo26n.pte"
         private const val OPTIONS_MODEL_PATH_KEY = "modelPath"   // local absolute path
         private const val OPTIONS_MODEL_URL_KEY  = "modelUrl"    // remote URL to download from
@@ -49,7 +51,6 @@ class TagsDetectorFrameProcessorPlugin(
     private val rChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
     private val gChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
     private val bChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
-    //private val floatInput = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE * 3)
 
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
@@ -72,7 +73,7 @@ class TagsDetectorFrameProcessorPlugin(
 
         val detections = runInference(image)
         
-        val detectionList = detections.map { det ->
+        /*val detectionList = detections.map { det ->
             hashMapOf<String, Any>(
                 "x1"         to det.x1.toDouble(),
                 "y1"         to det.y1.toDouble(),
@@ -81,12 +82,12 @@ class TagsDetectorFrameProcessorPlugin(
                 "confidence" to det.confidence.toDouble(),
                 "classId"    to det.classId
             )
-        }
+        }*/
 
         Log.d(TAG, "Detected ${detections.size} object(s)")
 
         return hashMapOf<String, Any>(
-            "detections" to detectionList,
+            "detections" to detections,
             "frameWidth"  to image.width,
             "frameHeight" to image.height
         )
@@ -246,7 +247,9 @@ class TagsDetectorFrameProcessorPlugin(
 
         val endTime = System.currentTimeMillis()
         Log.d(TAG, "Inference took: ${endTime - startTime} ms")
+        return postprocess(outputs)
 
+        /*
         val outputTensor = outputs[0].toTensor()
         val rawData     = outputTensor.dataAsFloatArray
 
@@ -286,6 +289,36 @@ class TagsDetectorFrameProcessorPlugin(
         }
 
         return nonMaxSuppression(detections)
+        */
+    }
+    fun postprocess(output: Array<EValue>): Array<Detection> {
+        val scoresTensor = output[1].toTensor()
+        val numel = scoresTensor.numel()
+        val bboxes = output[0].toTensor().dataAsFloatArray
+        val scores = scoresTensor.dataAsFloatArray
+        val labels = output[2].toTensor().dataAsFloatArray
+
+        val detections: MutableList<Detection> = mutableListOf()
+        for (idx in 0 until numel.toInt()) {
+        val score = scores[idx]
+        if (score < DETECTION_SCORE_THRESHOLD) {
+            continue
+        }
+        val bbox =
+            Bbox(
+            bboxes[idx * 4 + 0] * this.widthRatio,
+            bboxes[idx * 4 + 1] * this.heightRatio,
+            bboxes[idx * 4 + 2] * this.widthRatio,
+            bboxes[idx * 4 + 3] * this.heightRatio,
+            )
+        val label = labels[idx]
+        detections.add(
+            Detection(bbox, score, CocoLabel.fromId(label.toInt())!!),
+        )
+        }
+
+        val detectionsPostNms = nms(detections, IOU_THRESHOLD)
+        return detectionsPostNms.toTypedArray()
     }
 
     // ── YUV_420_888 (format 35) → float NCHW [1,3,640,640] ─────────────────

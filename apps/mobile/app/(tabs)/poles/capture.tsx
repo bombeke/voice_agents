@@ -44,7 +44,7 @@ export default function CameraScreen() {
   const { resize } = useResizePlugin();
   const { cameraRef, isInitialized, isCapturing, onInitialized, takePhoto } =
     useCameraController();
-  // [modelPath, setModelPath] = useState<string | null>(null);
+
 
   //const { detections } = useTagDetection(!isCapturing);
   //const { queues, frameProcessor } = usePoleDetection();
@@ -71,13 +71,6 @@ export default function CameraScreen() {
       setDetections(data);
     },
   );
-  /*useEffect(() => {
-    (async () => {
-      const path = await prepareAndInitializeModel();
-      setModelPath(path);
-    })();
-  }, []);
-  */
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
@@ -92,27 +85,14 @@ export default function CameraScreen() {
       //lastTimestamp.value = frame.timestamp;
 
       // TODO: Replace with real ML inference
-      const resized = resize(frame, {
+      /*const resized = resize(frame, {
         scale: { width: 640, height: 640 },
         pixelFormat: "rgb",
         dataType: "float32",
       });
-
-      const mockDetection = [
-        {
-          id: "1",
-          box: { x: 100, y: 200, width: 120, height: 200 },
-          label: "Pole",
-          confidence: 0.87,
-        },
-      ];
-
-      console.log("Frame0");
-
+      */
       const result = detectTagsProcessor(frame);
-      console.log("Frame1", result);
       updateDetections(result as any[]);
-      console.log("Frame2");
     },
     [updateDetections],
   );
@@ -136,7 +116,6 @@ export default function CameraScreen() {
     await takePhoto({ flash });
     return;
   };
-  console.log("is ready:", ready);
 
   if (preferredDevice != null && preferredDevice.position === cameraPosition) {
     // override default device with the one selected by the user in settings
