@@ -273,15 +273,11 @@ class TagsDetectorFrameProcessorPlugin(
         )
         Log.d(TAG, "Forward")
         // Forward pass through the model
-        lateinit var outputs: List<EValue>
-        try {
-            Log.d(TAG,"Before creating tensor")
-            val outputs     = module.forward(EValue.from(inputTensor))
-            Log.d(TAG,"Tensor created successfully")
-        } catch (e: Exception) {
-            Log.d(TAG,"Error creating tensor: ${e.message}")
-            return emptyList()
-        }
+ 
+        Log.d(TAG,"Before creating tensor")
+        val outputs     = module.forward(EValue.from(inputTensor))
+        Log.d(TAG,"Tensor created successfully")
+
         val endTime = System.currentTimeMillis()
         Log.d(TAG, "Inference took: ${endTime - startTime} ms")
         outputs.forEachIndexed { index, eValue ->
