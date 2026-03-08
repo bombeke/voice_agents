@@ -70,36 +70,8 @@ class TagsDetectorFrameProcessorPlugin(
         val image = frame.image
         Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
 
-        processImage(image)
-        Log.d(TAG,"Finished processing image")
-
-        val imageTensor = Tensor.fromBlob(
-            floatBuffer,
-            longArrayOf(1, 3, 640, 640)
-        )
-        Log.d("Tensor", "Shape: ${imageTensor.shape().contentToString()}")
-        Log.d("Tensor", "Num Elements: ${imageTensor.numel()}")
-        Log.d(TAG,"Started inference")
-        Log.d(TAG, "${image.width} x ${image.height} image, format #${image.format}")
-        val output = module.forward(
-            EValue.from(imageTensor)
-        )
-        output.forEachIndexed { index, eValue ->
-            if (eValue.isTensor) {
-                val tensor = eValue.toTensor()
-                val shape = tensor.shape().contentToString()
-                val firstVal = tensor.getDataAsFloatArray().getOrNull(0)
-                
-                Log.d("ExecuTorch", "Output[$index] Shape: $shape, First Value: $firstVal")
-            } else {
-                Log.d("ExecuTorch", "Output[$index] is not a tensor (Type: ${eValue.javaClass.simpleName})")
-            }
-        }
-        Log.d(TAG,"Finished inference")
+        val detections = runInference(image)
         
-        val detections = runYolo(image)
-        Log.d(TAG, "Finished Detection")
-
         val detectionList = detections.map { det ->
             hashMapOf<String, Any>(
                 "x1"         to det.x1.toDouble(),
@@ -179,7 +151,7 @@ class TagsDetectorFrameProcessorPlugin(
     }
 
     // ------------------------------------------------------------
-    // Zero-Copy YUV → YOLO Float
+    // Zero-Copy YUV → Float
     // ------------------------------------------------------------
 
     private fun processImage(image: Image) {
@@ -262,40 +234,21 @@ class TagsDetectorFrameProcessorPlugin(
         }
     }
 
-    private fun runYolo(image: Image): List<Detection> {
-        Log.d(TAG, "Convert")
+    private fun runInference(image: Image): List<Detection> {
         val startTime = System.currentTimeMillis()
         val floatInput  = yuv420ToNchwFloat(image)
-        Log.d(TAG, "Finished Convert")
         val inputTensor = Tensor.fromBlob(
             floatInput,
             longArrayOf(1, 3, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
         )
-        Log.d(TAG, "Forward")
-        // Forward pass through the model
  
-        Log.d(TAG,"Before creating tensor")
         val outputs     = module.forward(EValue.from(inputTensor))
-        Log.d(TAG,"Tensor created successfully")
 
         val endTime = System.currentTimeMillis()
         Log.d(TAG, "Inference took: ${endTime - startTime} ms")
-        outputs.forEachIndexed { index, eValue ->
-            if (eValue.isTensor) {
-                val tensor = eValue.toTensor()
-                val shape = tensor.shape().contentToString()
-                val firstVal = tensor.getDataAsFloatArray().getOrNull(0)
-                
-                Log.d("ExecuTorch", "Output[$index] Shape: $shape, First Value: $firstVal")
-            } else {
-                Log.d("ExecuTorch", "Output[$index] is not a tensor (Type: ${eValue.javaClass.simpleName})")
-            }
-        }
 
         val outputTensor = outputs[0].toTensor()
         val rawData     = outputTensor.dataAsFloatArray
-        Log.d(TAG, "Output Data Size: ${rawData.size}")
-        Log.d(TAG, "Output Top Results: ${rawData.take(5)}")
 
         val shape       = outputTensor.shape()   // [1, 84, 8400]
 
