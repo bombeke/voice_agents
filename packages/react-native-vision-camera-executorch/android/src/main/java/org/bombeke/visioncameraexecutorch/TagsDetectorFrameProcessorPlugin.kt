@@ -17,6 +17,8 @@ import kotlin.math.max
 import kotlin.math.min
 import com.facebook.react.bridge.ReactApplicationContext
 import java.io.FileOutputStream
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.WritableArray
 
 class TagsDetectorFrameProcessorPlugin(
     proxy: VisionCameraProxy?,
@@ -88,7 +90,7 @@ class TagsDetectorFrameProcessorPlugin(
             )
         }*/
         val outputWritableArray: WritableArray = Arguments.createArray()
-        output
+        detections
             .map { detection ->
             detection.toWritableMap()
             }.forEach { writableMap ->
