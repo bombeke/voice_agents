@@ -23,6 +23,7 @@ class TagsDetectorFrameProcessorPlugin(
     options: Map<String, Any>?
 ) : FrameProcessorPlugin() {
 
+
     companion object {
         private const val TAG = "TagsDetectorPlugin"
         private const val MODEL_INPUT_SIZE = 640
@@ -41,6 +42,9 @@ class TagsDetectorFrameProcessorPlugin(
         val confidence: Float,
         val classId: Int
     )
+
+    private var heightRatio: Float = 1.0f
+    private var widthRatio: Float = 1.0f
     private val INPUT_SIZE = 640
     private val floatBuffer =
         FloatArray(1 * 3 * INPUT_SIZE * INPUT_SIZE)
@@ -83,11 +87,18 @@ class TagsDetectorFrameProcessorPlugin(
                 "classId"    to det.classId
             )
         }*/
+        val outputWritableArray: WritableArray = Arguments.createArray()
+        output
+            .map { detection ->
+            detection.toWritableMap()
+            }.forEach { writableMap ->
+            outputWritableArray.pushMap(writableMap)
+            }
 
         Log.d(TAG, "Detected ${detections.size} object(s)")
 
         return hashMapOf<String, Any>(
-            "detections" to detections,
+            "detections" to outputWritableArray,
             "frameWidth"  to image.width,
             "frameHeight" to image.height
         )

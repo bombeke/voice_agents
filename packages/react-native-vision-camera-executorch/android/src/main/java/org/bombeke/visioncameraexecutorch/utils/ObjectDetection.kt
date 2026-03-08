@@ -1,4 +1,4 @@
-package package org.bombeke.visioncameraexecutorch.utils
+package org.bombeke.visioncameraexecutorch.utils
 
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
