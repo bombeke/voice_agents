@@ -38,12 +38,12 @@ class TagsDetectorFrameProcessorPlugin(
         private const val OPTIONS_MODEL_URL_KEY  = "modelUrl"    // remote URL to download from
     }
 
-    data class Detection(
+    /*data class Detection(
         val x1: Float, val y1: Float,
         val x2: Float, val y2: Float,
         val confidence: Float,
         val classId: Int
-    )
+    )*/
 
     private var heightRatio: Float = 1.0f
     private var widthRatio: Float = 1.0f
@@ -90,21 +90,15 @@ class TagsDetectorFrameProcessorPlugin(
             )
         }*/
         val outputWritableArray: WritableArray = Arguments.createArray()
-        detections
-            .map { detection ->
-            detection.toWritableMap()
-            }.forEach { writableMap ->
-            outputWritableArray.pushMap(writableMap)
-            }
-
+        detections.forEach { detection ->
+            outputArray.pushMap(detection.toWritableMap())
+        }
         Log.d(TAG, "Detected ${detections.size} object(s)")
-
-        return hashMapOf<String, Any>(
-            "detections" to outputWritableArray,
-            "frameWidth"  to image.width,
+        return hashMapOf(
+            "detections" to outputArray,
+            "frameWidth" to image.width,
             "frameHeight" to image.height
         )
-        
     }
 
     private fun prepareModel(context:  ReactApplicationContext): String {
@@ -304,14 +298,15 @@ class TagsDetectorFrameProcessorPlugin(
         return nonMaxSuppression(detections)
         */
     }
-    fun postprocess(output: Array<EValue>): Array<Detection> {
+    fun postprocess(output: Array<EValue>): List<Detection> {
         val scoresTensor = output[1].toTensor()
         val numel = scoresTensor.numel()
         val bboxes = output[0].toTensor().dataAsFloatArray
         val scores = scoresTensor.dataAsFloatArray
         val labels = output[2].toTensor().dataAsFloatArray
 
-        val detections: MutableList<Detection> = mutableListOf()
+        //val detections: MutableList<Detection> = mutableListOf()
+        val detections = mutableListOf<Detection>()
         for (idx in 0 until numel.toInt()) {
         val score = scores[idx]
         if (score < DETECTION_SCORE_THRESHOLD) {
@@ -319,16 +314,35 @@ class TagsDetectorFrameProcessorPlugin(
         }
         val bbox =
             Bbox(
-            bboxes[idx * 4 + 0] * this.widthRatio,
-            bboxes[idx * 4 + 1] * this.heightRatio,
-            bboxes[idx * 4 + 2] * this.widthRatio,
-            bboxes[idx * 4 + 3] * this.heightRatio,
+            bboxes[idx * 4 + 0] * widthRatio,
+            bboxes[idx * 4 + 1] * heightRatio,
+            bboxes[idx * 4 + 2] * widthRatio,
+            bboxes[idx * 4 + 3] * heightRatio,
             )
         val label = labels[idx]
         detections.add(
             Detection(bbox, score, CocoLabel.fromId(label.toInt())!!),
         )
         }
+        /*
+         val x1 = bboxes[idx * 4 + 0] * widthRatio
+        val y1 = bboxes[idx * 4 + 1] * heightRatio
+        val x2 = bboxes[idx * 4 + 2] * widthRatio
+        val y2 = bboxes[idx * 4 + 3] * heightRatio
+
+        val bbox = Bbox(x1, y1, x2, y2)
+
+        val labelId = labels[idx].toInt()
+        val label = CocoLabel.fromId(labelId) ?: continue
+
+        detections.add(
+            Detection(
+                bbox = bbox,
+                score = score,
+                label = label
+            )
+        )
+        */
 
         val detectionsPostNms = nms(detections, IOU_THRESHOLD)
         return detectionsPostNms.toTypedArray()
