@@ -89,7 +89,7 @@ class TagsDetectorFrameProcessorPlugin(
                 "classId"    to det.classId
             )
         }*/
-        val outputWritableArray: WritableArray = Arguments.createArray()
+        val outputArray: WritableArray = Arguments.createArray()
         detections.forEach { detection ->
             outputArray.pushMap(detection.toWritableMap())
         }
@@ -312,7 +312,7 @@ class TagsDetectorFrameProcessorPlugin(
         if (score < DETECTION_SCORE_THRESHOLD) {
             continue
         }
-        val bbox =
+        /*val bbox =
             Bbox(
             bboxes[idx * 4 + 0] * widthRatio,
             bboxes[idx * 4 + 1] * heightRatio,
@@ -323,9 +323,9 @@ class TagsDetectorFrameProcessorPlugin(
         detections.add(
             Detection(bbox, score, CocoLabel.fromId(label.toInt())!!),
         )
-        }
-        /*
-         val x1 = bboxes[idx * 4 + 0] * widthRatio
+        }*/
+        
+        val x1 = bboxes[idx * 4 + 0] * widthRatio
         val y1 = bboxes[idx * 4 + 1] * heightRatio
         val x2 = bboxes[idx * 4 + 2] * widthRatio
         val y2 = bboxes[idx * 4 + 3] * heightRatio
@@ -342,7 +342,6 @@ class TagsDetectorFrameProcessorPlugin(
                 label = label
             )
         )
-        */
 
         val detectionsPostNms = nms(detections, IOU_THRESHOLD)
         return detectionsPostNms.toTypedArray()
@@ -397,25 +396,4 @@ class TagsDetectorFrameProcessorPlugin(
         return rChannel + gChannel + bChannel
     }
 
-    // Greedy NMS
-    private fun nonMaxSuppression(dets: List<Detection>): List<Detection> {
-        val sorted = dets.sortedByDescending { it.confidence }.toMutableList()
-        val kept   = mutableListOf<Detection>()
-
-        while (sorted.isNotEmpty()) {
-            val best = sorted.removeAt(0)
-            kept.add(best)
-            sorted.removeAll { iou(best, it) > IOU_THRESHOLD }
-        }
-        return kept
-    }
-
-    private fun iou(a: Detection, b: Detection): Float {
-        val ix1 = max(a.x1, b.x1);  val iy1 = max(a.y1, b.y1)
-        val ix2 = min(a.x2, b.x2);  val iy2 = min(a.y2, b.y2)
-        val inter = max(0f, ix2 - ix1) * max(0f, iy2 - iy1)
-        val union = (a.x2 - a.x1) * (a.y2 - a.y1) +
-                    (b.x2 - b.x1) * (b.y2 - b.y1) - inter
-        return if (union == 0f) 0f else inter / union
-    }
 }
