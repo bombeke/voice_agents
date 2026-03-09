@@ -50,6 +50,8 @@ class TagsDetectorFrameProcessorPlugin(
     private val rChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
     private val gChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
     private val bChannel = FloatArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE) { 0.5f }
+    private val inputTensorBuffer =
+    FloatArray(3 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE)
 
     init {
         Log.d(TAG, "Initializing with options: ${options?.toString()}")
@@ -282,53 +284,65 @@ class TagsDetectorFrameProcessorPlugin(
 
         return nms(detections, IOU_THRESHOLD)
     }
-    // ── YUV_420_888 (format 35) → float NCHW [1,3,640,640] ─────────────────
+    
     private fun yuv420ToNchwFloat(image: Image): FloatArray {
-        val yPlane  = image.planes[0]
-        val uPlane  = image.planes[1]
-        val vPlane  = image.planes[2]
 
-        val yBuffer       = yPlane.buffer
-        val uBuffer       = uPlane.buffer
-        val vBuffer       = vPlane.buffer
-        val yRowStride    = yPlane.rowStride
-        val uvRowStride   = uPlane.rowStride
+        val yPlane = image.planes[0]
+        val uPlane = image.planes[1]
+        val vPlane = image.planes[2]
+
+        val yBuffer = yPlane.buffer
+        val uBuffer = uPlane.buffer
+        val vBuffer = vPlane.buffer
+
+        val yRowStride = yPlane.rowStride
+        val uvRowStride = uPlane.rowStride
         val uvPixelStride = uPlane.pixelStride
 
-        val srcW     = image.width
-        val srcH     = image.height
-        val scale    = MODEL_INPUT_SIZE.toFloat() / max(srcW, srcH)
-        val scaledW  = (srcW * scale).toInt()
-        val scaledH  = (srcH * scale).toInt()
-        val padTop   = (MODEL_INPUT_SIZE - scaledH) / 2
-        val padLeft  = (MODEL_INPUT_SIZE - scaledW) / 2
+        val srcW = image.width
+        val srcH = image.height
+
+        val scale = MODEL_INPUT_SIZE.toFloat() / max(srcW, srcH)
+
+        val scaledW = (srcW * scale).toInt()
+        val scaledH = (srcH * scale).toInt()
+
+        val padTop = (MODEL_INPUT_SIZE - scaledH) / 2
+        val padLeft = (MODEL_INPUT_SIZE - scaledW) / 2
+
+        val buffer = inputTensorBuffer
+        val planeSize = MODEL_INPUT_SIZE * MODEL_INPUT_SIZE
+
+        val rOffset = 0
+        val gOffset = planeSize
+        val bOffset = planeSize * 2
 
         for (dstY in 0 until scaledH) {
-            val srcY   = (dstY / scale).toInt().coerceIn(0, srcH - 1)
-            val uvRow  = (srcY / 2) * uvRowStride
+
+            val srcY = (dstY / scale).toInt().coerceIn(0, srcH - 1)
+            val uvRow = (srcY / 2) * uvRowStride
 
             for (dstX in 0 until scaledW) {
-                val srcX  = (dstX / scale).toInt().coerceIn(0, srcW - 1)
+
+                val srcX = (dstX / scale).toInt().coerceIn(0, srcW - 1)
                 val uvCol = (srcX / 2) * uvPixelStride
 
-                val yVal = (yBuffer[srcY * yRowStride + srcX].toInt() and 0xFF).toFloat()
-                val uVal = (uBuffer[uvRow + uvCol].toInt() and 0xFF).toFloat() - 128f
-                val vVal = (vBuffer[uvRow + uvCol].toInt() and 0xFF).toFloat() - 128f
+                val y = (yBuffer[srcY * yRowStride + srcX].toInt() and 0xFF).toFloat()
+                val u = (uBuffer[uvRow + uvCol].toInt() and 0xFF) - 128f
+                val v = (vBuffer[uvRow + uvCol].toInt() and 0xFF) - 128f
 
-                // BT.601 YUV → RGB, normalise to [0, 1]
-                val r = (yVal + 1.370705f * vVal).coerceIn(0f, 255f) / 255f
-                val g = (yVal - 0.698001f * vVal - 0.337633f * uVal).coerceIn(0f, 255f) / 255f
-                val b = (yVal + 1.732446f * uVal).coerceIn(0f, 255f) / 255f
+                val r = (y + 1.402f * v) * 0.003921569f
+                val g = (y - 0.344f * u - 0.714f * v) * 0.003921569f
+                val b = (y + 1.772f * u) * 0.003921569f
 
                 val idx = (padTop + dstY) * MODEL_INPUT_SIZE + (padLeft + dstX)
-                rChannel[idx] = r
-                gChannel[idx] = g
-                bChannel[idx] = b
+
+                buffer[rOffset + idx] = r
+                buffer[gOffset + idx] = g
+                buffer[bOffset + idx] = b
             }
         }
 
-        // Concatenate R, G, B planes → NCHW flat array [1, 3, 640, 640]
-        return rChannel + gChannel + bChannel
+        return buffer
     }
-
 }
