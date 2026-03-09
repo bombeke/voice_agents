@@ -38,13 +38,6 @@ class TagsDetectorFrameProcessorPlugin(
         private const val OPTIONS_MODEL_URL_KEY  = "modelUrl"    // remote URL to download from
     }
 
-    /*data class Detection(
-        val x1: Float, val y1: Float,
-        val x2: Float, val y2: Float,
-        val confidence: Float,
-        val classId: Int
-    )*/
-
     private var heightRatio: Float = 1.0f
     private var widthRatio: Float = 1.0f
     private val INPUT_SIZE = 640
@@ -79,16 +72,6 @@ class TagsDetectorFrameProcessorPlugin(
 
         val detections = runInference(image)
         
-        /*val detectionList = detections.map { det ->
-            hashMapOf<String, Any>(
-                "x1"         to det.x1.toDouble(),
-                "y1"         to det.y1.toDouble(),
-                "x2"         to det.x2.toDouble(),
-                "y2"         to det.y2.toDouble(),
-                "confidence" to det.confidence.toDouble(),
-                "classId"    to det.classId
-            )
-        }*/
         val outputArray: WritableArray = Arguments.createArray()
         detections.forEach { detection ->
             outputArray.pushMap(detection.toWritableMap())
@@ -244,7 +227,11 @@ class TagsDetectorFrameProcessorPlugin(
 
     private fun runInference(image: Image): List<Detection> {
         val startTime = System.currentTimeMillis()
-        val floatInput  = yuv420ToNchwFloat(image)
+        widthRatio = image.width.toFloat() / MODEL_INPUT_SIZE
+        heightRatio = image.height.toFloat() / MODEL_INPUT_SIZE
+
+        val floatInput = yuv420ToNchwFloat(image)
+
         val inputTensor = Tensor.fromBlob(
             floatInput,
             longArrayOf(1, 3, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
@@ -255,98 +242,46 @@ class TagsDetectorFrameProcessorPlugin(
         val endTime = System.currentTimeMillis()
         Log.d(TAG, "Inference took: ${endTime - startTime} ms")
         return postprocess(outputs)
-
-        /*
-        val outputTensor = outputs[0].toTensor()
-        val rawData     = outputTensor.dataAsFloatArray
-
-        val shape       = outputTensor.shape()   // [1, 84, 8400]
-
-        val numAnchors  = shape[2].toInt()
-        val srcW        = image.width.toFloat()
-        val srcH        = image.height.toFloat()
-        val scale       = MODEL_INPUT_SIZE / max(srcW, srcH)
-        val padL        = (MODEL_INPUT_SIZE - srcW * scale) / 2f
-        val padT        = (MODEL_INPUT_SIZE - srcH * scale) / 2f
-
-        val detections  = mutableListOf<Detection>()
-
-        for (a in 0 until numAnchors) {
-            val cx = rawData[0 * numAnchors + a]
-            val cy = rawData[1 * numAnchors + a]
-            val w  = rawData[2 * numAnchors + a]
-            val h  = rawData[3 * numAnchors + a]
-
-            var maxScore = 0f
-            var classId  = 0
-            for (c in 0 until NUM_CLASSES) {
-                val score = rawData[(4 + c) * numAnchors + a]
-                if (score > maxScore) { maxScore = score; classId = c }
-            }
-
-            if (maxScore < CONF_THRESHOLD) continue
-
-            // Model-input coords → original image coords
-            val x1 = ((cx - w / 2f - padL) / scale).coerceIn(0f, srcW)
-            val y1 = ((cy - h / 2f - padT) / scale).coerceIn(0f, srcH)
-            val x2 = ((cx + w / 2f - padL) / scale).coerceIn(0f, srcW)
-            val y2 = ((cy + h / 2f - padT) / scale).coerceIn(0f, srcH)
-
-            detections.add(Detection(x1, y1, x2, y2, maxScore, classId))
-        }
-
-        return nonMaxSuppression(detections)
-        */
     }
+
+
     fun postprocess(output: Array<EValue>): List<Detection> {
+
         val scoresTensor = output[1].toTensor()
         val numel = scoresTensor.numel()
+
         val bboxes = output[0].toTensor().dataAsFloatArray
         val scores = scoresTensor.dataAsFloatArray
         val labels = output[2].toTensor().dataAsFloatArray
 
-        //val detections: MutableList<Detection> = mutableListOf()
         val detections = mutableListOf<Detection>()
+
         for (idx in 0 until numel.toInt()) {
-        val score = scores[idx]
-        if (score < DETECTION_SCORE_THRESHOLD) {
-            continue
+
+            val score = scores[idx]
+            if (score < DETECTION_SCORE_THRESHOLD) continue
+
+            val x1 = bboxes[idx * 4 + 0] * widthRatio
+            val y1 = bboxes[idx * 4 + 1] * heightRatio
+            val x2 = bboxes[idx * 4 + 2] * widthRatio
+            val y2 = bboxes[idx * 4 + 3] * heightRatio
+
+            val bbox = Bbox(x1, y1, x2, y2)
+
+            val labelId = labels[idx].toInt()
+            val label = CocoLabel.fromId(labelId) ?: continue
+
+            detections.add(
+                Detection(
+                    bbox = bbox,
+                    score = score,
+                    label = label
+                )
+            )
         }
-        /*val bbox =
-            Bbox(
-            bboxes[idx * 4 + 0] * widthRatio,
-            bboxes[idx * 4 + 1] * heightRatio,
-            bboxes[idx * 4 + 2] * widthRatio,
-            bboxes[idx * 4 + 3] * heightRatio,
-            )
-        val label = labels[idx]
-        detections.add(
-            Detection(bbox, score, CocoLabel.fromId(label.toInt())!!),
-        )
-        }*/
-        
-        val x1 = bboxes[idx * 4 + 0] * widthRatio
-        val y1 = bboxes[idx * 4 + 1] * heightRatio
-        val x2 = bboxes[idx * 4 + 2] * widthRatio
-        val y2 = bboxes[idx * 4 + 3] * heightRatio
 
-        val bbox = Bbox(x1, y1, x2, y2)
-
-        val labelId = labels[idx].toInt()
-        val label = CocoLabel.fromId(labelId) ?: continue
-
-        detections.add(
-            Detection(
-                bbox = bbox,
-                score = score,
-                label = label
-            )
-        )
-
-        val detectionsPostNms = nms(detections, IOU_THRESHOLD)
-        return detectionsPostNms.toTypedArray()
+        return nms(detections, IOU_THRESHOLD)
     }
-
     // ── YUV_420_888 (format 35) → float NCHW [1,3,640,640] ─────────────────
     private fun yuv420ToNchwFloat(image: Image): FloatArray {
         val yPlane  = image.planes[0]
