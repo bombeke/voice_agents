@@ -78,13 +78,12 @@ class TagsDetectorFrameProcessorPlugin(
         Log.d(TAG, "Detected ${detections.size} object(s)")
         val detectionsList = detections.map { det ->
             mapOf(
-                "x1" to det.bbox.x1,
-                "y1" to det.bbox.y1,
-                "x2" to det.bbox.x2,
-                "y2" to det.bbox.y2,
-                "bbox" to det.bbox,
-                "score" to det.score,
-                "label" to det.label,
+                "x1" to det.bbox.x1.toDouble(),
+                "y1" to det.bbox.y1.toDouble(),
+                "x2" to det.bbox.x2.toDouble(),
+                "y2" to det.bbox.y2.toDouble(),
+                "score" to det.score.toDouble(),
+                "classId" to det.label.id,
                 "name" to det.label.name
             )
         }
