@@ -30,7 +30,7 @@ class TagsDetectorFrameProcessorPlugin(
         private const val TAG = "TagsDetectorPlugin"
         private const val MODEL_INPUT_SIZE = 640
         private const val NUM_CLASSES = 80
-        private const val CONF_THRESHOLD = 0.25f
+        private const val CONF_THRESHOLD = 0.5f
         private const val IOU_THRESHOLD = 0.55f
         private const val DETECTION_SCORE_THRESHOLD = .7f
         private const val DEFAULT_MODEL_ASSET = "yolo26n.pte"
@@ -40,6 +40,7 @@ class TagsDetectorFrameProcessorPlugin(
 
     private var heightRatio: Float = 1.0f
     private var widthRatio: Float = 1.0f
+    private var numClasses: Int = 0
     private val INPUT_SIZE = 640
     private val floatBuffer =
         FloatArray(1 * 3 * INPUT_SIZE * INPUT_SIZE)
@@ -74,13 +75,22 @@ class TagsDetectorFrameProcessorPlugin(
 
         val detections = runInference(image)
         
-        val outputArray: WritableArray = Arguments.createArray()
-        detections.forEach { detection ->
-            outputArray.pushMap(detection.toWritableMap())
-        }
         Log.d(TAG, "Detected ${detections.size} object(s)")
-        return hashMapOf(
-            "detections" to outputArray,
+        val detectionsList = detections.map { det ->
+            mapOf(
+                "x1" to det.bbox.x1,
+                "y1" to det.bbox.y1,
+                "x2" to det.bbox.x2,
+                "y2" to det.bbox.y2,
+                "bbox" to det.bbox,
+                "score" to det.score,
+                "label" to det.label,
+                "name" to det.label.name
+            )
+        }
+
+        return mapOf(
+            "detections" to detectionsList,
             "frameWidth" to image.width,
             "frameHeight" to image.height
         )
@@ -249,34 +259,56 @@ class TagsDetectorFrameProcessorPlugin(
 
     fun postprocess(output: Array<EValue>): List<Detection> {
 
-        val scoresTensor = output[1].toTensor()
-        val numel = scoresTensor.numel()
+        val outputTensor = output[0].toTensor()
+        val raw = outputTensor.dataAsFloatArray
+        val shape = outputTensor.shape()
 
-        val bboxes = output[0].toTensor().dataAsFloatArray
-        val scores = scoresTensor.dataAsFloatArray
-        val labels = output[2].toTensor().dataAsFloatArray
+        val numAnchors = shape[2].toInt()
+        val channels = shape[1].toInt()
+        
+
+        if (numClasses == 0) {
+            numClasses = channels - 4
+            Log.d(TAG, "Detected numClasses = $numClasses")
+        }
 
         val detections = mutableListOf<Detection>()
 
-        for (idx in 0 until numel.toInt()) {
+        for (a in 0 until numAnchors) {
 
-            val score = scores[idx]
-            if (score < DETECTION_SCORE_THRESHOLD) continue
+            val cx = raw[0 * numAnchors + a]
+            val cy = raw[1 * numAnchors + a]
+            val w  = raw[2 * numAnchors + a]
+            val h  = raw[3 * numAnchors + a]
 
-            val x1 = bboxes[idx * 4 + 0] * widthRatio
-            val y1 = bboxes[idx * 4 + 1] * heightRatio
-            val x2 = bboxes[idx * 4 + 2] * widthRatio
-            val y2 = bboxes[idx * 4 + 3] * heightRatio
+            var maxScore = 0f
+            var classId = 0
+
+            for (c in 0 until numClasses) {
+
+                val score = raw[(4 + c) * numAnchors + a]
+
+                if (score > maxScore) {
+                    maxScore = score
+                    classId = c
+                }
+            }
+
+            if (maxScore < CONF_THRESHOLD) continue
+
+            val x1 = (cx - w / 2f) * widthRatio
+            val y1 = (cy - h / 2f) * heightRatio
+            val x2 = (cx + w / 2f) * widthRatio
+            val y2 = (cy + h / 2f) * heightRatio
 
             val bbox = Bbox(x1, y1, x2, y2)
 
-            val labelId = labels[idx].toInt()
-            val label = CocoLabel.fromId(labelId) ?: continue
+            val label = CocoLabel.fromId(classId) ?: continue
 
             detections.add(
                 Detection(
                     bbox = bbox,
-                    score = score,
+                    score = maxScore,
                     label = label
                 )
             )

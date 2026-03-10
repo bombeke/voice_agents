@@ -92,6 +92,7 @@ export default function CameraScreen() {
       });
       */
       const result = detectTagsProcessor(frame);
+      console.log("Result:::",result)
       updateDetections(result as any[]);
     },
     [updateDetections],
