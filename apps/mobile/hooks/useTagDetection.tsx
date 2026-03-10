@@ -7,12 +7,21 @@ import {
 import { useSharedValue, Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
-export interface Detection {
+export interface DetectionBox {
   id: string;
   box: { x: number; y: number; width: number; height: number };
   label: string;
   confidence: number;
 }
+export interface  Detection {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  score: number;
+  classId: number;
+  name: string;
+};
 
 export function useTagDetection(enabled: boolean) {
   const [detections, setDetections] = useState<Detection[] | ParameterType>([]);
