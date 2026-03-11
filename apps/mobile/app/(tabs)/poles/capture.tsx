@@ -21,9 +21,13 @@ import { Detection } from "@/hooks/useTagDetection";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
 import { detectTags } from "react-native-vision-camera-executorch";
-import { useSharedValue, Worklets } from "react-native-worklets-core";
+import { useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
-
+export interface InferResult {
+  detections: Detection[],
+  frameWidth: number,
+  frameHeight: number
+}
 export default function CameraScreen() {
   // const device = useCameraDevice("back");
   const ready = useAppReady();
@@ -34,6 +38,7 @@ export default function CameraScreen() {
   const isFocussed = useIsFocused();
   const isForeground = useIsForeground();
   const isActive = isFocussed && isForeground;
+  const detections = useSharedValue<InferResult[]  | any>([])
 
   const [cameraPosition, setCameraPosition] = useState<"front" | "back">(
     "back",
@@ -48,7 +53,6 @@ export default function CameraScreen() {
 
   //const { detections } = useTagDetection(!isCapturing);
   //const { queues, frameProcessor } = usePoleDetection();
-  const [detections, setDetections] = useState<any[]>([]);
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);
 
@@ -65,12 +69,6 @@ export default function CameraScreen() {
     if (!modelPath) return undefined;
     return detectTags(modelPath);
   }, [modelPath]);
-
-  const updateDetections = Worklets.createRunOnJS(
-    (data: Detection[] | any[]) => {
-      setDetections(data);
-    },
-  );
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
@@ -93,9 +91,9 @@ export default function CameraScreen() {
       */
       const result = detectTagsProcessor(frame);
       console.log("Result:::",result)
-      updateDetections(result as any[]);
+      detections.value = result
     },
-    [updateDetections],
+    [detections.value],
   );
 
   useEffect(() => {
@@ -143,7 +141,7 @@ export default function CameraScreen() {
         onInitialized={onInitialized}
         ref={cameraRef}
       />
-      <DetectionOverlay detections={detections} />
+      <DetectionOverlay detections={detections.value?.detections} frameHeight={detections.value?.frameHeight} frameWidth={detections.value?.frameWidth}/>
       <CameraControls
         onCapture={handleCapture}
         disabled={!isInitialized || isCapturing}
