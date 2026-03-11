@@ -93,7 +93,7 @@ export default function CameraScreen() {
       console.log("Result:::",result)
       detections.value = result
     },
-    [detections.value],
+    [],
   );
 
   useEffect(() => {
