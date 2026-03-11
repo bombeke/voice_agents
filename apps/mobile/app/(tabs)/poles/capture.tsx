@@ -33,6 +33,7 @@ export default function CameraScreen() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const location = useLocationPermission();
   const microphone = useMicrophonePermission();
+  const lastTimestamp = useSharedValue(0);
   const zoom = useSharedValue(1);
   const isFocussed = useIsFocused();
   const isForeground = useIsForeground();
@@ -78,8 +79,8 @@ export default function CameraScreen() {
       if (!detectTagsProcessor) return;
 
       // Throttle on worklet thread (200ms)
-      //if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
-      //lastTimestamp.value = frame.timestamp;
+      if (frame.timestamp - lastTimestamp.value < 100_000_000) return;
+      lastTimestamp.value = frame.timestamp;
 
       // TODO: Replace with real ML inference
       /*const resized = resize(frame, {
@@ -88,11 +89,25 @@ export default function CameraScreen() {
         dataType: "float32",
       });
       */
-      const result = detectTagsProcessor(frame);
-      //console.log("Result:::",result)
-      detections.value = result
+      const result = detectTagsProcessor(frame) as any;
+      const scaleX = frame.width / 640;
+      const scaleY = frame.height / 640;
+
+      const corrected = result?.detections?.map((d: any) => ({
+        ...d,
+        x1: d.x1 * scaleX,
+        x2: d.x2 * scaleX,
+        y1: d.y1 * scaleY,
+        y2: d.y2 * scaleY,
+      }));
+
+      detections.value = {
+        detections: corrected,
+        frameWidth: frame.width,
+        frameHeight: frame.height,
+      };
     },
-    [detectTagsProcessor],
+    [detectTagsProcessor,detections,lastTimestamp],
   );
 
   useEffect(() => {
