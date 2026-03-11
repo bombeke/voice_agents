@@ -56,7 +56,7 @@ export const DetectionOverlay = memo(
 
       return { scale, offsetX, offsetY };
     }, [frameWidth, frameHeight, isPortrait]);
-
+    console.log("detections:",detections)
     return (
       <Canvas
         style={{

@@ -22,7 +22,6 @@ import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
 import { detectTags } from "react-native-vision-camera-executorch";
 import { useSharedValue } from "react-native-worklets-core";
-import { useResizePlugin } from "vision-camera-resize-plugin";
 export interface InferResult {
   detections: Detection[],
   frameWidth: number,
@@ -38,7 +37,7 @@ export default function CameraScreen() {
   const isFocussed = useIsFocused();
   const isForeground = useIsForeground();
   const isActive = isFocussed && isForeground;
-  const detections = useSharedValue<InferResult[]  | any>([])
+  const detections = useSharedValue<InferResult  | null | any >(null)
 
   const [cameraPosition, setCameraPosition] = useState<"front" | "back">(
     "back",
@@ -46,7 +45,7 @@ export default function CameraScreen() {
   const [enableHdr, setEnableHdr] = useState(false);
   const [flash, setFlash] = useState<"off" | "on">("off");
   const [enableNightMode, setEnableNightMode] = useState(false);
-  const { resize } = useResizePlugin();
+  //const { resize } = useResizePlugin();
   const { cameraRef, isInitialized, isCapturing, onInitialized, takePhoto } =
     useCameraController();
 
@@ -76,7 +75,7 @@ export default function CameraScreen() {
 
       //if (!enabled) return;
       //console.log("Ready:", isDetectTagsInitialized());
-      if (!detectTagsProcessor) return null;
+      if (!detectTagsProcessor) return;
 
       // Throttle on worklet thread (200ms)
       //if (frame.timestamp - lastTimestamp.value < 200_000_000) return;
@@ -90,10 +89,10 @@ export default function CameraScreen() {
       });
       */
       const result = detectTagsProcessor(frame);
-      console.log("Result:::",result)
+      //console.log("Result:::",result)
       detections.value = result
     },
-    [],
+    [detectTagsProcessor],
   );
 
   useEffect(() => {
@@ -102,7 +101,7 @@ export default function CameraScreen() {
 
   useEffect(() => {
     if (!hasPermission) requestPermission();
-  }, [hasPermission]);
+  }, [hasPermission,requestPermission]);
 
   const allowCameraLocationPermissions = useCallback(async () => {
     await requestPermission();
@@ -141,7 +140,7 @@ export default function CameraScreen() {
         onInitialized={onInitialized}
         ref={cameraRef}
       />
-      <DetectionOverlay detections={detections.value?.detections} frameHeight={detections.value?.frameHeight} frameWidth={detections.value?.frameWidth}/>
+      <DetectionOverlay detections={detections.value?.detections??[]} frameHeight={detections.value?.frameHeight??0} frameWidth={detections.value?.frameWidth??0}/>
       <CameraControls
         onCapture={handleCapture}
         disabled={!isInitialized || isCapturing}
