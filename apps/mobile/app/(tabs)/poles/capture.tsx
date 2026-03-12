@@ -107,7 +107,7 @@ export default function CameraScreen() {
         frameHeight: frame.height,
       };
     },
-    [detectTagsProcessor,detections,lastTimestamp],
+    [detectTagsProcessor],
   );
 
   useEffect(() => {
@@ -155,7 +155,7 @@ export default function CameraScreen() {
         onInitialized={onInitialized}
         ref={cameraRef}
       />
-      <DetectionOverlay detections={detections.value?.detections??[]} frameHeight={detections.value?.frameHeight??0} frameWidth={detections.value?.frameWidth??0}/>
+      <DetectionOverlay detections={detections}/>
       <CameraControls
         onCapture={handleCapture}
         disabled={!isInitialized || isCapturing}

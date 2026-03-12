@@ -1,22 +1,23 @@
-import { Detection } from "@/hooks/useTagDetection";
 import { Canvas, Group, matchFont, Rect, Text } from "@shopify/react-native-skia";
 import { memo, useMemo } from "react";
 import { Dimensions, Platform } from "react-native";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+
+interface BoxProps {
+  index: number;
+  detections: any;
+}
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 type Props = {
-  detections?: Detection[];
-  frameWidth: number;
-  frameHeight: number;
+  detections?: any;
 };
 
 export const DetectionOverlay = memo(
-  ({ detections, frameWidth, frameHeight }: Props) => {
-    if (!detections?.length || !frameWidth || !frameHeight) {
-      return null;
-    }
+  ({ detections }: Props) => {
 
+    const boxes = [];
     const isPortrait = screenHeight > screenWidth;
 
     /**
@@ -39,6 +40,9 @@ export const DetectionOverlay = memo(
     /**
      * Calculate scaling + offsets for VisionCamera "cover" mode
      */
+    const frameHeight = detections.value.frameHeight || 0
+    const frameWidth = detections.value.frameWidth || 0
+
     const { scale, offsetX, offsetY } = useMemo(() => {
       let scale: number;
       let offsetX: number;
@@ -56,7 +60,14 @@ export const DetectionOverlay = memo(
 
       return { scale, offsetX, offsetY };
     }, [frameWidth, frameHeight, isPortrait]);
-    console.log("detections:",detections)
+  
+
+    for (let i = 0; i < 80; i++) {
+      boxes.push(<DetectionBox key={i} index={i} detections={detections} />);
+    }
+    if (!detections?.value?.detections?.length || !frameWidth || !frameHeight) {
+      return null;
+    }
     return (
       <Canvas
         style={{
@@ -66,7 +77,7 @@ export const DetectionOverlay = memo(
           pointerEvents: "none",
         }}
       >
-        {detections.map((d, i) => {
+        {detections.value?.detections?.map((d: any, i:number) => {
           let x: number;
           let y: number;
           let w: number;
@@ -128,3 +139,30 @@ export const DetectionOverlay = memo(
     );
   }
 );
+
+
+
+export const DetectionBox = ({ index, detections }: BoxProps) => {
+  const style = useAnimatedStyle(() => {
+    const data = detections.value?.detections;
+
+    if (!data || index >= data.length) {
+      return { opacity: 0 };
+    }
+
+    const d = data[index];
+
+    return {
+      position: "absolute",
+      left: d.x,
+      top: d.y,
+      width: d.width,
+      height: d.height,
+      borderWidth: 2,
+      borderColor: "lime",
+      opacity: 1,
+    };
+  });
+
+  return <Animated.View style={style} />;
+};
