@@ -1,7 +1,7 @@
 import { Canvas, Group, matchFont, Rect, Text } from "@shopify/react-native-skia";
 import { memo, useMemo } from "react";
 import { Dimensions, Platform } from "react-native";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useDerivedValue } from "react-native-reanimated";
 
 interface BoxProps {
   index: number;
@@ -17,7 +17,7 @@ type Props = {
 export const DetectionOverlay = memo(
   ({ detections }: Props) => {
 
-    const boxes = [];
+    //const boxes = [];
     const isPortrait = screenHeight > screenWidth;
 
     /**
@@ -37,13 +37,15 @@ export const DetectionOverlay = memo(
       } as any);
     }, []);
 
-    /**
-     * Calculate scaling + offsets for VisionCamera "cover" mode
-     */
-    const frameHeight = detections.value.frameHeight || 0
-    const frameWidth = detections.value.frameWidth || 0
+    const derived = useDerivedValue(() => {
+      const frameWidth = detections.value?.frameWidth ?? 0;
+      const frameHeight = detections.value?.frameHeight ?? 0;
+      const dets = detections.value?.detections ?? [];
 
-    const { scale, offsetX, offsetY } = useMemo(() => {
+      if (!frameWidth || !frameHeight) {
+        return [];
+      }
+
       let scale: number;
       let offsetX: number;
       let offsetY: number;
@@ -58,16 +60,47 @@ export const DetectionOverlay = memo(
         offsetY = (screenHeight - frameHeight * scale) / 2;
       }
 
-      return { scale, offsetX, offsetY };
-    }, [frameWidth, frameHeight, isPortrait]);
-  
+      return dets.map((d: any) => {
+        let x, y, w, h;
 
-    for (let i = 0; i < 80; i++) {
+        /**
+         * Android rotation fix
+         */
+        if (Platform.OS === "android" && isPortrait) {
+          x = (frameHeight - d.y2) * scale + offsetX;
+          y = d.x1 * scale + offsetY;
+          w = (d.y2 - d.y1) * scale;
+          h = (d.x2 - d.x1) * scale;
+        } else {
+          x = d.x1 * scale + offsetX;
+          y = d.y1 * scale + offsetY;
+          w = (d.x2 - d.x1) * scale;
+          h = (d.y2 - d.y1) * scale;
+        }
+
+        if (w <= 0 || h <= 0) return null;
+
+        return {
+          x,
+          y,
+          w,
+          h,
+          label: `${d.name ?? "object"} ${Math.round(d.score * 100)}%`,
+          color:
+            d.score > 0.8 ? "lime" :
+            d.score > 0.5 ? "yellow" :
+            "red",
+        };
+      }).filter(Boolean);
+    });
+    
+    /*for (let i = 0; i < 80; i++) {
       boxes.push(<DetectionBox key={i} index={i} detections={detections} />);
-    }
-    if (!detections?.value?.detections?.length || !frameWidth || !frameHeight) {
+    }*/
+   
+    /*if (!detections?.value?.detections?.length || !frameWidth || !frameHeight) {
       return null;
-    }
+    }*/
     return (
       <Canvas
         style={{
@@ -77,64 +110,29 @@ export const DetectionOverlay = memo(
           pointerEvents: "none",
         }}
       >
-        {detections.value?.detections?.map((d: any, i:number) => {
-          let x: number;
-          let y: number;
-          let w: number;
-          let h: number;
-          const color =
-            d.score > 0.8 ? "lime" :
-            d.score > 0.5 ? "yellow" :
-            "red"
-          /**
-           * Android camera sensor rotation fix
-           * VisionCamera frames are rotated 90°
-           */
-          if (Platform.OS === "android" && isPortrait) {
-            x = (frameHeight - d.y2) * scale + offsetX;
-            y = d.x1 * scale + offsetY;
-            w = (d.y2 - d.y1) * scale;
-            h = (d.x2 - d.x1) * scale;
-          } else {
-            x = d.x1 * scale + offsetX;
-            y = d.y1 * scale + offsetY;
-            w = (d.x2 - d.x1) * scale;
-            h = (d.y2 - d.y1) * scale;
-          }
-
-          /**
-           * Skip invalid boxes
-           */
-          if (w <= 0 || h <= 0) return null;
-
-          const label = `${d.name ?? "object"} ${Math.round(d.score * 100)}%`;
-
-          return (
-            <Group key={`detection-${i}`}>
-              {/* Bounding Box */}
-              <Rect
-                x={x}
-                y={y}
-                width={w}
-                height={h}
-                color={color}
-                style="stroke"
-                strokeWidth={3}
+      {
+        derived.value.map((d: any, i: number) => (
+          <Group key={`box-${i}`}>
+            <Rect
+              x={d.x}
+              y={d.y}
+              width={d.w}
+              height={d.h}
+              color={d.color}
+              style="stroke"
+              strokeWidth={3}
+            />
+            {font && (
+              <Text
+                x={d.x}
+                y={d.y - 6}
+                text={d.label}
+                color="red"
+                font={font}
               />
-
-              {/* Detection Label */}
-              {font && (
-                <Text
-                  x={x}
-                  y={y - 8}
-                  text={label}
-                  color="red"
-                  font={font}
-                />
-              )}
-            </Group>
-          );
-        })}
+            )}
+          </Group>
+        ))}
       </Canvas>
     );
   }
