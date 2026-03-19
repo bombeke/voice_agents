@@ -11,7 +11,7 @@ import {
 import { useAppReady } from "@/components/AppReadyContext";
 import { CameraControls } from "@/components/camera/CameraControl";
 import { CameraView } from "@/components/camera/CameraView";
-import { DetectionOverlay } from "@/components/camera/DetectionOverlay";
+
 import { NoCameraDevice } from "@/components/camera/NoCameraDevice";
 import { PermissionsPage } from "@/components/camera/PermissionsPage";
 import { useCameraController } from "@/hooks/useCameraController";
@@ -150,12 +150,11 @@ export default function CameraScreen() {
       <CameraView
         device={device}
         isActive={isActive}
-        //frameProcessor={frameProcessor?.frameProcessor}
         frameProcessor={ready ? frameProcessor : undefined}
         onInitialized={onInitialized}
         ref={cameraRef}
+        detections ={ detections }
       />
-      <DetectionOverlay detections={detections}/>
       <CameraControls
         onCapture={handleCapture}
         disabled={!isInitialized || isCapturing}
