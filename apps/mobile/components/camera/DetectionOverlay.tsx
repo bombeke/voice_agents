@@ -17,7 +17,7 @@ type Props = {
 
 export const DetectionOverlay = memo(({ detections }: Props) => {
   const isPortrait = screenHeight > screenWidth;
-
+  console.log("detections0:", detections.value);
   const font = useMemo(() => {
     return matchFont({
       fontFamily: Platform.OS === "ios" ? "Helvetica" : "serif",
@@ -26,10 +26,10 @@ export const DetectionOverlay = memo(({ detections }: Props) => {
       fontWeight: "bold",
     } as any);
   }, []);
-  console.log("detections:", detections.value);
+  console.log("detections1:", detections.value);
   const dets = detections.value?.detections ?? [];
 
-  if (!dets.length) return null;
+  if (dets.length === 0) return null;
 
   return (
     <Canvas
@@ -40,11 +40,14 @@ export const DetectionOverlay = memo(({ detections }: Props) => {
         pointerEvents: "none",
       }}
     >
+      <Rect x={100} y={100} width={200} height={200} color="lime" style="stroke" strokeWidth={4} />
       {dets.map((_: any, i: number) => {
         /**
          * Each box is reactive
          */
+        console.log("detected0")
         const x = useDerivedValue(() => {
+          console.log("detected1")
           const d = detections.value?.detections?.[i];
           const fw = detections.value?.frameWidth;
           const fh = detections.value?.frameHeight;
@@ -67,6 +70,7 @@ export const DetectionOverlay = memo(({ detections }: Props) => {
 
           return d.x1 * scale + offsetX;
         });
+        console.log("detected2")
 
         const y = useDerivedValue(() => {
           const d = detections.value?.detections?.[i];

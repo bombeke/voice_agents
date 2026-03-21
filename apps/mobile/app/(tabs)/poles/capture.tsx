@@ -92,7 +92,7 @@ export default function CameraScreen() {
       const result = detectTagsProcessor(frame) as any;
       const scaleX = frame.width / 640;
       const scaleY = frame.height / 640;
-
+      console.log("result:::",result)
       const corrected = result?.detections?.map((d: any) => ({
         ...d,
         x1: d.x1 * scaleX,
