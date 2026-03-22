@@ -3,9 +3,9 @@ import { StyleSheet, View } from "react-native";
 import {
   useCameraDevice,
   useCameraPermission,
-  useFrameProcessor,
   useLocationPermission,
   useMicrophonePermission,
+  useSkiaFrameProcessor
 } from "react-native-vision-camera";
 
 import { useAppReady } from "@/components/AppReadyContext";
@@ -20,6 +20,7 @@ import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
+import { Skia } from "@shopify/react-native-skia";
 import { detectTags } from "react-native-vision-camera-executorch";
 import { useSharedValue } from "react-native-worklets-core";
 export interface InferResult {
@@ -70,13 +71,13 @@ export default function CameraScreen() {
     return detectTags(modelPath);
   }, [modelPath]);
 
-  const frameProcessor = useFrameProcessor(
+  const frameProcessor = useSkiaFrameProcessor(
     (frame) => {
       "worklet";
 
       //if (!enabled) return;
       //console.log("Ready:", isDetectTagsInitialized());
-      if (!detectTagsProcessor) return;
+      if (detectTagsProcessor === null || detectTagsProcessor === undefined) return;
 
       // Throttle on worklet thread (200ms)
       if (frame.timestamp - lastTimestamp.value < 100_000_000) return;
@@ -89,18 +90,59 @@ export default function CameraScreen() {
         dataType: "float32",
       });
       */
-      const result = detectTagsProcessor(frame) as any;
-      const scaleX = frame.width / 640;
-      const scaleY = frame.height / 640;
-      console.log("result:::",result)
-      const corrected = result?.detections?.map((d: any) => ({
-        ...d,
-        x1: d.x1 * scaleX,
-        x2: d.x2 * scaleX,
-        y1: d.y1 * scaleY,
-        y2: d.y2 * scaleY,
-      }));
+      const results = detectTagsProcessor(frame) as any;
+      const inputSize = 640;
+      const frameW = frame.width;   // 640
+      const frameH = frame.height;  // 480
+      const scale = Math.min(
+        inputSize / frameW,
+        inputSize / frameH
+      );
 
+      const scaledW = frameW * scale;
+      const scaledH = frameH * scale;
+
+      const padX = (inputSize - scaledW) / 2;
+      const padY = (inputSize - scaledH) / 2;
+      console.log("result:::",results)
+      const raw = results?.detections ?? [];
+      const corrected = raw.map((d: any) => {
+        let x1 = (d.x1 - padX) / scale;
+        let x2 = (d.x2 - padX) / scale;
+        let y1 = (d.y1 - padY) / scale;
+        let y2 = (d.y2 - padY) / scale;
+
+        x1 = Math.max(0, x1);
+        y1 = Math.max(0, y1);
+        x2 = Math.min(frameW, x2);
+        y2 = Math.min(frameH, y2);
+
+      return {
+        ...d,
+        x1,
+        x2,
+        y1,
+        y2,
+        width: x2 - x1,
+        height: y2 - y1,
+      };
+    });
+
+
+      frame.render()
+      for (const result of corrected) {
+        const paint = Skia.Paint()
+        paint.setColor(Skia.Color('red'))
+        paint.setStyle(1); // Stroke
+        paint.setStrokeWidth(3);
+        const rect = Skia.XYWHRect(
+          result.x1,
+          result.y1,
+          result.width,
+          result.height
+        );
+        frame.drawRect(rect, paint)
+      }
       detections.value = {
         detections: corrected,
         frameWidth: frame.width,
