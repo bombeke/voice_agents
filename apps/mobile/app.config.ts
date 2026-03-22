@@ -61,6 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-build-properties",
       {
         android: {
+          minSdkVersion: 26,
           buildToolsVersion: "36.0.0",
         },
       },
