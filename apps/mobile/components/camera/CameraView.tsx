@@ -6,7 +6,6 @@ import {
   DrawableFrameProcessor,
   ReadonlyFrameProcessor,
 } from "react-native-vision-camera";
-import { DetectionOverlay } from "./DetectionOverlay";
 
 interface Props {
   device: any;
@@ -98,7 +97,9 @@ export const CameraView = memo(
             onInitialized={onInitialized}
             androidPreviewViewType="surface-view"
           />
-          <DetectionOverlay detections={detections}/>
+          {
+          //<DetectionOverlay detections={detections}/>
+          }
         </View>
       </View>
     );
