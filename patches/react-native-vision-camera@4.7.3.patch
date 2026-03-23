@@ -1,0 +1,56 @@
+diff --git a/android/README.md b/android/README.md
+deleted file mode 100644
+index 6eebb68d9f242a118d634455976c94c3936dd56c..0000000000000000000000000000000000000000
+diff --git a/ios/README.md b/ios/README.md
+deleted file mode 100644
+index 1c47fe132d3ab5ef1ed73fdc309ce34b91cf4c31..0000000000000000000000000000000000000000
+diff --git a/src/skia/SkiaCameraCanvas.tsx b/src/skia/SkiaCameraCanvas.tsx
+index 56d4e0ead70b307c5170a61d3ca6bc716cd8b266..ea19e2c676f33901eca223b947966cc30acbd067 100644
+--- a/src/skia/SkiaCameraCanvas.tsx
++++ b/src/skia/SkiaCameraCanvas.tsx
+@@ -1,10 +1,10 @@
+-import React, { useCallback, useState } from 'react'
+-import type { LayoutChangeEvent, ViewProps } from 'react-native'
+-import type { CameraProps } from '../types/CameraProps'
+-import type { ISharedValue } from 'react-native-worklets-core'
+ import type { SkImage } from '@shopify/react-native-skia'
++import React from 'react'
++import type { ViewProps } from 'react-native'
++import type { ISharedValue } from 'react-native-worklets-core'
+ import { ReanimatedProxy } from '../dependencies/ReanimatedProxy'
+ import { SkiaProxy } from '../dependencies/SkiaProxy'
++import type { CameraProps } from '../types/CameraProps'
+ 
+ interface SkiaCameraCanvasProps extends ViewProps {
+   /**
+@@ -17,12 +17,12 @@ interface SkiaCameraCanvasProps extends ViewProps {
+    * The resize mode to use for displaying the feed
+    */
+   resizeMode: CameraProps['resizeMode']
++  width?: number
++  height?: number 
+ }
+ 
+-function SkiaCameraCanvasImpl({ offscreenTextures, resizeMode = 'cover', children, ...props }: SkiaCameraCanvasProps): React.ReactElement {
++function SkiaCameraCanvasImpl({ offscreenTextures, resizeMode = 'cover', width = 0, height = 0, children, ...props }: SkiaCameraCanvasProps ): React.ReactElement {
+   const texture = ReanimatedProxy.useSharedValue<SkImage | null>(null)
+-  const [width, setWidth] = useState(0)
+-  const [height, setHeight] = useState(0)
+ 
+   ReanimatedProxy.useFrameCallback(() => {
+     'worklet'
+@@ -41,13 +41,8 @@ function SkiaCameraCanvasImpl({ offscreenTextures, resizeMode = 'cover', childre
+     texture.value = latestTexture
+   })
+ 
+-  const onLayout = useCallback(({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+-    setWidth(Math.round(layout.width))
+-    setHeight(Math.round(layout.height))
+-  }, [])
+-
+   return (
+-    <SkiaProxy.Canvas {...props} onLayout={onLayout} pointerEvents="none">
++    <SkiaProxy.Canvas {...props} style={[props.style, { width, height }]} pointerEvents="none">
+       {children}
+       <SkiaProxy.Image x={0} y={0} width={width} height={height} fit={resizeMode} image={texture} />
+     </SkiaProxy.Canvas>

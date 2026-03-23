@@ -74,22 +74,12 @@ export default function CameraScreen() {
   const frameProcessor = useSkiaFrameProcessor(
     (frame) => {
       "worklet";
-
-      //if (!enabled) return;
-      //console.log("Ready:", isDetectTagsInitialized());
-      if (detectTagsProcessor === null || detectTagsProcessor === undefined) return;
+      if (!detectTagsProcessor === null || detectTagsProcessor === undefined) return;
 
       // Throttle on worklet thread (200ms)
       if (frame.timestamp - lastTimestamp.value < 100_000_000) return;
       lastTimestamp.value = frame.timestamp;
 
-      // TODO: Replace with real ML inference
-      /*const resized = resize(frame, {
-        scale: { width: 640, height: 640 },
-        pixelFormat: "rgb",
-        dataType: "float32",
-      });
-      */
       const results = detectTagsProcessor(frame) as any;
       const inputSize = 640;
       const frameW = frame.width;   // 640
