@@ -95,11 +95,8 @@ export const CameraView = memo(
             enableZoomGesture
             frameProcessor={frameProcessor}
             onInitialized={onInitialized}
-            androidPreviewViewType="surface-view"
+            androidPreviewViewType="texture-view"
           />
-          {
-          //<DetectionOverlay detections={detections}/>
-          }
         </View>
       </View>
     );

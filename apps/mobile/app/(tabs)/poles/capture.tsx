@@ -3,14 +3,15 @@ import { StyleSheet, View } from "react-native";
 import {
   useCameraDevice,
   useCameraPermission,
+  useFrameProcessor,
   useLocationPermission,
   useMicrophonePermission,
-  useSkiaFrameProcessor
 } from "react-native-vision-camera";
 
 import { useAppReady } from "@/components/AppReadyContext";
 import { CameraControls } from "@/components/camera/CameraControl";
 import { CameraView } from "@/components/camera/CameraView";
+import { DetectionOverlay } from "@/components/camera/DetectionOverlay";
 
 import { NoCameraDevice } from "@/components/camera/NoCameraDevice";
 import { PermissionsPage } from "@/components/camera/PermissionsPage";
@@ -20,40 +21,36 @@ import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
-import { Skia } from "@shopify/react-native-skia";
+import { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 import { detectTags } from "react-native-vision-camera-executorch";
 import { useSharedValue } from "react-native-worklets-core";
+
 export interface InferResult {
-  detections: Detection[],
-  frameWidth: number,
-  frameHeight: number
+  detections: Detection[];
+  frameWidth: number;
+  frameHeight: number;
 }
+
 export default function CameraScreen() {
-  // const device = useCameraDevice("back");
   const ready = useAppReady();
   const { hasPermission, requestPermission } = useCameraPermission();
   const location = useLocationPermission();
   const microphone = useMicrophonePermission();
-  const lastTimestamp = useSharedValue(0);
-  const zoom = useSharedValue(1);
-  const isFocussed = useIsFocused();
-  const isForeground = useIsForeground();
-  const isActive = isFocussed && isForeground;
-  const detections = useSharedValue<InferResult  | null | any >(null)
 
-  const [cameraPosition, setCameraPosition] = useState<"front" | "back">(
-    "back",
-  );
-  const [enableHdr, setEnableHdr] = useState(false);
-  const [flash, setFlash] = useState<"off" | "on">("off");
-  const [enableNightMode, setEnableNightMode] = useState(false);
-  //const { resize } = useResizePlugin();
+  const lastTimestamp = useSharedValue(0);
+  const isFocused = useIsFocused();
+  const isForeground = useIsForeground();
+  const isActive = isFocused && isForeground;
+
+  const detectionsSV = useSharedValue<InferResult | null>(null);
+  const [detections, setDetections] = useState<InferResult | null>(null);
+
+  const [cameraPosition] = useState<"front" | "back">("back");
+  const [flash] = useState<"off" | "on">("off");
+
   const { cameraRef, isInitialized, isCapturing, onInitialized, takePhoto } =
     useCameraController();
 
-
-  //const { detections } = useTagDetection(!isCapturing);
-  //const { queues, frameProcessor } = usePoleDetection();
   const [preferredDevice] = usePreferredCameraDevice();
   let device = useCameraDevice(cameraPosition);
 
@@ -71,32 +68,29 @@ export default function CameraScreen() {
     return detectTags(modelPath);
   }, [modelPath]);
 
-  const frameProcessor = useSkiaFrameProcessor(
+  const frameProcessor = useFrameProcessor(
     (frame) => {
       "worklet";
-      frame.render()
-      if (detectTagsProcessor === null || detectTagsProcessor === undefined) return;
 
-      // Throttle on worklet thread (200ms)
-      if (frame.timestamp - lastTimestamp.value < 100_000_000) return;
+      if (detectTagsProcessor == null) return;
+      if (frame.timestamp - lastTimestamp.value < 100_000_000) return; 
       lastTimestamp.value = frame.timestamp;
-
       const results = detectTagsProcessor(frame) as any;
+
       const inputSize = 640;
-      const frameW = frame.width;   // 640
-      const frameH = frame.height;  // 480
-      const scale = Math.min(
-        inputSize / frameW,
-        inputSize / frameH
-      );
+      const frameW = frame.width;
+      const frameH = frame.height;
+
+      const scale = Math.min(inputSize / frameW, inputSize / frameH);
 
       const scaledW = frameW * scale;
       const scaledH = frameH * scale;
 
       const padX = (inputSize - scaledW) / 2;
       const padY = (inputSize - scaledH) / 2;
-      console.log("result:::",results)
+
       const raw = results?.detections ?? [];
+
       const corrected = raw.map((d: any) => {
         let x1 = (d.x1 - padX) / scale;
         let x2 = (d.x2 - padX) / scale;
@@ -108,63 +102,52 @@ export default function CameraScreen() {
         x2 = Math.min(frameW, x2);
         y2 = Math.min(frameH, y2);
 
-      return {
-        ...d,
-        x1,
-        x2,
-        y1,
-        y2,
-        width: x2 - x1,
-        height: y2 - y1,
-      };
-    });
+        return {
+          ...d,
+          x1,
+          y1,
+          x2,
+          y2,
+          width: x2 - x1,
+          height: y2 - y1,
+        };
+      });
 
-
-      
-      for (const result of corrected) {
-        const paint = Skia.Paint()
-        paint.setColor(Skia.Color('red'))
-        paint.setStyle(1); // Stroke
-        paint.setStrokeWidth(3);
-        const rect = Skia.XYWHRect(
-          result.x1,
-          result.y1,
-          result.width,
-          result.height
-        );
-        frame.drawRect(rect, paint)
-      }
-      detections.value = {
+      detectionsSV.value = {
         detections: corrected,
-        frameWidth: frame.width,
-        frameHeight: frame.height,
+        frameWidth: frameW,
+        frameHeight: frameH,
       };
     },
-    [detectTagsProcessor],
+    [detectTagsProcessor]
+  );
+
+  useAnimatedReaction(
+    () => detectionsSV.value,
+    (val) => {
+      if (val != null) {
+        runOnJS(setDetections)(val);
+      }
+    },
+    []
   );
 
   useEffect(() => {
     location.requestPermission();
-  }, [location]);
+    microphone.requestPermission();
+  }, []);
 
   useEffect(() => {
     if (!hasPermission) requestPermission();
-  }, [hasPermission,requestPermission]);
+  }, [hasPermission]);
 
-  const allowCameraLocationPermissions = useCallback(async () => {
-    await requestPermission();
-    await location.requestPermission();
-    return;
-  }, [location]);
-
+  const allowCameraLocationPermissions = useCallback(async () => { await requestPermission(); await location.requestPermission(); return; }, [location]);
   const handleCapture = async () => {
     if (!isInitialized || isCapturing) return;
     await takePhoto({ flash });
-    return;
   };
 
   if (preferredDevice != null && preferredDevice.position === cameraPosition) {
-    // override default device with the one selected by the user in settings
     device = preferredDevice;
   }
 
@@ -176,18 +159,21 @@ export default function CameraScreen() {
         allowCameraLocationPermissions={allowCameraLocationPermissions}
       />
     );
-  if (device === null) return <NoCameraDevice />;
+
+  if (device == null) return <NoCameraDevice />;
 
   return (
     <View style={styles.container}>
       <CameraView
         device={device}
         isActive={isActive}
-        frameProcessor={ready ? frameProcessor : undefined}
+        frameProcessor={frameProcessor}
         onInitialized={onInitialized}
         ref={cameraRef}
-        detections ={ detections }
       />
+
+      <DetectionOverlay detections={detections} />
+
       <CameraControls
         onCapture={handleCapture}
         disabled={!isInitialized || isCapturing}
@@ -197,8 +183,5 @@ export default function CameraScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
+  container: { flex: 1 },
 });
