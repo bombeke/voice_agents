@@ -1,6 +1,6 @@
 import { Canvas, Group, matchFont, Rect, Text } from "@shopify/react-native-skia";
 import { memo, useMemo } from "react";
-import { Dimensions, Platform } from "react-native";
+import { Dimensions, Platform, StyleSheet } from "react-native";
 import { useDerivedValue } from "react-native-reanimated";
 
 
@@ -15,7 +15,7 @@ type Props = {
   detections?: any;
 };
 
-export const DetectionOverlay = memo(({ detections }: Props) => {
+export const DetectionOverlay1 = memo(({ detections }: Props) => {
   const isPortrait = screenHeight > screenWidth;
   console.log("detections0:", detections.value);
   const font = useMemo(() => {
@@ -172,3 +172,25 @@ export const DetectionOverlay = memo(({ detections }: Props) => {
     </Canvas>
   );
 });
+
+
+export const DetectionOverlay = ({ detections }: Props) => {
+  if (!detections) return null;
+
+  return (
+    <Canvas style={StyleSheet.absoluteFill}>
+      {detections.detections.map((d:any, i:number) => (
+        <Rect
+          key={i}
+          x={d.x1}
+          y={d.y1}
+          width={d.width}
+          height={d.height}
+          color="red"
+          style="stroke"
+          strokeWidth={3}
+        />
+      ))}
+    </Canvas>
+  );
+};
