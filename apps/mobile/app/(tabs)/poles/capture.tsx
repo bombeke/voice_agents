@@ -74,7 +74,8 @@ export default function CameraScreen() {
   const frameProcessor = useSkiaFrameProcessor(
     (frame) => {
       "worklet";
-      if (!detectTagsProcessor === null || detectTagsProcessor === undefined) return;
+      frame.render()
+      if (detectTagsProcessor === null || detectTagsProcessor === undefined) return;
 
       // Throttle on worklet thread (200ms)
       if (frame.timestamp - lastTimestamp.value < 100_000_000) return;
@@ -119,7 +120,7 @@ export default function CameraScreen() {
     });
 
 
-      frame.render()
+      
       for (const result of corrected) {
         const paint = Skia.Paint()
         paint.setColor(Skia.Color('red'))
