@@ -8,6 +8,7 @@ import {
   useCameraPermission,
   useFrameOutput,
   usePhotoOutput,
+  usePreviewOutput,
 } from "react-native-vision-camera";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -52,6 +53,7 @@ export const CameraView = memo(
 
     const device = devices.find((d) => d.position === 'back');
     const photoOutput = usePhotoOutput();
+    const previewOutput = usePreviewOutput()
     const { isInitialized, isCapturing, takePhoto } = useCameraController({photoOutput});
     const model = useObjectDetection({ model: SSDLITE_320_MOBILENET_V3_LARGE });
     const [detections, setDetections] = useState<Detection[]>([]);
@@ -130,7 +132,7 @@ export const CameraView = memo(
           style={StyleSheet.absoluteFill}
           device={'back'}
           isActive
-          outputs={[photoOutput, frameOutput]}
+          outputs={[photoOutput, frameOutput, previewOutput]}
           orientationSource="device"
         />
         {detections.map((det, i) => (
