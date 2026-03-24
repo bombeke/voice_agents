@@ -195,3 +195,10 @@ export const DetectionOverlay = ({ detections }: Props) => {
     </Canvas>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    position: "absolute",
+    zIndex: 1500
+  }
+})

@@ -21,8 +21,8 @@ import { usePreferredCameraDevice } from "@/hooks/usePreferredCameraDevice";
 import { Detection } from "@/hooks/useTagDetection";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { useIsFocused } from "@react-navigation/core";
-import { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 import { detectTags } from "react-native-vision-camera-executorch";
+import { scheduleOnRN } from 'react-native-worklets';
 import { useSharedValue } from "react-native-worklets-core";
 
 export interface InferResult {
@@ -42,7 +42,7 @@ export default function CameraScreen() {
   const isForeground = useIsForeground();
   const isActive = isFocused && isForeground;
 
-  const detectionsSV = useSharedValue<InferResult | null>(null);
+  //const detectionsSV = useSharedValue<InferResult | null>(null);
   const [detections, setDetections] = useState<InferResult | null>(null);
 
   const [cameraPosition] = useState<"front" | "back">("back");
@@ -56,12 +56,25 @@ export default function CameraScreen() {
 
   const [modelPath, setModelPath] = useState<string | null>(null);
 
+  const updateDetections = useCallback((results: InferResult | null) => {
+    setDetections(results);
+  }, []);
+
   useEffect(() => {
     (async () => {
       const path = await prepareAndInitializeModel();
       setModelPath(path);
     })();
   }, []);
+
+  useEffect(() => {
+    location.requestPermission();
+    microphone.requestPermission();
+  }, [microphone,location]);
+
+  useEffect(() => {
+    if (!hasPermission) requestPermission();
+  }, [hasPermission,requestPermission]);
 
   const detectTagsProcessor = useMemo(() => {
     if (!modelPath) return undefined;
@@ -112,34 +125,17 @@ export default function CameraScreen() {
           height: y2 - y1,
         };
       });
-
-      detectionsSV.value = {
+      scheduleOnRN(updateDetections, {
         detections: corrected,
         frameWidth: frameW,
         frameHeight: frameH,
-      };
+      });
     },
-    [detectTagsProcessor]
+    [detectTagsProcessor,updateDetections]
   );
 
-  useAnimatedReaction(
-    () => detectionsSV.value,
-    (val) => {
-      if (val != null) {
-        runOnJS(setDetections)(val);
-      }
-    },
-    []
-  );
 
-  useEffect(() => {
-    location.requestPermission();
-    microphone.requestPermission();
-  }, []);
 
-  useEffect(() => {
-    if (!hasPermission) requestPermission();
-  }, [hasPermission]);
 
   const allowCameraLocationPermissions = useCallback(async () => { await requestPermission(); await location.requestPermission(); return; }, [location]);
   const handleCapture = async () => {
@@ -174,8 +170,23 @@ export default function CameraScreen() {
 
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <DetectionOverlay detections={detections} />
+        
       </View>
-
+{
+          /*
+          <Canvas style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
+            <Rect
+              x={100}
+              y={100}
+              width={200}
+              height={200}
+              color="red"
+              style="stroke"
+              strokeWidth={5}
+            />
+          </Canvas>
+          */
+        }
       <CameraControls
         onCapture={handleCapture}
         disabled={!isInitialized || isCapturing}
