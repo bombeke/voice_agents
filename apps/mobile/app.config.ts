@@ -75,17 +75,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "@config-plugins/react-native-webrtc",
     "expo-web-browser",
     "expo-font",
-    [
-      "react-native-vision-camera",
-      {
-        cameraPermissionText: "$(PRODUCT_NAME) needs access to your Camera.",
-
-        // optionally, if you want to record audio:
-        enableMicrophonePermission: true,
-        microphonePermissionText:
-          "$(PRODUCT_NAME) needs access to your Microphone.",
-      },
-    ],
     "@maplibre/maplibre-react-native",
     [
       "expo-media-library",
