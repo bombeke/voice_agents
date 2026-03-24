@@ -172,7 +172,9 @@ export default function CameraScreen() {
         ref={cameraRef}
       />
 
-      <DetectionOverlay detections={detections} />
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <DetectionOverlay detections={detections} />
+      </View>
 
       <CameraControls
         onCapture={handleCapture}

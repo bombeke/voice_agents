@@ -175,10 +175,11 @@ export const DetectionOverlay1 = memo(({ detections }: Props) => {
 
 
 export const DetectionOverlay = ({ detections }: Props) => {
+  console.log("detections:",detections)
   if (!detections) return null;
 
   return (
-    <Canvas style={StyleSheet.absoluteFill}>
+    <Canvas style={[StyleSheet.absoluteFill,{zIndex: 1000}]}>
       {detections.detections.map((d:any, i:number) => (
         <Rect
           key={i}
