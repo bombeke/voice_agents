@@ -8,7 +8,7 @@ export function detectTags(
 ) {
   "worklet";
 
-  const plugin = global.__detectTags;
+  const plugin = globalThis.__detectTags;
 
   if (!plugin) {
     console.log("detectTags plugin not installed");
