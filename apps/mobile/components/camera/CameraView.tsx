@@ -1,103 +1,147 @@
-import { Picker } from "@react-native-picker/picker";
-import { memo } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+
+import { memo, useCallback, useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import {
   Camera,
-  DrawableFrameProcessor,
-  ReadonlyFrameProcessor,
+  Frame,
+  useCameraDevices,
+  useCameraPermission,
+  useFrameOutput,
+  usePhotoOutput,
 } from "react-native-vision-camera";
+import { scheduleOnRN } from "react-native-worklets";
+
+import { useCameraController } from "@/hooks/useCameraController";
+import { prepareAndInitializeModel } from "@/services/PrepareModel";
+import {
+  Detection,
+  SSDLITE_320_MOBILENET_V3_LARGE,
+  useObjectDetection,
+} from 'react-native-executorch';
+import {
+  useLocation
+} from 'react-native-vision-camera-location';
+import { useAppReady } from "../AppReadyContext";
+import { CameraControls } from "./CameraControl";
+import { NoCameraDevice } from "./NoCameraDevice";
+import { PermissionsPage } from "./PermissionsPage";
 
 interface Props {
-  device: any;
-  isActive: boolean;
-  frameProcessor?: ReadonlyFrameProcessor | DrawableFrameProcessor;
-  onInitialized: () => void;
-  ref?: React.Ref<Camera | null>;
-
-  selectedTag?: string;
-  onTagChange?: (value: string) => void;
-
-  comment?: string;
-  onCommentChange?: (value: string) => void;
+  device?: any;
+  isActive?: boolean;
+  form?: {
+    selectedTag?: string;
+    comment?: string;
+  };
+  onChange?: (values: {
+    selectedTag: string | "";
+    comment: string | "";
+  }) => void;
   detections?: any;
   error?: string;
 }
 
 export const CameraView = memo(
-  ({
-    device,
-    isActive,
-    frameProcessor,
-    onInitialized,
-    ref,
-    selectedTag,
-    onTagChange,
-    comment,
-    onCommentChange,
-    error,
-    detections
-  }: Props) => {
-    //if (!device) return null;
+  ({ form, onChange }: Props) => {
+    const ready = useAppReady();
+    const { hasPermission, requestPermission } = useCameraPermission();
+    const location = useLocation()
+    const devices = useCameraDevices();
+    const [flash] = useState<"off" | "on">("off");
+    const [modelPath, setModelPath] = useState<string | null>(null);
+
+    const device = devices.find((d) => d.position === 'back');
+    const photoOutput = usePhotoOutput();
+    const { isInitialized, isCapturing, takePhoto } = useCameraController({photoOutput});
+    const model = useObjectDetection({ model: SSDLITE_320_MOBILENET_V3_LARGE });
+    const [detections, setDetections] = useState<Detection[]>([]);
+
+    const detRof = model.runOnFrame;
+
+    const updateDetections = useCallback((results: Detection[]) => {
+      setDetections(results);
+    }, []);
+    
+    const frameOutput = useFrameOutput({
+      pixelFormat: 'rgb',
+      dropFramesWhileBusy: true,
+      onFrame: useCallback(
+        (frame: Frame) => {
+          'worklet';
+          try {
+            if (!detRof) return;
+            const isFrontCamera = false; // using back camera
+            const result = detRof(frame, isFrontCamera, 0.5);
+            if (result) {
+              scheduleOnRN(updateDetections, result);
+            }
+          } 
+          finally {
+            frame.dispose();
+          }
+        },
+        [detRof, updateDetections]
+      ),
+    });
+    const handleCapture = async () => {
+      if (!isInitialized || isCapturing) return;
+      await takePhoto({ flashMode: flash })
+    };
+    useEffect(() => {
+      (async () => {
+        const path = await prepareAndInitializeModel();
+        setModelPath(path);
+      })();
+    }, []);
+
+    useEffect(() => {
+      if (!location.hasPermission) {
+        location.requestPermission()
+      }
+    }, [location.hasPermission])
+  
+    useEffect(() => {
+      if (!hasPermission) requestPermission();
+    }, [hasPermission,requestPermission]);
+  
+  
+    const allowCameraLocationPermissions = useCallback(
+      async () => { 
+        await requestPermission(); 
+        await location.requestPermission();
+        return; 
+    },[location]);
+  
+
+    if (!ready || !modelPath) return null;
+
+    if (!hasPermission)
+      return (
+        <PermissionsPage
+          allowCameraLocationPermissions={allowCameraLocationPermissions}
+        />
+      );
+
+    if (device === null) return <NoCameraDevice />;
 
     return (
       <View style={styles.container}>
-        <View
-          style={styles.formContainer}
-          className="px-4 pt-6 pb-4 space-y-4 z-10"
-        >
-          <View>
-            <Text className="text-lg font-semibold text-foreground mb-2">
-              Choose Tag
-            </Text>
-
-            <View className="bg-white rounded-xl overflow-hidden">
-              <Picker selectedValue={selectedTag} onValueChange={onTagChange}>
-                <Picker.Item label="Select a tag..." value="" />
-                <Picker.Item label="Damaged Pole" value="damaged" />
-                <Picker.Item label="Leaning Pole" value="leaning" />
-                <Picker.Item label="Broken Line" value="broken_line" />
-                <Picker.Item label="Other" value="other" />
-              </Picker>
-            </View>
-          </View>
-
-          <View>
-            <Text className="text-lg font-semibold text-foreground mb-2">
-              Comment
-            </Text>
-
-            <TextInput
-              value={comment}
-              onChangeText={onCommentChange}
-              placeholder="Add additional notes..."
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              className="bg-white rounded-xl px-4 py-3 min-h-[100px]"
-            />
-          </View>
-
-          {/* Validation Error */}
-          {error ? (
-            <Text className="text-red-500 font-medium">{error}</Text>
-          ) : null}
-        </View>
-        <View style={styles.cameraWrapper}>
-          <Camera
-            ref={ref}
-            style={StyleSheet.absoluteFill}
-            device={device}
-            isActive={isActive}
-            photo={true}
-            video={true}
-            audio={false}
-            preview={true}
-            enableZoomGesture
-            frameProcessor={frameProcessor}
-            onInitialized={onInitialized}
-            androidPreviewViewType="texture-view"
-          />
-        </View>
+        <Camera
+          style={StyleSheet.absoluteFill}
+          device={'back'}
+          isActive
+          outputs={[photoOutput, frameOutput]}
+          orientationSource="device"
+        />
+        {detections.map((det, i) => (
+          <Text key={i} style={styles.label}>
+            {det.label} {(det.score * 100).toFixed(1)}%
+          </Text>
+        ))}
+        <CameraControls
+          onCapture={handleCapture}
+          disabled={!isInitialized || isCapturing}
+        />
       </View>
     );
   },
@@ -106,7 +150,8 @@ export const CameraView = memo(
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000", // Ensures preview always has visible base
+    //backgroundColor: "#000", // Ensures preview always has visible base
+    
   },
   formContainer: {
     padding: 16,
@@ -119,9 +164,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   label: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    color: 'white',
     fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
   },
   pickerWrapper: {
     backgroundColor: "#fff",

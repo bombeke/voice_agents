@@ -23,6 +23,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: "org.bombeke.voiceagents",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSCameraUsageDescription: "$(PRODUCT_NAME) needs access to your Camera to capture photos and videos.",
+      NSLocationWhenInUseUsageDescription: "$(PRODUCT_NAME) needs access to your Location to add GPS tags to captured photos",
     },
     config: {
       usesNonExemptEncryption: false,
@@ -48,6 +50,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "ACCESS_BACKGROUND_LOCATION",
       "FOREGROUND_SERVICE",
       "FOREGROUND_SERVICE_LOCATION",
+      "android.permission.ACCESS_FINE_LOCATION", 
+      "android.permission.ACCESS_COARSE_LOCATION"
     ],
     package: "org.bombeke.voiceagents",
   },
