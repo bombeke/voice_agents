@@ -84,6 +84,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required Android components
+        run: |
+          sdkmanager --install "ndk;25.2.9519653" "cmake;3.22.1"
+
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -131,7 +138,31 @@ jobs:
           expo-version: latest
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --shamefully-hoist
+      - name: Generate Nitro bindings
+        run: pnpm dlx nitro-codegen generate
+
+      - name: Install Skia binaries
+        run: |
+          cd node_modules/@shopify/react-native-skia
+          pnpm install || true
+          pnpm run skia:install || true
+
+      #- name: Build react-native-vision-camera-executorch plugin
+      #  run: pnpm --filter react-native-vision-camera-executorch build
+
+      - name: Clean & regenerate native project
+        run: |
+          cd apps/mobile
+          npx expo prebuild --clean
+
+      - name: Install CocoaPods deps
+        run: npx pod-install || true
+
+      - name: Clean C++ build artifacts
+        run: |
+          rm -rf node_modules/**/.cxx || true
+          rm -rf apps/mobile/android/.cxx || true
 
       - name: Deduplicate react-native-vision-camera
         run: pnpm dedupe react-native-vision-camera
@@ -146,13 +177,7 @@ jobs:
       #    df -h
       # name: Fix Hermes executable permissions
       #  run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
-      - name: Build react-native-vision-camera-executorch plugin
-        run: pnpm --filter react-native-vision-camera-executorch build
 
-      - name: Clean & regenerate native project
-        run: |
-          cd apps/mobile
-          npx expo prebuild --clean
 
       #- name: Build on EAS (Android)
       #  run: eas build --platform android --profile development --non-interactive --no-wait --local
