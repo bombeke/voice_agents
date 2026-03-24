@@ -139,8 +139,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --shamefully-hoist
-      - name: Generate Nitro bindings
-        run: pnpm dlx nitro-codegen generate
+
+      #- name: Generate Nitro bindings
+      #  run: pnpm dlx nitro-codegen generate
 
       - name: Install Skia binaries
         run: |
