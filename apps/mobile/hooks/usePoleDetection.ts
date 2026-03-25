@@ -1,9 +1,6 @@
 import { useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import { runOnJS, useSharedValue } from "react-native-reanimated";
-import { useFrameProcessor } from "react-native-vision-camera";
-import { detectTags } from "react-native-vision-camera-executorch";
-import { useResizePlugin } from "vision-camera-resize-plugin";
 //import { useCachedModel } from "./useCachedModel";
 
 // Pre-allocate buffers to avoid Garbage Collection (GC) pressure during video frames
@@ -109,23 +106,6 @@ export const runModelInferenceJS = (
 ) => {
   try {
     const detections: any = [];
-    //const detections = await model.forward(frame);
-    //const inputData = new Float32Array(frame.width * frame.height);
-    // ... fill inputData ...
-
-    /*const detections = VisionCameraExecutorch.forward(
-      inputData as any,
-      frame.height,
-      frame.width,
-    );
-    */
-
-    //console.log("Inference result:", detections);
-    const result = detectTags(frame, {
-      modelPath: "/data/local/tmp/model.pte",
-    });
-    console.log("Inference result2:", result);
-
     inferenceResult.value = detections ?? [];
     return detections ?? [];
   } catch (e) {
@@ -142,78 +122,6 @@ export const nowMs = () => {
   return global.performance.now();
 };
 
-export const useDetectionFrameProcessor = (
-  model: any,
-  threshold: number,
-  queues: ReturnType<typeof useDetectionQueues>,
-) => {
-  const { resize } = useResizePlugin();
-
-  const {
-    inferenceResult,
-    detectionResults,
-    isInferring,
-    lastInferenceTs,
-    targetFps,
-    paused,
-  } = queues;
-
-  const frameProcessor = useFrameProcessor(
-    (frame) => {
-      "worklet";
-
-      //if (paused.value) return;
-
-      //const now = nowMs();
-      //const minInterval = 1000 / targetFps.value;
-
-      // 1) Consume latest result (if any)
-      if (inferenceResult.value != null) {
-        const detections = inferenceResult.value;
-        inferenceResult.value = null; // clear slot
-
-        detectionResults.value = processDetection(
-          detections,
-          frame.width,
-          frame.height,
-          threshold,
-        );
-      }
-
-      // 2) FPS gate
-
-      //if (now - lastInferenceTs.value < minInterval) return;
-
-      // 3) In-flight gate
-      //if (!model || isInferring.value) return;
-
-      // 4) Lock + timestamp BEFORE scheduling
-      isInferring.value = true;
-      //lastInferenceTs.value = now;
-
-      const resized = resize(frame, {
-        scale: { width: 300, height: 300 },
-        pixelFormat: "rgb",
-        dataType: "uint8",
-      });
-
-      // 5) Schedule async inference
-      //runAsync(frame, () => {
-      console.log("M6");
-      runOnJS(runModelInferenceJS)(
-        model,
-        resized,
-        inferenceResult,
-        isInferring,
-      );
-      console.log("M7");
-    },
-    [threshold],
-  );
-  console.log("M9");
-  return frameProcessor;
-};
-
 export const usePoleDetection = () => {
   const labels = require("@/assets/labels.json");
   //const { model, predict } = useCachedModel();
@@ -228,12 +136,6 @@ export const usePoleDetection = () => {
   };
 
   //const detectionResults = useDetectionResults();
-  const frameProcessor = useDetectionFrameProcessor(
-    null, // model
-    confidenceThreshold,
-    queues,
-  );
-
   const pauseDetection = () => {
     queues.paused.value = true;
     queues.inferenceResult.value = null;
@@ -246,7 +148,6 @@ export const usePoleDetection = () => {
 
   return {
     queues,
-    frameProcessor,
     pauseDetection,
     resumeDetection,
     fps,
