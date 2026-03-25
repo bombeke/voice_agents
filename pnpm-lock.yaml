@@ -221,16 +221,13 @@ importers:
         version: 4.2.1(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
       react-native-mmkv:
         specifier: ^4.3.0
-        version: 4.3.0(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react-native-nitro:
-        specifier: ^0.0.2
-        version: 0.0.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        version: 4.3.0(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-nitro-image:
-        specifier: ^0.13.1
-        version: 0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        specifier: 0.13.1
+        version: 0.13.1(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-nitro-modules:
-        specifier: ^0.33.9
-        version: 0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        specifier: 0.35.2
+        version: 0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-paper:
         specifier: 5.14.5
         version: 5.14.5(react-native-safe-area-context@5.6.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -251,16 +248,13 @@ importers:
         version: 6.19.0(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-vision-camera:
         specifier: 5.0.0-beta.7
-        version: 5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react-native-vision-camera-location:
-        specifier: 5.0.0-beta.1
-        version: 5.0.0-beta.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-vision-camera@5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        version: 5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-vision-camera-resizer:
         specifier: 5.0.0-beta.5
-        version: 5.0.0-beta.5(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-vision-camera@5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        version: 5.0.0-beta.5(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-vision-camera@5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-vision-camera-skia:
         specifier: 5.0.0-beta.1
-        version: 5.0.0-beta.1(o7q55wiamgeo7ishattdbwluvy)
+        version: 5.0.0-beta.1(fcxnkm27mef7fmce7tirat3quu)
       react-native-web:
         specifier: ^0.21.0
         version: 0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -5828,20 +5822,8 @@ packages:
       react-native: 0.81.4
       react-native-nitro-modules: '*'
 
-  react-native-nitro-modules@0.33.9:
-    resolution: {integrity: sha512-BM9C5mCGYYjrc8CDWZZ0anLWU/knH2xaEuFzvzogKTOW6fzgS6mmsCdM3ty+AhImJNSYwK19DLrHaqwnrrwEzw==}
-    peerDependencies:
-      react: 19.1.0
-      react-native: 0.81.4
-
   react-native-nitro-modules@0.35.2:
     resolution: {integrity: sha512-97cZcCh3ZAuWAfutel2Q3qLfc45XXh7F9Ei5tEjahP0kV3q8hQelwLIulKXmjN+f0JI5Zf/wCsfwwdVWYU2tKA==}
-    peerDependencies:
-      react: 19.1.0
-      react-native: 0.81.4
-
-  react-native-nitro@0.0.2:
-    resolution: {integrity: sha512-Km2OcIT1k6NDO9e1Erbkqsbta5bzGOnh4cCZuqX5wWA/21g5JGdOEYgJbEooHzwrjUyVHUP2ufv/q9m8TGjsPA==}
     peerDependencies:
       react: 19.1.0
       react-native: 0.81.4
@@ -5896,14 +5878,6 @@ packages:
     peerDependencies:
       react: 19.1.0
       react-native: 0.81.4
-
-  react-native-vision-camera-location@5.0.0-beta.1:
-    resolution: {integrity: sha512-u7b2VfUO3Uv9oYS8oVWFSB/DloISyh5BI9Z0b1NT32PyqW/nmc8IzA2khmiSa9FfUwKsl6GNbGjMtS0sabI9Kg==}
-    peerDependencies:
-      react: 19.1.0
-      react-native: 0.81.4
-      react-native-nitro-modules: '*'
-      react-native-vision-camera: 5.0.0-beta.7
 
   react-native-vision-camera-resizer@5.0.0-beta.5:
     resolution: {integrity: sha512-3+/qtuLVDAVNKyRDpq5KiWyXEBCjZzUbITglfGeDdjdj0nnHvzefrsPpQjsg+hv82xprzIL7SLEtP3nnciVgMQ==}
@@ -14228,17 +14202,11 @@ snapshots:
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
 
-  react-native-mmkv@4.3.0(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+  react-native-mmkv@4.3.0(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
-      react-native-nitro-modules: 0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-
-  react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
-    dependencies:
-      react: 19.1.0
-      react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
-      react-native-nitro-modules: 0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react-native-nitro-modules: 0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
   react-native-nitro-image@0.13.1(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
@@ -14246,17 +14214,7 @@ snapshots:
       react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
       react-native-nitro-modules: 0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
-  react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
-    dependencies:
-      react: 19.1.0
-      react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
-
   react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
-    dependencies:
-      react: 19.1.0
-      react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
-
-  react-native-nitro@0.0.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
@@ -14312,35 +14270,20 @@ snapshots:
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
 
-  react-native-vision-camera-location@5.0.0-beta.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-vision-camera@5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+  react-native-vision-camera-resizer@5.0.0-beta.5(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-vision-camera@5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
-      react-native-nitro-modules: 0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react-native-vision-camera: 5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react-native-nitro-modules: 0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react-native-vision-camera: 5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
-  react-native-vision-camera-resizer@5.0.0-beta.5(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-vision-camera@5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
-    dependencies:
-      react: 19.1.0
-      react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
-      react-native-nitro-modules: 0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react-native-vision-camera: 5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-
-  react-native-vision-camera-skia@5.0.0-beta.1(o7q55wiamgeo7ishattdbwluvy):
+  react-native-vision-camera-skia@5.0.0-beta.1(fcxnkm27mef7fmce7tirat3quu):
     dependencies:
       '@shopify/react-native-skia': 2.5.3(react-native-reanimated@4.1.6(@babel/core@7.29.0)(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
       react-native-reanimated: 4.1.6(@babel/core@7.29.0)(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react-native-vision-camera: 5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react-native-worklets: 0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-
-  react-native-vision-camera@5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
-    dependencies:
-      react: 19.1.0
-      react-native: 0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
-      react-native-nitro-image: 0.13.1(react-native-nitro-modules@0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react-native-nitro-modules: 0.33.9(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react-native-vision-camera: 5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-worklets: 0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
   react-native-vision-camera@5.0.0-beta.7(react-native-nitro-image@0.13.1(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-nitro-modules@0.35.2(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):

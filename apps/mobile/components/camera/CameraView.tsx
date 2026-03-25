@@ -19,9 +19,7 @@ import {
   SSDLITE_320_MOBILENET_V3_LARGE,
   useObjectDetection,
 } from 'react-native-executorch';
-import {
-  useLocation
-} from 'react-native-vision-camera-location';
+
 import { useAppReady } from "../AppReadyContext";
 import { CameraControls } from "./CameraControl";
 import { NoCameraDevice } from "./NoCameraDevice";
@@ -46,7 +44,7 @@ export const CameraView = memo(
   ({ form, onChange }: Props) => {
     const ready = useAppReady();
     const { hasPermission, requestPermission } = useCameraPermission();
-    const location = useLocation()
+    //const location = useLocation()
     const devices = useCameraDevices();
     const [flash] = useState<"off" | "on">("off");
     const [modelPath, setModelPath] = useState<string | null>(null);
@@ -96,11 +94,12 @@ export const CameraView = memo(
       })();
     }, []);
 
-    useEffect(() => {
+    /*useEffect(() => {
       if (!location.hasPermission) {
         location.requestPermission()
       }
     }, [location.hasPermission])
+    */
   
     useEffect(() => {
       if (!hasPermission) requestPermission();
@@ -110,9 +109,9 @@ export const CameraView = memo(
     const allowCameraLocationPermissions = useCallback(
       async () => { 
         await requestPermission(); 
-        await location.requestPermission();
+        //await location.requestPermission();
         return; 
-    },[location]);
+    },[requestPermission]);
   
 
     if (!ready || !modelPath) return null;

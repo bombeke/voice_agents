@@ -66,7 +66,7 @@ export function useCameraController({ photoOutput }: ICameraOutputs ) {
         setIsCapturing(false);
       }
     },
-    [addPole],
+    [addPole,photoOutput],
 
 
   );
