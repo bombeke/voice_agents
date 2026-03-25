@@ -37,11 +37,9 @@
     },
     "overrides": {
       "node-forge": "1.3.2",
-      "nitrogen": "0.35.2",
-      "react-native-nitro-modules": "0.35.2",
-      "react-native-nitro-image": "0.13.1",
-      "react-native-vision-camera-location>nitrogen": "0.35.2",
-      "react-native-vision-camera-location>react-native-nitro-modules": "0.35.2"
+      "nitrogen": "0.33.9",
+      "react-native-nitro-modules": "0.33.9",
+      "react-native-nitro-image": "0.12.0"
     },
     "public-hoist-pattern": [
       "react",
@@ -54,6 +52,9 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
-    "react-native-vision-camera": "5.0.0-beta.7"
+    "react-native-vision-camera": "5.0.0-beta.2",
+    "nitrogen": "0.33.9",
+    "react-native-nitro-modules": "0.33.9",
+    "react-native-nitro-image": "0.12.0"
   }
 }
