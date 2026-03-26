@@ -16,10 +16,13 @@ import { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-//import "react-native-vision-camera-executorch";
 import { TamaguiProvider } from "tamagui";
 import "../global.css";
 import { config } from "../tamagui.config";
+
+import { initExecutorch } from 'react-native-executorch';
+import { ExpoResourceFetcher } from 'react-native-executorch-expo-resource-fetcher';
+
 
 SplashScreen.preventAutoHideAsync();
 
@@ -54,6 +57,10 @@ const styles = StyleSheet.create({
 const userId = "mmkv_user_app";
 const storage = createUserStorage(userId);
 initPersistence();
+
+initExecutorch({
+  resourceFetcher: ExpoResourceFetcher,
+});
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
