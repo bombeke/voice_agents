@@ -4,11 +4,10 @@ import { StyleSheet, Text, View } from "react-native";
 import {
   Camera,
   Frame,
-  useCameraDevices,
+  useCameraDevice,
   useCameraPermission,
   useFrameOutput,
-  usePhotoOutput,
-  usePreviewOutput,
+  usePhotoOutput
 } from "react-native-vision-camera";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -19,7 +18,9 @@ import {
   SSDLITE_320_MOBILENET_V3_LARGE,
   useObjectDetection,
 } from 'react-native-executorch';
-
+import {
+  useLocation
+} from 'react-native-vision-camera-location';
 import { useAppReady } from "../AppReadyContext";
 import { CameraControls } from "./CameraControl";
 import { NoCameraDevice } from "./NoCameraDevice";
@@ -44,14 +45,12 @@ export const CameraView = memo(
   ({ form, onChange }: Props) => {
     const ready = useAppReady();
     const { hasPermission, requestPermission } = useCameraPermission();
-    //const location = useLocation()
-    const devices = useCameraDevices();
+    const location = useLocation()
+    const device = useCameraDevice('back');
     const [flash] = useState<"off" | "on">("off");
     const [modelPath, setModelPath] = useState<string | null>(null);
 
-    const device = devices.find((d) => d.position === 'back');
     const photoOutput = usePhotoOutput();
-    const previewOutput = usePreviewOutput()
     const { isInitialized, isCapturing, takePhoto } = useCameraController({photoOutput});
     const model = useObjectDetection({ model: SSDLITE_320_MOBILENET_V3_LARGE });
     const [detections, setDetections] = useState<Detection[]>([]);
@@ -94,12 +93,12 @@ export const CameraView = memo(
       })();
     }, []);
 
-    /*useEffect(() => {
+    useEffect(() => {
       if (!location.hasPermission) {
         location.requestPermission()
       }
     }, [location.hasPermission])
-    */
+    
   
     useEffect(() => {
       if (!hasPermission) requestPermission();
@@ -109,9 +108,9 @@ export const CameraView = memo(
     const allowCameraLocationPermissions = useCallback(
       async () => { 
         await requestPermission(); 
-        //await location.requestPermission();
+        await location.requestPermission();
         return; 
-    },[requestPermission]);
+    },[requestPermission,location]);
   
 
     if (!ready || !modelPath) return null;
@@ -123,15 +122,15 @@ export const CameraView = memo(
         />
       );
 
-    if (device === null) return <NoCameraDevice />;
+    if (!device) return <NoCameraDevice />;
 
     return (
       <View style={styles.container}>
         <Camera
           style={StyleSheet.absoluteFill}
-          device={'back'}
-          isActive
-          outputs={[photoOutput, frameOutput, previewOutput]}
+          device= {device}
+          isActive={ true}
+          outputs={[frameOutput]}
           orientationSource="device"
         />
         {detections.map((det, i) => (
