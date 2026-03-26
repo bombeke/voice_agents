@@ -36,10 +36,7 @@
       ]
     },
     "overrides": {
-      "node-forge": "1.3.2",
-      "nitrogen": "0.33.9",
-      "react-native-nitro-modules": "0.33.9",
-      "react-native-nitro-image": "0.12.0"
+      "node-forge": "1.3.2"
     },
     "public-hoist-pattern": [
       "react",
