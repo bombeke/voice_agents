@@ -71,8 +71,10 @@ export const CameraView = memo(
             if (!detRof) return;
             const isFrontCamera = false; // using back camera
             const result = detRof(frame, isFrontCamera, 0.5);
-            if (result) {
+            if (Array.isArray(result) && result.length > 0) {
               scheduleOnRN(updateDetections, result);
+            } else {
+              scheduleOnRN(updateDetections, []);
             }
           } 
           finally {
@@ -83,7 +85,7 @@ export const CameraView = memo(
       ),
     });
     const handleCapture = async () => {
-      if (!isInitialized || isCapturing) return;
+      //if (!isInitialized || isCapturing) return;
       await takePhoto({ flashMode: flash })
     };
     useEffect(() => {
@@ -130,17 +132,16 @@ export const CameraView = memo(
           style={StyleSheet.absoluteFill}
           device= {device}
           isActive={ true}
-          outputs={[frameOutput]}
-          orientationSource="device"
+          //outputs={[frameOutput]}
         />
-        {detections.map((det, i) => (
+        {(detections ?? []).map((det, i) => (
           <Text key={i} style={styles.label}>
             {det.label} {(det.score * 100).toFixed(1)}%
           </Text>
         ))}
         <CameraControls
           onCapture={handleCapture}
-          disabled={!isInitialized || isCapturing}
+          disabled={ false }
         />
       </View>
     );
