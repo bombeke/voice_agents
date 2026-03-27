@@ -1,10 +1,10 @@
 
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
   Camera,
   Frame,
-  useCameraDevice,
+  useCameraDevices,
   useCameraPermission,
   useFrameOutput,
   usePhotoOutput
@@ -46,11 +46,13 @@ export const CameraView = memo(
     const ready = useAppReady();
     const { hasPermission, requestPermission } = useCameraPermission();
     const location = useLocation()
-    const device = useCameraDevice('back');
+    const devices = useCameraDevices()
+    const device = useMemo(() => devices.find((d) => d.position === 'back'),[devices]);
+    console.log("devices:",devices,"device:",device)
     const [flash] = useState<"off" | "on">("off");
     const [modelPath, setModelPath] = useState<string | null>(null);
 
-    const photoOutput = usePhotoOutput();
+    const photoOutput = usePhotoOutput({});
     const { isInitialized, isCapturing, takePhoto } = useCameraController({photoOutput});
     const model = useObjectDetection({ model: SSDLITE_320_MOBILENET_V3_LARGE });
     const [detections, setDetections] = useState<Detection[]>([]);
@@ -67,10 +69,12 @@ export const CameraView = memo(
       onFrame: useCallback(
         (frame: Frame) => {
           'worklet';
+          console.log("Frame:",frame)
           try {
             if (!detRof) return;
             const isFrontCamera = false; // using back camera
             const result = detRof(frame, isFrontCamera, 0.5);
+            console.log("DeTS:",result)
             if (Array.isArray(result) && result.length > 0) {
               scheduleOnRN(updateDetections, result);
             } else {
@@ -88,6 +92,7 @@ export const CameraView = memo(
       //if (!isInitialized || isCapturing) return;
       await takePhoto({ flashMode: flash })
     };
+
     useEffect(() => {
       (async () => {
         const path = await prepareAndInitializeModel();
@@ -130,9 +135,12 @@ export const CameraView = memo(
       <View style={styles.container}>
         <Camera
           style={StyleSheet.absoluteFill}
-          device= {device}
+          device= "back"
           isActive={ true}
-          //outputs={[frameOutput]}
+          outputs={[frameOutput, photoOutput]}
+          enableNativeZoomGesture={true}
+          enableNativeTapToFocusGesture={true}
+          orientationSource="device"
         />
         {(detections ?? []).map((det, i) => (
           <Text key={i} style={styles.label}>
