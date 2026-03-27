@@ -182,7 +182,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
             const scaleX = screenWidth / frameSize.height;
             const scaleY = screenHeight / frameSize.width;
             const left = y1 * scaleX;
-            const top = (frameSize.width - x2) * scaleY;
+            const top = x1 * scaleY;
 
             const width = (y2 - y1) * scaleX;
             const height = (x2 - x1) * scaleY;
