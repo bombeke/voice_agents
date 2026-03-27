@@ -1,6 +1,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import type { CameraDevice } from "react-native-vision-camera";
 import {
   Camera,
   Frame,
@@ -19,6 +20,7 @@ import {
   SSDLITE_320_MOBILENET_V3_LARGE,
   useObjectDetection,
 } from 'react-native-executorch';
+//import { useSharedValue } from "react-native-reanimated";
 import {
   useLocation
 } from 'react-native-vision-camera-location';
@@ -44,21 +46,22 @@ interface Props {
   error?: string;
 }
 
-export const CameraView = memo(
-  ({ form, onChange }: Props) => {
+export const CameraView = memo(({ form, onChange }: Props) => {
     const ready = useAppReady();
     const { hasPermission, requestPermission } = useCameraPermission();
+    //const exposure = useSharedValue(2);
     const location = useLocation()
     const devices = useCameraDevices()
-    const device = useMemo(() => devices.find((d) => d.position === 'back'),[devices]);
+    const device = useMemo(() => devices.find((d: CameraDevice ) => d.position === 'back'),[devices]);
     console.log("devices:",devices,"device:",device)
     const [flash] = useState<"off" | "on">("off");
     const [modelPath, setModelPath] = useState<string | null>(null);
 
     const photoOutput = usePhotoOutput({});
-    const { isInitialized, isCapturing, takePhoto } = useCameraController({photoOutput});
+    const { takePhoto } = useCameraController({photoOutput});
     const model = useObjectDetection({ model: SSDLITE_320_MOBILENET_V3_LARGE });
     const [detections, setDetections] = useState<Detection[]>([]);
+    const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
 
     const detRof = model.runOnFrame;
 
@@ -72,15 +75,19 @@ export const CameraView = memo(
       onFrame: useCallback(
         (frame: Frame) => {
           'worklet';
-          console.log("Frame:",frame?.width)
           try {
             if (!detRof) return;
             const isFrontCamera = false; // using back camera
             const result = detRof(frame, isFrontCamera, 0.5);
             console.log("DeTS:",result)
+            scheduleOnRN(setFrameSize, {
+              width: frame.width,
+              height: frame.height,
+            });
             if (Array.isArray(result) && result.length > 0) {
               scheduleOnRN(updateDetections, result);
-            } else {
+            } 
+            else {
               scheduleOnRN(updateDetections, []);
             }
           } 
@@ -88,11 +95,10 @@ export const CameraView = memo(
             frame.dispose();
           }
         },
-        [detRof, updateDetections]
+        [detRof, updateDetections,setFrameSize]
       ),
     });
     const handleCapture = async () => {
-      //if (!isInitialized || isCapturing) return;
       await takePhoto({ flashMode: flash })
     };
 
@@ -148,21 +154,21 @@ export const CameraView = memo(
         <View style={StyleSheet.absoluteFill}>
           {(detections ?? []).map((det, i) => {
             const { x1, y1, x2, y2 } = det.bbox;
-            /*const scaleX = screenWidth / frameWidth;
-            const scaleY = screenHeight / frameHeight;
+            const scaleX = screenWidth / frameSize.width;
+            const scaleY = screenHeight / frameSize.height;
+
             const left = x1 * scaleX;
             const top = y1 * scaleY;
-            */
-            const width = x2 - x1; // * scaleX
-            const height = y2 - y1; // *scaleY
+            const width = (x2 - x1) * scaleX;
+            const height = (y2 - y1) * scaleY;
             return (
               <View
                 key={i}
                 style={[
                   styles.box,
                   {
-                    left: x1,
-                    top: y1,
+                    left,
+                    top,
                     width,
                     height,
                   },
