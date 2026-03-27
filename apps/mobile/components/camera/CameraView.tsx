@@ -13,6 +13,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import { useCameraController } from "@/hooks/useCameraController";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
+import { Dimensions } from "react-native";
 import {
   Detection,
   SSDLITE_320_MOBILENET_V3_LARGE,
@@ -25,6 +26,8 @@ import { useAppReady } from "../AppReadyContext";
 import { CameraControls } from "./CameraControl";
 import { NoCameraDevice } from "./NoCameraDevice";
 import { PermissionsPage } from "./PermissionsPage";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 interface Props {
   device?: any;
@@ -62,14 +65,14 @@ export const CameraView = memo(
     const updateDetections = useCallback((results: Detection[]) => {
       setDetections(results);
     }, []);
-    
+
     const frameOutput = useFrameOutput({
       pixelFormat: 'rgb',
       dropFramesWhileBusy: true,
       onFrame: useCallback(
         (frame: Frame) => {
           'worklet';
-          console.log("Frame:",frame)
+          console.log("Frame:",frame?.width)
           try {
             if (!detRof) return;
             const isFrontCamera = false; // using back camera
@@ -142,11 +145,36 @@ export const CameraView = memo(
           enableNativeTapToFocusGesture={true}
           orientationSource="device"
         />
-        {(detections ?? []).map((det, i) => (
-          <Text key={i} style={styles.label}>
-            {det.label} {(det.score * 100).toFixed(1)}%
-          </Text>
-        ))}
+        <View style={StyleSheet.absoluteFill}>
+          {(detections ?? []).map((det, i) => {
+            const { x1, y1, x2, y2 } = det.bbox;
+            /*const scaleX = screenWidth / frameWidth;
+            const scaleY = screenHeight / frameHeight;
+            const left = x1 * scaleX;
+            const top = y1 * scaleY;
+            */
+            const width = x2 - x1; // * scaleX
+            const height = y2 - y1; // *scaleY
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.box,
+                  {
+                    left: x1,
+                    top: y1,
+                    width,
+                    height,
+                  },
+                ]}
+              >
+                <Text style={styles.boxLabel}>
+                  {det.label} {(det.score * 100).toFixed(1)}%
+                </Text>
+              </View>
+            );
+          })}
+        </View>
         <CameraControls
           onCapture={handleCapture}
           disabled={ false }
@@ -194,5 +222,20 @@ const styles = StyleSheet.create({
     color: "red",
     marginTop: 8,
     fontWeight: "500",
+  },
+  box: {
+    position: "absolute",
+    borderWidth: 2,
+    borderColor: "red",
+    justifyContent: "flex-start",
+  },
+
+  boxLabel: {
+    position: "absolute",
+    top: -20,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    color: "#7c1d1d",
+    fontSize: 12,
+    paddingHorizontal: 4,
   },
 });
