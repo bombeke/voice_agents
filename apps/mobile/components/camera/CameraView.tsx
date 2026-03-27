@@ -171,19 +171,27 @@ export const CameraView = memo(({ form, onChange }: Props) => {
               const scaledWidth = frameSize.width * (screenHeight / frameSize.height);
               offsetX = (scaledWidth - screenWidth) / 2;
             }
-            const scaleX = screenWidth / frameSize.width;
+            /*const scaleX = screenWidth / frameSize.width;
             const scaleY = screenHeight / frameSize.height;
 
             const left = x1 * scaleX;
             const top = y1 * scaleY;
             const width = (x2 - x1) * scaleX;
             const height = (y2 - y1) * scaleY;
+            */
+            const scaleX = screenWidth / frameSize.height;
+            const scaleY = screenHeight / frameSize.width;
+            const left = y1 * scaleX;
+            const top = (frameSize.width - x2) * scaleY;
+
+            const width = (y2 - y1) * scaleX;
+            const height = (x2 - x1) * scaleY;
              console.log("FrameSize:",frameSize, "Screen:",{height:screenHeight,width: screenWidth},"boundingBox style:",{
                     left,
                     top,
                     width,
                     height,
-                  })
+                  }, "scale:",[scaleX,scaleY])
             return (
               <View
                 key={i}
