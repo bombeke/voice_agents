@@ -145,20 +145,35 @@ export const CameraView = memo(({ form, onChange }: Props) => {
         <Camera
           style={StyleSheet.absoluteFill}
           device= "back"
-          isActive={ true}
+          isActive={ true }
           outputs={[frameOutput, photoOutput]}
-          enableNativeZoomGesture={true}
-          enableNativeTapToFocusGesture={true}
+          enableNativeZoomGesture={ true }
+          enableNativeTapToFocusGesture={ true }
           orientationSource="device"
+          enableLowLightBoost ={ true }
         />
-        <View style={StyleSheet.absoluteFill}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "transparent" }]}>
           {(detections ?? []).map((det, i) => {
             const { x1, y1, x2, y2 } = det.bbox;
+            const screenRatio = screenHeight / screenWidth;
+            const frameRatio = frameSize.height / frameSize.width;
+            let offsetY = 0;
+            let offsetX = 0;
+
+            if (frameRatio > screenRatio) {
+              const scaledHeight = frameSize.height * (screenWidth / frameSize.width);
+              offsetY = (scaledHeight - screenHeight) / 2;
+
+            }
+            else {
+              const scaledWidth = frameSize.width * (screenHeight / frameSize.height);
+              offsetX = (scaledWidth - screenWidth) / 2;
+            }
             const scaleX = screenWidth / frameSize.width;
             const scaleY = screenHeight / frameSize.height;
 
-            const left = x1 * scaleX;
-            const top = y1 * scaleY;
+            const left = x1 * scaleX - offsetX;
+            const top = y1 * scaleY - offsetY;
             const width = (x2 - x1) * scaleX;
             const height = (y2 - y1) * scaleY;
             return (
@@ -193,8 +208,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    //backgroundColor: "#000", // Ensures preview always has visible base
-    
+    backgroundColor: "#000", // Ensures preview always has visible base
   },
   formContainer: {
     padding: 16,
@@ -235,13 +249,15 @@ const styles = StyleSheet.create({
     borderColor: "red",
     justifyContent: "flex-start",
   },
-
   boxLabel: {
     position: "absolute",
-    top: -20,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    color: "#7c1d1d",
+    top: -22,
+    left: 0,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    color: "#fff",
     fontSize: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 });
