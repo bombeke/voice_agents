@@ -142,16 +142,18 @@ export const CameraView = memo(({ form, onChange }: Props) => {
 
     return (
       <View style={styles.container}>
-        <Camera
-          style={StyleSheet.absoluteFill}
-          device= "back"
-          isActive={ true }
-          outputs={[frameOutput, photoOutput]}
-          enableNativeZoomGesture={ true }
-          enableNativeTapToFocusGesture={ true }
-          orientationSource="device"
-          enableLowLightBoost ={ true }
-        />
+        <View style={styles.cameraWrapper}>
+          <Camera
+            style={StyleSheet.absoluteFill}
+            device= "back"
+            isActive={ true }
+            outputs={[frameOutput, photoOutput]}
+            enableNativeZoomGesture={ true }
+            enableNativeTapToFocusGesture={ true }
+            orientationSource="device"
+            enableLowLightBoost ={ true }
+          />
+        </View>
         <View style={[StyleSheet.absoluteFill, { backgroundColor: "transparent" }]}>
           {(detections ?? []).map((det, i) => {
             const { x1, y1, x2, y2 } = det.bbox;
@@ -172,10 +174,16 @@ export const CameraView = memo(({ form, onChange }: Props) => {
             const scaleX = screenWidth / frameSize.width;
             const scaleY = screenHeight / frameSize.height;
 
-            const left = x1 * scaleX - offsetX;
-            const top = y1 * scaleY - offsetY;
+            const left = x1 * scaleX;
+            const top = y1 * scaleY;
             const width = (x2 - x1) * scaleX;
             const height = (y2 - y1) * scaleY;
+             console.log("FrameSize:",frameSize, "Screen:",{height:screenHeight,width: screenWidth},"boundingBox style:",{
+                    left,
+                    top,
+                    width,
+                    height,
+                  })
             return (
               <View
                 key={i}
@@ -208,7 +216,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000", // Ensures preview always has visible base
+    //backgroundColor: "#000", // Ensures preview always has visible base
   },
   formContainer: {
     padding: 16,
@@ -217,7 +225,7 @@ const styles = StyleSheet.create({
   },
   cameraWrapper: {
     flex: 1,
-    backgroundColor: "#000", // Forces preview background visible
+    //backgroundColor: "#000", // Forces preview background visible
     overflow: "hidden",
   },
   label: {
