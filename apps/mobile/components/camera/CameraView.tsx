@@ -18,6 +18,7 @@ import { Dimensions } from "react-native";
 import {
   Detection,
   //SSDLITE_320_MOBILENET_V3_LARGE,
+  YOLO26N_SEG,
   useObjectDetection,
 } from 'react-native-executorch';
 //import { useSharedValue } from "react-native-reanimated";
@@ -67,7 +68,8 @@ export const CameraView = memo(({ form, onChange }: Props) => {
 
     const photoOutput = usePhotoOutput({});
     const { takePhoto } = useCameraController({photoOutput});
-    const model = useObjectDetection({ model: YOLO26N });
+    const model = useObjectDetection({ model: YOLO26N_SEG });
+    console.log("Model:::",model)
     const [detections, setDetections] = useState<Detection[]>([]);
     const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
 
