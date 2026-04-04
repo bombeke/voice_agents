@@ -68,7 +68,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
 
     const photoOutput = usePhotoOutput({});
     const { takePhoto } = useCameraController({photoOutput});
-    const model = useObjectDetection({ model: YOLO26N, inputSize:640 });
+    const model = useObjectDetection({ model: YOLO26N });
     console.log("Model:::",model)
     const [detections, setDetections] = useState<Detection[]>([]);
     const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
