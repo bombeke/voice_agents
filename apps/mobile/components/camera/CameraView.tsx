@@ -17,9 +17,8 @@ import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { Dimensions } from "react-native";
 import {
   Detection,
-  //SSDLITE_320_MOBILENET_V3_LARGE,
-  YOLO26N_SEG,
-  useObjectDetection,
+  ObjectDetectionModule,
+  useObjectDetection
 } from 'react-native-executorch';
 //import { useSharedValue } from "react-native-reanimated";
 import {
@@ -50,11 +49,56 @@ export const URL_PREFIX ='https://huggingface.co/software-mansion/react-native-e
 export const VERSION_TAG = 'resolve/v0.8.0';
 const YOLO26N_DETECTION_MODEL = `${URL_PREFIX}-yolo26/${VERSION_TAG}/yolo26n/xnnpack/yolo26n.pte`;
 export const YOLO26N = {
-  modelName: 'yolo26n',
+  modelName: 'yolo26n',YOLO26N_DETECTION_MODEL,
   modelSource: YOLO26N_DETECTION_MODEL,
 } as any;
  
+export interface InferInterface {
+  modelName: string;
+  modelSource?: string;
+}
 
+export function useYOLO26Detection({ modelName }: InferInterface) {
+  const [model, setModel] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const m = await ObjectDetectionModule.fromCustomModel(
+          modelName,
+          {
+            defaultInputSize: 640,
+            labelMap: {
+              0: 'person',
+              1: 'bicycle',
+              2: 'car',
+              62: 'TV',
+              63: 'LAPTOP',
+              64: 'MOUSE',
+              65: 'REMOTE',
+              66: 'KEYBOARD', 
+              67: 'CELL_PHONE'
+            },
+          }
+        );
+
+        if (mounted) {
+          setModel(m);
+        }
+      } catch (e) {
+        console.error('Model load error:', e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [modelName]);
+
+  return model;
+}
 export const CameraView = memo(({ form, onChange }: Props) => {
     const ready = useAppReady();
     const { hasPermission, requestPermission } = useCameraPermission();
@@ -70,6 +114,8 @@ export const CameraView = memo(({ form, onChange }: Props) => {
     const { takePhoto } = useCameraController({photoOutput});
     const model = useObjectDetection({ model: YOLO26N });
     console.log("Model:::",model)
+    const modelYolo = useYOLO26Detection({ modelName: YOLO26N_DETECTION_MODEL });
+    console.log("ModelYolo:::",modelYolo)
     const [detections, setDetections] = useState<Detection[]>([]);
     const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
 
