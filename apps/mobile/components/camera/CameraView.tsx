@@ -11,6 +11,7 @@ import {
   usePhotoOutput
 } from "react-native-vision-camera";
 import { scheduleOnRN } from "react-native-worklets";
+import { useSharedValue } from 'react-native-worklets-core';
 
 import { useCameraController } from "@/hooks/useCameraController";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
@@ -101,6 +102,7 @@ export function useYOLO26Detection({ modelName }: InferInterface) {
 }
 export const CameraView = memo(({ form, onChange }: Props) => {
     const ready = useAppReady();
+    const modelRef = useSharedValue(null);
     const { hasPermission, requestPermission } = useCameraPermission();
     //const exposure = useSharedValue(2);
     const location = useLocation()
@@ -124,6 +126,13 @@ export const CameraView = memo(({ form, onChange }: Props) => {
     const updateDetections = useCallback((results: Detection[]) => {
       setDetections(results);
     }, []);
+    
+
+    useEffect(() => {
+      if (modelYolo) {
+        modelRef.value = modelYolo;
+      }
+    }, [modelYolo]);
 
     const frameOutput = useFrameOutput({
       pixelFormat: 'rgb',
@@ -132,6 +141,13 @@ export const CameraView = memo(({ form, onChange }: Props) => {
         (frame: Frame) => {
           'worklet';
           try {
+            /*const m = modelRef.value;
+              if (!m) {
+                frame.dispose();
+                return;
+              }
+              const detRof = m.runOnFrame;
+            */
             if (!detRof) return;
             const isFrontCamera = false; // using back camera
             const result = detRof(frame, isFrontCamera, 0.5);
