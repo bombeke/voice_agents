@@ -50,7 +50,7 @@ export const URL_PREFIX ='https://huggingface.co/software-mansion/react-native-e
 export const VERSION_TAG = 'resolve/v0.8.0';
 const YOLO26N_DETECTION_MODEL = `${URL_PREFIX}-yolo26/${VERSION_TAG}/yolo26n/xnnpack/yolo26n.pte`;
 export const YOLO26N = {
-  modelName: 'yolo26n',YOLO26N_DETECTION_MODEL,
+  modelName: 'yolo26n',
   modelSource: YOLO26N_DETECTION_MODEL,
 } as any;
  
@@ -108,7 +108,6 @@ export const CameraView = memo(({ form, onChange }: Props) => {
     const location = useLocation()
     const devices = useCameraDevices()
     const device = useMemo(() => devices.find((d: CameraDevice ) => d.position === 'back'),[devices]);
-    console.log("devices:",devices,"device:",device)
     const [flash] = useState<"off" | "on">("off");
     const [modelPath, setModelPath] = useState<string | null>(null);
 
@@ -117,7 +116,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
     const model = useObjectDetection({ model: YOLO26N });
     console.log("Model:::",model)
     const modelYolo = useYOLO26Detection({ modelName: YOLO26N_DETECTION_MODEL });
-    console.log("ModelYolo:::",modelYolo)
+    //console.log("ModelYolo:::",modelYolo)
     const [detections, setDetections] = useState<Detection[]>([]);
     const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
 
@@ -148,7 +147,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
               }
               const detRof = m.runOnFrame;
             */
-            if (!detRof) return;
+            if (!detRof || !model.isReady) return;
             const isFrontCamera = false; // using back camera
             const result = detRof(frame, isFrontCamera, 0.5);
             console.log("DeTS:",result)
@@ -167,7 +166,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
             frame.dispose();
           }
         },
-        [detRof, updateDetections,setFrameSize]
+        [detRof, updateDetections,setFrameSize, model.isReady]
       ),
     });
     const handleCapture = async () => {
