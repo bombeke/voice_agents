@@ -51,13 +51,9 @@ interface Props {
   detections?: any;
   error?: string;
 }
-export const URL_PREFIX ='https://huggingface.co/software-mansion/react-native-executorch';
-export const VERSION_TAG = 'resolve/v0.8.0';
-const YOLO26N_DETECTION_MODEL = `${URL_PREFIX}-yolo26/${VERSION_TAG}/yolo26n/xnnpack/yolo26n.pte`;
 
 export const YOLO26N = {
   modelName: 'yolo26n',
-  //modelSource: YOLO26N_DETECTION_MODEL,
   modelSource: require("../../assets/model.pte")
 } as any;
  
@@ -221,7 +217,6 @@ export const CameraView = memo(({ form, onChange }: Props) => {
     const photoOutput = usePhotoOutput({});
     const { takePhoto } = useCameraController({photoOutput});
     const model = useTagObjectDetection({ model: YOLO26N });
-    console.log("Model:::",model)
     const [detections, setDetections] = useState<Detection<typeof CocoLabelYolo>[]>([]);
     const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
 
@@ -356,10 +351,10 @@ export const CameraView = memo(({ form, onChange }: Props) => {
                 style={[
                   styles.box,
                   {
-                    left,
-                    top,
-                    width,
-                    height,
+                    left: y1,
+                    top: x1,
+                    width: y2-y1,
+                    height: x2-x1,
                   },
                 ]}
               >
