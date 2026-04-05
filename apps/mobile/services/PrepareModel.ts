@@ -7,7 +7,7 @@ export async function prepareModel(): Promise<string> {
   const destination = new File(Paths.document, MODEL_NAME);
 
   if (destination.exists) {
-    console.log("Using cached model at:", destination.uri);
+    console.log("App cached model at:", destination.uri);
     return destination.uri.replace("file://", "");
   }
 
@@ -21,13 +21,11 @@ export async function prepareModel(): Promise<string> {
 
   new File(asset.localUri).copy(destination);
 
-  console.log("Model copied to:", destination.uri);
+  console.log("App Model copied to:", destination.uri);
 
   return destination.uri.replace("file://", "");
 }
 
 export async function prepareAndInitializeModel() {
-  const path = await prepareModel();
-  //initializeDetectTags(path);
-  return path;
+  return await prepareModel();
 }

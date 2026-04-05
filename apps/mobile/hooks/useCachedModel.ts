@@ -90,35 +90,3 @@ export const useCachedModel = () => {
     predict: runModel,
   };
 };
-
-export const useCachedModel1 = () => {
-  const [ready, setReady] = useState(() => !!getCachedModel());
-
-  useEffect(() => {
-    if (ready) return;
-
-    return subscribe(() => {
-      //setReady(true);
-    });
-  }, [ready]);
-
-  const runModel = useCallback(async (image: any) => {
-    const model = getCachedModel();
-    if (!model) return [];
-
-    const detections = await model.forward(image);
-    for (const detection of detections) {
-      console.log("Bounding box: ", detection.bbox);
-      console.log("Bounding label: ", detection.label);
-      console.log("Bounding score: ", detection.score);
-    }
-
-    return detections;
-  }, []);
-
-  return {
-    model: getCachedModel(),
-    state: ready,
-    predict: runModel,
-  };
-};
