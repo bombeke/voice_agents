@@ -18,10 +18,17 @@ import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { Dimensions } from "react-native";
 import {
   Detection,
+  ObjectDetectionConfig,
+  ObjectDetectionModelSources,
   ObjectDetectionModule,
+  ObjectDetectionOptions,
+  ObjectDetectionProps,
+  ObjectDetectionType,
+  PixelData,
   useObjectDetection
 } from 'react-native-executorch';
-//import { useSharedValue } from "react-native-reanimated";
+
+import { useModuleFactory } from "@/hooks/useModuleFactory";
 import {
   useLocation
 } from 'react-native-vision-camera-location';
@@ -49,6 +56,7 @@ interface Props {
 export const URL_PREFIX ='https://huggingface.co/software-mansion/react-native-executorch';
 export const VERSION_TAG = 'resolve/v0.8.0';
 const YOLO26N_DETECTION_MODEL = `${URL_PREFIX}-yolo26/${VERSION_TAG}/yolo26n/xnnpack/yolo26n.pte`;
+
 export const YOLO26N = {
   modelName: 'yolo26n',
   modelSource: YOLO26N_DETECTION_MODEL,
@@ -59,47 +67,148 @@ export interface InferInterface {
   modelSource?: string;
 }
 
-export function useYOLO26Detection({ modelName }: InferInterface) {
-  const [model, setModel] = useState(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        const m = await ObjectDetectionModule.fromCustomModel(
-          modelName,
-          {
-            defaultInputSize: 640,
-            labelMap: {
-              0: 'person',
-              1: 'bicycle',
-              2: 'car',
-              62: 'TV',
-              63: 'LAPTOP',
-              64: 'MOUSE',
-              65: 'REMOTE',
-              66: 'KEYBOARD', 
-              67: 'CELL_PHONE'
-            },
-          }
-        );
-
-        if (mounted) {
-          setModel(m);
-        }
-      } catch (e) {
-        console.error('Model load error:', e);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, [modelName]);
-
-  return model;
+export enum CocoLabelYolo {
+  PERSON = 0,
+  BICYCLE = 1,
+  CAR = 2,
+  MOTORCYCLE = 3,
+  AIRPLANE = 4,
+  BUS = 5,
+  TRAIN = 6,
+  TRUCK = 7,
+  BOAT = 8,
+  TRAFFIC_LIGHT = 9,
+  FIRE_HYDRANT = 10,
+  STOP_SIGN = 11,
+  PARKING_METER = 12,
+  BENCH = 13,
+  BIRD = 14,
+  CAT = 15,
+  DOG = 16,
+  HORSE = 17,
+  SHEEP = 18,
+  COW = 19,
+  ELEPHANT = 20,
+  BEAR = 21,
+  ZEBRA = 22,
+  GIRAFFE = 23,
+  BACKPACK = 24,
+  UMBRELLA = 25,
+  HANDBAG = 26,
+  TIE = 27,
+  SUITCASE = 28,
+  FRISBEE = 29,
+  SKIS = 30,
+  SNOWBOARD = 31,
+  SPORTS_BALL = 32,
+  KITE = 33,
+  BASEBALL_BAT = 34,
+  BASEBALL_GLOVE = 35,
+  SKATEBOARD = 36,
+  SURFBOARD = 37,
+  TENNIS_RACKET = 38,
+  BOTTLE = 39,
+  WINE_GLASS = 40,
+  CUP = 41,
+  FORK = 42,
+  KNIFE = 43,
+  SPOON = 44,
+  BOWL = 45,
+  BANANA = 46,
+  APPLE = 47,
+  SANDWICH = 48,
+  ORANGE = 49,
+  BROCCOLI = 50,
+  CARROT = 51,
+  HOT_DOG = 52,
+  PIZZA = 53,
+  DONUT = 54,
+  CAKE = 55,
+  CHAIR = 56,
+  COUCH = 57,
+  POTTED_PLANT = 58,
+  BED = 59,
+  DINING_TABLE = 60,
+  TOILET = 61,
+  TV = 62,
+  LAPTOP = 63,
+  MOUSE = 64,
+  REMOTE = 65,
+  KEYBOARD = 66,
+  CELL_PHONE = 67,
+  MICROWAVE = 68,
+  OVEN = 69,
+  TOASTER = 70,
+  SINK = 71,
+  REFRIGERATOR = 72,
+  BOOK = 73,
+  CLOCK = 74,
+  VASE = 75,
+  SCISSORS = 76,
+  TEDDY_BEAR = 77,
+  HAIR_DRIER = 78,
+  TOOTHBRUSH = 79,
 }
+
+const MODEL_DETECTION_CONFIG = {
+  labelMap: CocoLabelYolo,
+  preprocessorConfig: undefined,
+  availableInputSizes: [384, 512, 640] as const,
+  defaultInputSize: 384,
+  defaultDetectionThreshold: 0.5,
+  defaultIouThreshold: 0.5,
+} satisfies ObjectDetectionConfig<typeof CocoLabelYolo>;
+
+/**
+ * React hook for managing an Object Detection model instance.
+ * @typeParam C - A {@link ObjectDetectionModelSources} config specifying which built-in model to load.
+ * @category Hooks
+ * @param props - Configuration object containing `model` config and optional `preventLoad` flag.
+ * @returns An object with model state (`error`, `isReady`, `isGenerating`, `downloadProgress`) and typed `forward` and `runOnFrame` functions.
+ */
+export const useTagObjectDetection = <C extends ObjectDetectionModelSources>({
+  model,
+  preventLoad = false,
+}: ObjectDetectionProps<C>): ObjectDetectionType<
+  typeof CocoLabelYolo
+> => {
+  const {
+    error,
+    isReady,
+    isGenerating,
+    downloadProgress,
+    runForward,
+    runOnFrame,
+    instance,
+  } = useModuleFactory({
+    factory: (modelSource, config, onProgress) =>
+      
+      ObjectDetectionModule.fromCustomModel(modelSource, config, onProgress),
+    modelSource: model?.modelSource,
+    config: MODEL_DETECTION_CONFIG,
+    deps: [model.modelName, model.modelSource],
+    preventLoad,
+  });
+
+  const forward = (
+    input: string | PixelData,
+    options?: ObjectDetectionOptions<typeof CocoLabelYolo>
+  ) => runForward((inst) => inst.forward(input, options));
+
+  const getAvailableInputSizes = () =>
+    instance?.getAvailableInputSizes() ?? undefined;
+
+  return {
+    error,
+    isReady,
+    isGenerating,
+    downloadProgress,
+    forward,
+    runOnFrame,
+    getAvailableInputSizes,
+  };
+};
+
 export const CameraView = memo(({ form, onChange }: Props) => {
     const ready = useAppReady();
     const modelRef = useSharedValue(null);
@@ -113,25 +222,19 @@ export const CameraView = memo(({ form, onChange }: Props) => {
 
     const photoOutput = usePhotoOutput({});
     const { takePhoto } = useCameraController({photoOutput});
-    const model = useObjectDetection({ model: YOLO26N });
+    const modelx = useObjectDetection({ model: YOLO26N });
+    console.log("Model:::",modelx)
+    const model = useTagObjectDetection({ model: YOLO26N });
     console.log("Model:::",model)
-    const modelYolo = useYOLO26Detection({ modelName: YOLO26N_DETECTION_MODEL });
-    //console.log("ModelYolo:::",modelYolo)
-    const [detections, setDetections] = useState<Detection[]>([]);
+    const [detections, setDetections] = useState<Detection<typeof CocoLabelYolo>[]>([]);
     const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
 
     const detRof = model.runOnFrame;
 
-    const updateDetections = useCallback((results: Detection[]) => {
+    const updateDetections = useCallback((results: Detection<typeof CocoLabelYolo>[]) => {
       setDetections(results);
     }, []);
     
-
-    useEffect(() => {
-      if (modelYolo) {
-        modelRef.value = modelYolo;
-      }
-    }, [modelYolo]);
 
     const frameOutput = useFrameOutput({
       pixelFormat: 'rgb',
@@ -140,16 +243,9 @@ export const CameraView = memo(({ form, onChange }: Props) => {
         (frame: Frame) => {
           'worklet';
           try {
-            /*const m = modelRef.value;
-              if (!m) {
-                frame.dispose();
-                return;
-              }
-              const detRof = m.runOnFrame;
-            */
             if (!detRof || !model.isReady) return;
             const isFrontCamera = false; // using back camera
-            const result = detRof(frame, isFrontCamera, 0.5);
+            const result = detRof(frame, isFrontCamera, { detectionThreshold: 0.5 });
             console.log("DeTS:",result)
             scheduleOnRN(setFrameSize, {
               width: frame.width,
