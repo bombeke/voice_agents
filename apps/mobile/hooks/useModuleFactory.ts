@@ -1,6 +1,6 @@
+import { parseUnknownError } from '@/helpers/error';
 import { useEffect, useMemo, useState } from 'react';
 import { ResourceSource, RnExecutorchError, RnExecutorchErrorCode } from 'react-native-executorch';
-import { parseUnknownError } from 'react-native-executorch/lib/typescript/errors/errorUtils';
 
 
 type Deletable = { delete: () => void };
