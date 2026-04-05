@@ -58,7 +58,7 @@ const YOLO26N_DETECTION_MODEL = `${URL_PREFIX}-yolo26/${VERSION_TAG}/yolo26n/xnn
 export const YOLO26N = {
   modelName: 'yolo26n',
   //modelSource: YOLO26N_DETECTION_MODEL,
-  modelSource: require("../assets/model.pte")
+  modelSource: require("../../assets/model.pte")
 } as any;
  
 export interface InferInterface {
