@@ -11,7 +11,6 @@ import {
   usePhotoOutput
 } from "react-native-vision-camera";
 import { scheduleOnRN } from "react-native-worklets";
-import { useSharedValue } from 'react-native-worklets-core';
 
 import { useCameraController } from "@/hooks/useCameraController";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
@@ -24,8 +23,7 @@ import {
   ObjectDetectionOptions,
   ObjectDetectionProps,
   ObjectDetectionType,
-  PixelData,
-  useObjectDetection
+  PixelData
 } from 'react-native-executorch';
 
 import { useModuleFactory } from "@/hooks/useModuleFactory";
@@ -59,7 +57,8 @@ const YOLO26N_DETECTION_MODEL = `${URL_PREFIX}-yolo26/${VERSION_TAG}/yolo26n/xnn
 
 export const YOLO26N = {
   modelName: 'yolo26n',
-  modelSource: YOLO26N_DETECTION_MODEL,
+  //modelSource: YOLO26N_DETECTION_MODEL,
+  modelSource: require("@/assets/yolo26n.pte")
 } as any;
  
 export interface InferInterface {
@@ -211,7 +210,6 @@ export const useTagObjectDetection = <C extends ObjectDetectionModelSources>({
 
 export const CameraView = memo(({ form, onChange }: Props) => {
     const ready = useAppReady();
-    const modelRef = useSharedValue(null);
     const { hasPermission, requestPermission } = useCameraPermission();
     //const exposure = useSharedValue(2);
     const location = useLocation()
@@ -222,8 +220,6 @@ export const CameraView = memo(({ form, onChange }: Props) => {
 
     const photoOutput = usePhotoOutput({});
     const { takePhoto } = useCameraController({photoOutput});
-    const modelx = useObjectDetection({ model: YOLO26N });
-    console.log("Model:::",modelx)
     const model = useTagObjectDetection({ model: YOLO26N });
     console.log("Model:::",model)
     const [detections, setDetections] = useState<Detection<typeof CocoLabelYolo>[]>([]);
