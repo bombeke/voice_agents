@@ -218,12 +218,10 @@ function updateVelocity(prev: Track, det:  Detection<typeof CocoLabelYolo>) {
 export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
   'worklet';
 
-  // 1. Predict existing tracks
   let predicted: Track[] = TRACKS.map(predict);
 
   const updated: Track[] = [];
 
-  // 2. Match detections → tracks
   detections.forEach((det) => {
     let best: Track | null = null;
     let bestScore = 0;
@@ -232,6 +230,7 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
       if (track.label !== det.label) return;
 
       const score = iou(track.bbox, det.bbox);
+      console.log("Score:",score, "BS:",bestScore);
       if (score > bestScore) {
         bestScore = score;
         best = track;
@@ -267,7 +266,6 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
     })
   });
 
-  // 3. Keep unmatched tracks (short time = smoothing)
   predicted.forEach((track) => {
     const stillExists = updated.find((t) => t.id === track.id);
     if (!stillExists && track.age < 5) {
@@ -369,6 +367,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
             });
             if (Array.isArray(result) && result.length > 0) {
               const tracked = trackSORT(result);
+              console.log("DeTS2:",tracked)
               scheduleOnRN(updateDetections, tracked);
             } 
             else {
