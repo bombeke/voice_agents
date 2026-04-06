@@ -16,6 +16,7 @@ import { useCameraController } from "@/hooks/useCameraController";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { Dimensions } from "react-native";
 import {
+  Bbox,
   Detection,
   ObjectDetectionConfig,
   ObjectDetectionModelSources,
@@ -144,8 +145,12 @@ export enum CocoLabelYolo {
   HAIR_DRIER = 78,
   TOOTHBRUSH = 79,
 }
+export type TrackedDetection = Detection<typeof CocoLabelYolo> & {
+  id: number;
+};
 
-const MODEL_DETECTION_CONFIG = {
+
+export const MODEL_DETECTION_CONFIG = {
   labelMap: CocoLabelYolo,
   preprocessorConfig: undefined,
   availableInputSizes: [384, 512, 640] as const,
@@ -154,6 +159,126 @@ const MODEL_DETECTION_CONFIG = {
   defaultIouThreshold: 0.5,
 } satisfies ObjectDetectionConfig<typeof CocoLabelYolo>;
 
+export interface Track extends TrackedDetection {
+  //id: number;
+  //bbox: { x1: number; y1: number; x2: number; y2: number };
+  vx: number;
+  vy: number;
+  age: number;
+  hits: number;
+  //label: number;
+};
+
+let TRACKS: Track[] = [];
+let NEXT_ID = 1;
+
+export const iou=(a: Bbox, b: Bbox)=> {
+  'worklet';
+  const xA = Math.max(a.x1, b.x1);
+  const yA = Math.max(a.y1, b.y1);
+  const xB = Math.min(a.x2, b.x2);
+  const yB = Math.min(a.y2, b.y2);
+
+  const inter = Math.max(0, xB - xA) * Math.max(0, yB - yA);
+  const areaA = (a.x2 - a.x1) * (a.y2 - a.y1);
+  const areaB = (b.x2 - b.x1) * (b.y2 - b.y1);
+
+  return inter / (areaA + areaB - inter + 1e-6);
+}
+
+// simple Kalman-like prediction (constant velocity)
+export const predict =(track: Track)=>{
+  'worklet';
+  return {
+    ...track,
+    bbox: {
+      x1: track.bbox.x1 + track.vx,
+      y1: track.bbox.y1 + track.vy,
+      x2: track.bbox.x2 + track.vx,
+      y2: track.bbox.y2 + track.vy,
+    },
+    age: track.age + 1,
+  };
+}
+
+function updateVelocity(prev: Track, det:  Detection<typeof CocoLabelYolo>) {
+  'worklet';
+  const dx = det.bbox.x1 - prev.bbox.x1;
+  const dy = det.bbox.y1 - prev.bbox.y1;
+
+  // smoothing factor (reduces jitter)
+  const alpha = 0.7;
+
+  return {
+    vx: alpha * dx + (1 - alpha) * prev.vx,
+    vy: alpha * dy + (1 - alpha) * prev.vy,
+  };
+}
+
+export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
+  'worklet';
+
+  // 1. Predict existing tracks
+  let predicted: Track[] = TRACKS.map(predict);
+
+  const updated: Track[] = [];
+
+  // 2. Match detections → tracks
+  detections.forEach((det) => {
+    let best: Track | null = null;
+    let bestScore = 0;
+
+    predicted.forEach((track: Track ) => {
+      if (track.label !== det.label) return;
+
+      const score = iou(track.bbox, det.bbox);
+      if (score > bestScore) {
+        bestScore = score;
+        best = track;
+      }
+
+      if (best && best !== null && bestScore > 0.3) {
+        const vel = updateVelocity(best, det);
+
+        updated.push({
+          id: best.id,
+          bbox: det.bbox,
+          vx: vel.vx,
+          vy: vel.vy,
+          hits: best.hits + 1,
+          age: 0,
+          label: best.label,
+          score: det.score
+        });
+      }
+      else {
+        // new track
+        updated.push({
+          id: NEXT_ID++,
+          bbox: det.bbox,
+          vx: 0,
+          vy: 0,
+          age: 0,
+          hits: 1,
+          label: det.label,
+          score: det.score
+        });
+      }
+    })
+  });
+
+  // 3. Keep unmatched tracks (short time = smoothing)
+  predicted.forEach((track) => {
+    const stillExists = updated.find((t) => t.id === track.id);
+    if (!stillExists && track.age < 5) {
+      updated.push(track);
+    }
+  });
+
+  TRACKS = updated;
+
+  return updated;
+}
 /**
  * React hook for managing an Object Detection model instance.
  * @typeParam C - A {@link ObjectDetectionModelSources} config specifying which built-in model to load.
@@ -217,12 +342,12 @@ export const CameraView = memo(({ form, onChange }: Props) => {
     const photoOutput = usePhotoOutput({});
     const { takePhoto } = useCameraController({photoOutput});
     const model = useTagObjectDetection({ model: YOLO26N });
-    const [detections, setDetections] = useState<Detection<typeof CocoLabelYolo>[]>([]);
+    const [detections, setDetections] = useState<TrackedDetection[]>([]);
     const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
 
     const detRof = model.runOnFrame;
 
-    const updateDetections = useCallback((results: Detection<typeof CocoLabelYolo>[]) => {
+    const updateDetections = useCallback((results: TrackedDetection[]) => {
       setDetections(results);
     }, []);
     
@@ -243,7 +368,8 @@ export const CameraView = memo(({ form, onChange }: Props) => {
               height: frame.height,
             });
             if (Array.isArray(result) && result.length > 0) {
-              scheduleOnRN(updateDetections, result);
+              const tracked = trackSORT(result);
+              scheduleOnRN(updateDetections, tracked);
             } 
             else {
               scheduleOnRN(updateDetections, []);
@@ -359,7 +485,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
                 ]}
               >
                 <Text style={styles.boxLabel}>
-                  {det.label} {(det.score * 100).toFixed(1)}%
+                  #{det.id} {det.label} {(det.score * 100).toFixed(1)}%
                 </Text>
               </View>
             );
