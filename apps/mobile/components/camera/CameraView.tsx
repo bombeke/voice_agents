@@ -235,35 +235,34 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
         bestScore = score;
         best = track;
       }
+    });
 
-      if (best && best !== null && bestScore > 0.3) {
-        const vel = updateVelocity(best, det);
-
-        updated.push({
-          id: best.id,
-          bbox: det.bbox,
-          vx: vel.vx,
-          vy: vel.vy,
-          hits: best.hits + 1,
-          age: 0,
-          label: best.label,
-          score: det.score
-        });
-      }
-      else {
-        // new track
-        updated.push({
-          id: NEXT_ID++,
-          bbox: det.bbox,
-          vx: 0,
-          vy: 0,
-          age: 0,
-          hits: 1,
-          label: det.label,
-          score: det.score
-        });
-      }
-    })
+    if (best && best !== null && bestScore > 0.3) {
+      const vel = updateVelocity(best, det);
+      const matched  = best as Track;
+      updated.push({
+        id: matched.id,
+        bbox: det.bbox,
+        vx: vel.vx,
+        vy: vel.vy,
+        hits: matched.hits + 1,
+        age: 0,
+        label: matched.label,
+        score: det.score
+      });
+    }
+    else {
+      updated.push({
+        id: NEXT_ID++,
+        bbox: det.bbox,
+        vx: 0,
+        vy: 0,
+        age: 0,
+        hits: 1,
+        label: det.label,
+        score: det.score
+      });
+    }
   });
 
   predicted.forEach((track) => {
