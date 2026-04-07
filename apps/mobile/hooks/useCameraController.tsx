@@ -1,18 +1,15 @@
 import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
+import { SyncedUtilityPole } from "@/services/storage/LegendState";
+import { randomUUID } from "expo-crypto";
 import { Accuracy, getCurrentPositionAsync } from "expo-location";
 import { createAssetAsync } from "expo-media-library";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
-import { CameraPhotoOutput } from "react-native-vision-camera";
 import { requestSavePermission } from "./Helpers";
+import { ICameraOutputs, ITakePhotoProps } from "./Types";
 
-interface ITakePhotoProps {
-  flashMode?: "off" | "on";
-}
-interface ICameraOutputs {
-  photoOutput: CameraPhotoOutput
-}
+
 export function useCameraController({ photoOutput }: ICameraOutputs ) {
   const { addPole } = useUtilityStorePoles();
   const router = useRouter();
@@ -24,7 +21,7 @@ export function useCameraController({ photoOutput }: ICameraOutputs ) {
   }, []);
 
   const takePhoto = useCallback(
-    async ({ flashMode = "off" }: ITakePhotoProps) => {
+    async ({ detections, flashMode = "off" }: ITakePhotoProps) => {
       try {
         setIsCapturing(true);
         const locationResult = await getCurrentPositionAsync({
@@ -41,7 +38,7 @@ export function useCameraController({ photoOutput }: ICameraOutputs ) {
           );
           return;
         }
-        const path = await photo.saveToTemporaryFileAsync(100);
+        const path = await photo.saveToTemporaryFileAsync();
         await createAssetAsync(`file:///${path}`, "photo");
         const encodedData = await photo.getFileDataAsync()
         // Upload to backend:
@@ -50,13 +47,18 @@ export function useCameraController({ photoOutput }: ICameraOutputs ) {
           headers: { 'Content-Type': 'image/jpeg' },
           body: Buffer.from(encodedData)
         })*/
-        await addPole({
+        const tags = detections.map((d)=>({
+          ...d,
           latitude: locationResult.coords.latitude,
           longitude: locationResult.coords.longitude,
           timestamp: Date.now(),
           imageUri: path,
-          detectionConfidence: 80, //get confidence from AI detections
-        } as any);
+          detectionConfidence: d.score,
+          pid: randomUUID(),
+          synced: false,
+        }) as SyncedUtilityPole );
+
+        await addPole(tags);
         return router.navigate("/poles/maps");
       } 
       catch (e) {

@@ -18,7 +18,6 @@ import { Dimensions } from "react-native";
 import {
   Bbox,
   Detection,
-  ObjectDetectionConfig,
   ObjectDetectionModelSources,
   ObjectDetectionModule,
   ObjectDetectionOptions,
@@ -27,6 +26,9 @@ import {
   PixelData
 } from 'react-native-executorch';
 
+import { MODEL_DETECTION_CONFIG, YOLO26N } from "@/constants/Config";
+import { CocoLabelYolo } from "@/constants/Enum";
+import { Track, TrackedDetection } from "@/hooks/Types";
 import { useModuleFactory } from "@/hooks/useModuleFactory";
 import {
   useLocation
@@ -38,7 +40,8 @@ import { PermissionsPage } from "./PermissionsPage";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
-interface Props {
+
+export interface Props {
   device?: any;
   isActive?: boolean;
   form?: {
@@ -52,122 +55,6 @@ interface Props {
   detections?: any;
   error?: string;
 }
-
-export const YOLO26N = {
-  modelName: 'yolo26n',
-  modelSource: require("../../assets/model.pte")
-} as any;
- 
-export interface InferInterface {
-  modelName: string;
-  modelSource?: string;
-}
-
-export enum CocoLabelYolo {
-  PERSON = 0,
-  BICYCLE = 1,
-  CAR = 2,
-  MOTORCYCLE = 3,
-  AIRPLANE = 4,
-  BUS = 5,
-  TRAIN = 6,
-  TRUCK = 7,
-  BOAT = 8,
-  TRAFFIC_LIGHT = 9,
-  FIRE_HYDRANT = 10,
-  STOP_SIGN = 11,
-  PARKING_METER = 12,
-  BENCH = 13,
-  BIRD = 14,
-  CAT = 15,
-  DOG = 16,
-  HORSE = 17,
-  SHEEP = 18,
-  COW = 19,
-  ELEPHANT = 20,
-  BEAR = 21,
-  ZEBRA = 22,
-  GIRAFFE = 23,
-  BACKPACK = 24,
-  UMBRELLA = 25,
-  HANDBAG = 26,
-  TIE = 27,
-  SUITCASE = 28,
-  FRISBEE = 29,
-  SKIS = 30,
-  SNOWBOARD = 31,
-  SPORTS_BALL = 32,
-  KITE = 33,
-  BASEBALL_BAT = 34,
-  BASEBALL_GLOVE = 35,
-  SKATEBOARD = 36,
-  SURFBOARD = 37,
-  TENNIS_RACKET = 38,
-  BOTTLE = 39,
-  WINE_GLASS = 40,
-  CUP = 41,
-  FORK = 42,
-  KNIFE = 43,
-  SPOON = 44,
-  BOWL = 45,
-  BANANA = 46,
-  APPLE = 47,
-  SANDWICH = 48,
-  ORANGE = 49,
-  BROCCOLI = 50,
-  CARROT = 51,
-  HOT_DOG = 52,
-  PIZZA = 53,
-  DONUT = 54,
-  CAKE = 55,
-  CHAIR = 56,
-  COUCH = 57,
-  POTTED_PLANT = 58,
-  BED = 59,
-  DINING_TABLE = 60,
-  TOILET = 61,
-  TV = 62,
-  LAPTOP = 63,
-  MOUSE = 64,
-  REMOTE = 65,
-  KEYBOARD = 66,
-  CELL_PHONE = 67,
-  MICROWAVE = 68,
-  OVEN = 69,
-  TOASTER = 70,
-  SINK = 71,
-  REFRIGERATOR = 72,
-  BOOK = 73,
-  CLOCK = 74,
-  VASE = 75,
-  SCISSORS = 76,
-  TEDDY_BEAR = 77,
-  HAIR_DRIER = 78,
-  TOOTHBRUSH = 79,
-}
-export type TrackedDetection = Detection<typeof CocoLabelYolo> & {
-  id: number;
-};
-
-
-export const MODEL_DETECTION_CONFIG = {
-  labelMap: CocoLabelYolo,
-  preprocessorConfig: undefined,
-  availableInputSizes: [384, 512, 640] as const,
-  defaultInputSize: 384,
-  defaultDetectionThreshold: 0.5,
-  defaultIouThreshold: 0.5,
-} satisfies ObjectDetectionConfig<typeof CocoLabelYolo>;
-
-export interface Track extends TrackedDetection {
-  //id: number;
-  //bbox: { x1: number; y1: number; x2: number; y2: number };
-  vx: number;
-  vy: number;
-  age: number;
-  hits: number;
-  //label: number;
-};
 
 let TRACKS: Track[] = [];
 let NEXT_ID = 1;
@@ -230,7 +117,6 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
       if (track.label !== det.label) return;
 
       const score = iou(track.bbox, det.bbox);
-      console.log("Score:",score, "BS:",bestScore);
       if (score > bestScore) {
         bestScore = score;
         best = track;
@@ -241,7 +127,7 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
       const vel = updateVelocity(best, det);
       const matched  = best as Track;
       updated.push({
-        id: matched.id,
+        trackId: matched.trackId,
         bbox: det.bbox,
         vx: vel.vx,
         vy: vel.vy,
@@ -253,7 +139,7 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
     }
     else {
       updated.push({
-        id: NEXT_ID++,
+        trackId: NEXT_ID++,
         bbox: det.bbox,
         vx: 0,
         vy: 0,
@@ -266,7 +152,7 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
   });
 
   predicted.forEach((track) => {
-    const stillExists = updated.find((t) => t.id === track.id);
+    const stillExists = updated.find((t) => t.trackId === track.trackId);
     if (!stillExists && track.age < 5) {
       updated.push(track);
     }
@@ -359,14 +245,12 @@ export const CameraView = memo(({ form, onChange }: Props) => {
             if (!detRof || !model.isReady) return;
             const isFrontCamera = false; // using back camera
             const result = detRof(frame, isFrontCamera, { detectionThreshold: 0.5 });
-            console.log("DeTS:",result)
             scheduleOnRN(setFrameSize, {
               width: frame.width,
               height: frame.height,
             });
             if (Array.isArray(result) && result.length > 0) {
               const tracked = trackSORT(result);
-              console.log("DeTS2:",tracked)
               scheduleOnRN(updateDetections, tracked);
             } 
             else {
@@ -381,7 +265,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
       ),
     });
     const handleCapture = async () => {
-      await takePhoto({ flashMode: flash })
+      await takePhoto({ flashMode: flash, detections })
     };
 
     useEffect(() => {
@@ -453,14 +337,6 @@ export const CameraView = memo(({ form, onChange }: Props) => {
               const scaledWidth = frameSize.width * (screenHeight / frameSize.height);
               offsetX = (scaledWidth - screenWidth) / 2;
             }
-            /*const scaleX = screenWidth / frameSize.width;
-            const scaleY = screenHeight / frameSize.height;
-
-            const left = x1 * scaleX;
-            const top = y1 * scaleY;
-            const width = (x2 - x1) * scaleX;
-            const height = (y2 - y1) * scaleY;
-            */
             const scaleX = screenWidth / frameSize.height;
             const scaleY = screenHeight / frameSize.width;
             const left = y1 * scaleX;
@@ -483,7 +359,7 @@ export const CameraView = memo(({ form, onChange }: Props) => {
                 ]}
               >
                 <Text style={styles.boxLabel}>
-                  #{det.id} {det.label} {(det.score * 100).toFixed(1)}%
+                  #{det.trackId} {det.label} {(det.score * 100).toFixed(1)}%
                 </Text>
               </View>
             );

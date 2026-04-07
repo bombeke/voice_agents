@@ -1,4 +1,4 @@
-import type { CRDTPole, SyncedPole } from "@/services/storage/LegendState";
+import type { SyncedUtilityPole } from "@/services/storage/LegendState";
 import {
   deletePoleVision,
   poleVisionDB$,
@@ -9,6 +9,7 @@ import createContextHook from "@nkzw/create-context-hook";
 import { useMutation } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
 import { useCallback } from "react";
+
 
 export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(
   () => {
@@ -21,16 +22,22 @@ export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(
      * Add pole
      */
     const addPoleMutation = useMutation({
-      mutationFn: async (pole: SyncedPole & CRDTPole) => {
-        const newPole: SyncedPole & CRDTPole = {
-          ...pole,
-          pid: randomUUID(),
-          synced: false,
-        };
+      mutationFn: async (pole: SyncedUtilityPole | SyncedUtilityPole[]) => {
+        if(Array.isArray(pole)){
+          setPoleVision(pole)
+          return pole;
+        }
+        else{
+          const newPole:  SyncedUtilityPole = {
+            ...pole,
+            pid: randomUUID(),
+            synced: false,
+          };
 
-        setPoleVision(newPole);
-        console.log(`Added new pole: ${newPole.pid}`);
-        return newPole;
+          setPoleVision(newPole);
+          console.log(`Added new pole: ${newPole.pid}`);
+          return newPole;
+        }
       },
     });
 

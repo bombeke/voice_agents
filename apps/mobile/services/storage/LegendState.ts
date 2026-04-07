@@ -1,3 +1,4 @@
+import { TrackedDetection } from "@/hooks/Types";
 import { observable, syncState } from "@legendapp/state";
 import { ObservablePersistMMKV } from "@legendapp/state/persist-plugins/mmkv";
 import { configureSynced, syncObservable } from "@legendapp/state/sync";
@@ -18,7 +19,7 @@ export interface TrackPoint {
 }
 
 export interface IPoleVisionDB {
-  poles: CRDTPole[];
+  poles: CRDTPole[] | Partial<SyncedUtilityPole>[];
   tracks: TrackPoint[];
   agents: any[];
   sanitation: any[];
@@ -48,6 +49,8 @@ export interface UtilityPole {
   vc: VectorClock;
 }
 
+
+
 export type SyncedPole = UtilityPole & SyncMeta;
 
 export interface AuditEvent {
@@ -56,10 +59,13 @@ export interface AuditEvent {
   ts: number;
 }
 export type VectorClock = Record<string, number>; // deviceId -> counter
+
 export interface CRDTPole extends UtilityPole {
   vc: VectorClock;
   deleted?: boolean;
 }
+
+export type SyncedUtilityPole = CRDTPole & SyncedPole & TrackedDetection
 
 let configured = false;
 
@@ -188,7 +194,8 @@ export const syncPoleToServer = async (pole: SyncedPole) => {
       return null;
     }
     return deleteRes.data;
-  } else {
+  } 
+  else {
     const url = pole?.pid ? `/alkuistore/${pole?.pid}` : `/alkuistore`;
     try {
       const res = await axiosClient.put(url, pole);
@@ -212,35 +219,64 @@ export const getPoleVision = () => {
 
 //const remotePolesStatus$ = syncState(remotePoles$);
 
-export const setPoleVision = (data: UtilityPole) => {
+export const setPoleVision = (data: SyncedUtilityPole |  SyncedUtilityPole[]) => {
   const deviceId = poleVisionDBDeviceId$.get();
-  const synced: SyncedPole & CRDTPole = {
-    ...data,
-    updatedAt: new Date().toISOString(),
-    deviceId,
-    vc: bumpVC(data?.vc ?? {}, deviceId),
-  };
+  if(!Array.isArray(data)){
+    const synced: Partial<SyncedUtilityPole> = {
+      ...data,
+      updatedAt: new Date().toISOString(),
+      deviceId,
+      vc: bumpVC(data?.vc ?? {}, deviceId),
+    };
 
-  // Update local state
-  poleVisionDB$.poles.set((prev) => [
-    ...prev.filter((p) => p.pid !== data.pid),
-    synced,
-  ]);
+    // Update local state
+    poleVisionDB$.poles.set((prev) => [
+      ...prev.filter((p) => p.pid !== data.pid),
+      synced,
+    ]);
 
-  // Enqueue op for offline retry
-  enqueuePoleOp(synced);
+    // Enqueue op for offline retry
+    enqueuePoleOp(synced);
 
-  // Audit trail
-  eventsStore$.set((e: any) => [
-    ...e,
-    { type: "POLE_UPSERT", payload: synced, ts: Date.now() },
-  ]);
-  console.log("POLE ADDED");
+    // Audit trail
+    eventsStore$.set((e: any) => [
+      ...e,
+      { type: "POLE_UPSERT", payload: synced, ts: Date.now() },
+    ]);
+    console.log("POLE ADDED");
+  }
+  else{
+    data.forEach((d)=>{
+      const dsynced: Partial<SyncedUtilityPole> = {
+        ...data,
+        updatedAt: new Date().toISOString(),
+        deviceId,
+        vc: bumpVC(d?.vc ?? {}, deviceId),
+      };
+
+      // Update local state
+      poleVisionDB$.poles.set((prev) => [
+        ...prev.filter((p) => p.pid !== d.pid),
+        dsynced,
+      ]);
+
+      // Enqueue op for offline retry
+      enqueuePoleOp(dsynced);
+
+      // Audit trail
+      eventsStore$.set((e: any) => [
+        ...e,
+        { type: "POLE_UPSERT", payload: dsynced, ts: Date.now() },
+      ]);
+      console.log("POLE ADDED");
+    })
+    
+  }
 };
 
 export const deletePoleVision = (id: string) => {
   const deviceId = poleVisionDBDeviceId$.get();
-  const deletedPole: Partial<SyncedPole & CRDTPole> = {
+  const deletedPole: Partial<SyncedUtilityPole> = {
     pid: id,
     deleted: true,
     updatedAt: new Date().toISOString(),
@@ -251,7 +287,7 @@ export const deletePoleVision = (id: string) => {
   poleVisionDB$.poles.set((prev) => prev.filter((p) => p.pid !== id));
 
   // Enqueue op for offline retry
-  enqueuePoleOp(deletedPole as SyncedPole);
+  enqueuePoleOp(deletedPole as SyncedUtilityPole );
 
   // Audit trail
   eventsStore$.set((e: any) => [
@@ -294,7 +330,7 @@ export const resolveConflict = (
   return local.deviceId > remote.deviceId ? local : remote;
 };
 
-export const enqueuePoleOp = (pole: SyncedPole) => {
+export const enqueuePoleOp = (pole: Partial<SyncedUtilityPole>) => {
   opQueue$.set((q: any) => [
     ...q,
     {
@@ -307,9 +343,9 @@ export const enqueuePoleOp = (pole: SyncedPole) => {
   ]);
 };
 
-export const upsertPole = (pole: UtilityPole) => {
+export const upsertPole = (pole: SyncedUtilityPole ) => {
   const deviceId = poleVisionDBDeviceId$.get();
-  const synced: SyncedPole & CRDTPole = {
+  const synced: SyncedUtilityPole  = {
     ...pole,
     updatedAt: new Date().toISOString(),
     deviceId: poleVisionDBDeviceId$.get(),

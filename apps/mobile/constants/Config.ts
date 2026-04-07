@@ -1,4 +1,6 @@
 import Constants from 'expo-constants';
+import { ObjectDetectionConfig } from 'react-native-executorch';
+import { CocoLabelYolo } from './Enum';
 
 const env = Constants.expoConfig?.extra;
 
@@ -15,3 +17,18 @@ export const DEVICE_KEY_NAME = "device_keypair_v1";
 
 export const ROTATION_KEY = "device_key_rotation_ts";
 export const ROTATION_INTERVAL = 30 * 24 * 60 * 60; // 30 days
+
+export const MODEL_DETECTION_CONFIG = {
+  labelMap: CocoLabelYolo,
+  preprocessorConfig: undefined,
+  availableInputSizes: [384, 512, 640] as const,
+  defaultInputSize: 384,
+  defaultDetectionThreshold: 0.5,
+  defaultIouThreshold: 0.5,
+} satisfies ObjectDetectionConfig<typeof CocoLabelYolo>;
+
+export const YOLO26N = {
+  modelName: 'yolo26n',
+  modelSource: require("../assets/model.pte")
+} as any;
+ 
