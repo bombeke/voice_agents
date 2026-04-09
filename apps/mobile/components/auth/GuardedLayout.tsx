@@ -22,6 +22,7 @@ export function GuardedLayout({ children }: PropsWithChildren) {
 
     // Auth required
     if (rule.requireAuth && !isAuthenticated) {
+      console.log("1")
       redirectedRef.current = true;
       router.replace(rule.fallback ?? (Routes.LOGIN as any));
       return;
@@ -29,6 +30,7 @@ export function GuardedLayout({ children }: PropsWithChildren) {
 
     // Admin required
     if (rule.requireAdmin && !isAdmin) {
+      console.log("2")
       redirectedRef.current = true;
       router.replace(rule.fallback ?? (Routes.TABS as any));
       return;
@@ -36,11 +38,13 @@ export function GuardedLayout({ children }: PropsWithChildren) {
 
     // Claims not ready yet → wait
     if (rule.permission && !claims) {
+      console.log("3")
       return;
     }
 
     // Permission required
     if (rule.permission && !hasPerm(claims as any, rule.permission)) {
+      console.log("4")
       redirectedRef.current = true;
       router.replace(rule.fallback ?? (Routes.TABS as any));
       return;
@@ -53,6 +57,7 @@ export function GuardedLayout({ children }: PropsWithChildren) {
    * Loading / resolving state
    */
   if (loading) {
+    console.log("5")
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <ActivityIndicator size="large" />
@@ -66,6 +71,7 @@ export function GuardedLayout({ children }: PropsWithChildren) {
     adminMode === "offline-readonly" &&
     rule.allowOfflineReadonly === false
   ) {
+    console.log("6")
     return (
       <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
         <Text className="text-center text-gray-600">
@@ -76,9 +82,10 @@ export function GuardedLayout({ children }: PropsWithChildren) {
   }
 
   if (rule && redirectedRef.current) {
+    console.log("7")
     return null;
   }
-
+  console.log("Rule:",rule, "loading:",loading, "auth:",isAuthenticated, "isadmin:",isAdmin, "claims:",claims)
   return <>{children}</>;
 }
 

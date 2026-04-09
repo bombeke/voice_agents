@@ -11,7 +11,10 @@ export const ACCESS_CONTROL: Record<string, AccessRule> = {
     requireAuth: true,
     fallback: "/(auth)/login",
   },
-
+  "(tabs)/index": {
+      requireAuth: true,
+      fallback: "/(auth)/login",
+    },
   "(admin)": {
     requireAuth: true,
     requireAdmin: true,
