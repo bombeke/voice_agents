@@ -7,9 +7,8 @@ import {
   clearAuth,
   getExpiry,
   getToken,
-  saveClaims,
   saveExpiry,
-  saveToken,
+  saveToken
 } from "./AuthStorage";
 
 import { AuthSessionResult } from "expo-auth-session";
@@ -22,7 +21,7 @@ import { AuthSessionResult } from "expo-auth-session";
 export async function refreshSession(): Promise<boolean> {
   try {
     const net = await NetInfo.fetch();
-    if (!net.isConnected) {
+    if (!net.isConnected || !net.isInternetReachable) {
       console.warn("Offline, cannot refresh session");
       return false;
     }
@@ -36,27 +35,27 @@ export async function refreshSession(): Promise<boolean> {
 
     const now = Math.floor(Date.now() / 1000);
 
-    if (expiry > now + 30) {
+    if (expiry > now + 120) {
       return true;
     }
 
     const res = await axiosClient.post("/auth/refresh", { token });
 
-    if (!res.data?.token || !res.data?.access_token) {
+    const newToken = res.data?.token || res.data?.access_token;
+    if (!newToken) {
       await clearAuth();
       return false;
     }
-
-    const newToken = res.data.token || res.data.access_token;
     const decoded: IClaims = jwtDecode(newToken);
     console.log("Refresh Token Decoded:", decoded);
     const newExpiry = decoded.exp;
     await saveToken(newToken);
     await saveExpiry(newExpiry);
-    saveClaims(decoded);
+    //saveClaims(decoded);
 
     return true;
-  } catch (err: any) {
+  } 
+  catch (err: any) {
     console.error("Failed to refresh session:", err);
     await clearAuth();
     return false;
@@ -105,4 +104,12 @@ export function validateCasdoorAuthResponse(
   if (expectedState && state !== expectedState) {
     throw new Error("Invalid OAuth state (possible CSRF)");
   }
+  /*const usedStates = new Set<string>();
+
+  if (usedStates.has(state)) {
+    throw new Error("Replay attack detected");
+  }
+
+  usedStates.add(state);
+  */
 }

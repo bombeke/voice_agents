@@ -3,11 +3,12 @@ import { ACCESS_CONTROL } from "@/services/auth/AccessControl";
 import { hasPerm } from "@/services/auth/AuthUtils";
 import { Routes } from "@/services/Routes";
 import { usePathname, useRouter } from "expo-router";
-import { PropsWithChildren, useEffect, useRef } from "react";
+import { PropsWithChildren, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 export function GuardedLayout({ children }: PropsWithChildren) {
   const { loading, isAuthenticated, isAdmin, adminMode, claims } = useAuth();
+  const [resolveClaim, setResolveClaim] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -18,7 +19,6 @@ export function GuardedLayout({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!rule) return;
     if (loading) return;
-    if (redirectedRef.current) return;
 
     // Auth required
     if (rule.requireAuth && !isAuthenticated) {
@@ -39,7 +39,7 @@ export function GuardedLayout({ children }: PropsWithChildren) {
     // Claims not ready yet → wait
     if (rule.permission && !claims) {
       console.log("3")
-      return;
+      setResolveClaim(true);
     }
 
     // Permission required
@@ -53,10 +53,22 @@ export function GuardedLayout({ children }: PropsWithChildren) {
     // Offline restriction → handled in render (no redirect)
   }, [rule, loading, isAuthenticated, isAdmin, claims, router]);
 
+  useEffect(() => {
+    redirectedRef.current = false;
+  }, [pathname, isAuthenticated]);
+
+  if (!loading && rule?.requireAuth && !isAuthenticated) {
+    router.replace(rule.fallback ?? Routes.LOGIN as any);
+    return null;
+  }
+  if (!rule) {
+    router.replace(Routes.LOGIN as any);
+    return null;
+  }
   /**
    * Loading / resolving state
    */
-  if (loading) {
+  if (loading || resolveClaim) {
     console.log("5")
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -64,6 +76,7 @@ export function GuardedLayout({ children }: PropsWithChildren) {
       </View>
     );
   }
+
 
   // Offline read-only message
   if (
@@ -85,6 +98,9 @@ export function GuardedLayout({ children }: PropsWithChildren) {
     console.log("7")
     return null;
   }
+  if (!isAuthenticated && rule?.requireAuth) {
+    return null;
+  }
   console.log("Rule:",rule, "loading:",loading, "auth:",isAuthenticated, "isadmin:",isAdmin, "claims:",claims)
   return <>{children}</>;
 }
@@ -94,9 +110,7 @@ export function resolveRule(pathname: string | null) {
 
   const clean = pathname.replace(/^\//, "");
 
-  return (
-    Object.entries(ACCESS_CONTROL)
-      .filter(([key]) => clean.startsWith(key))
-      .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ?? null
-  );
+  return Object.entries(ACCESS_CONTROL)
+    .filter(([key]) => clean === key || clean.startsWith(`${key}/`))
+    .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ?? null;
 }

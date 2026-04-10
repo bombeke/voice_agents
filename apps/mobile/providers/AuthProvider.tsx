@@ -15,7 +15,7 @@ import {
   getExpiry,
   getToken,
   saveExpiry,
-  saveToken,
+  saveToken
 } from "@/services/auth/AuthStorage";
 
 export interface IClaims {
@@ -76,7 +76,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const expired = expiry < now;
 
         if (!expired) {
+          const decoded = jwtDecode<IClaims>(token);
+
           if (!cancelled) {
+            setClaims(decoded); 
             setIsAuthenticated(true);
             setLoading(false);
           }
@@ -112,7 +115,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         }
       } finally {
-        // 🔥 Release splash ONLY when auth is fully resolved
         if (!cancelled) {
           await SplashScreen.hideAsync();
         }
@@ -128,12 +130,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = useCallback(async (token: string, expiresAt: number) => {
     const decoded = jwtDecode<IClaims>(token);
-
+    console.log("login claims:",decoded)
     await saveToken(token);
     await saveExpiry(expiresAt);
     //saveClaims(decoded);
 
-    //setClaims(decoded);
+    setClaims(decoded);
     setIsAuthenticated(true);
     return;
   }, []);
