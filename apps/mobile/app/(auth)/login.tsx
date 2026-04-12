@@ -98,7 +98,7 @@ function LoginScreen() {
           //device_public_key: publicKey,
         });
         console.log("Token:",res.data)
-        const token = res.data.token ?? res.data.access_token;
+        const token = res.data?.token ?? res.data?.access_token;
         if (!token || !res.data.expires_at) {
           Alert.alert("Login failed", "Please try again");
           return;

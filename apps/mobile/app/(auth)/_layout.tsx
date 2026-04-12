@@ -10,45 +10,24 @@ function AuthLayout() {
     loading,
     redirectAfterLogin,
     setRedirectAfterLogin,
-    claims
+    claims,
   } = useAuth();
 
   const pathname = usePathname();
   const router = useRouter();
 
-
-  /**
-   * Capture intended route before login
-   */
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) return;
-
     if (!claims) return;
 
     const target = redirectAfterLogin ?? Routes.TABS;
 
-    if (pathname === target) return;
-
-    setRedirectAfterLogin(undefined);
     if (pathname !== target) {
+      setRedirectAfterLogin(undefined);
       router.replace(target as any);
     }
-  }, [
-    loading,
-    isAuthenticated,
-    claims,
-    redirectAfterLogin,
-    pathname,
-  ]);
-
-  console.log("AUTH:",{
-    loading,
-    isAuthenticated,
-    claims,
-    redirectAfterLogin,
-    pathname
-  })
+  }, [loading, isAuthenticated, claims, redirectAfterLogin, pathname]);
 
   if (loading) {
     return (
