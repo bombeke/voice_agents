@@ -71,29 +71,20 @@ export function GuardedLayout({ children }: PropsWithChildren) {
   const { loading, isAuthenticated, claims } = useAuth();
   const router = useRouter();
 
-  /**
-   * 🔁 Redirect logic
-   */
   useEffect(() => {
     if (loading) return;
 
-    // Wait for claims if authenticated
     if (isAuthenticated && !claims) return;
 
     if (!isAuthenticated) {
-      // 🔴 Not logged in → go to login
       router.replace(Routes.LOGIN as any);
       return;
     }
 
-    // ✅ Logged in → go to dashboard
     router.replace(Routes.TABS as any);
 
   }, [loading, isAuthenticated, claims]);
 
-  /**
-   * ⏳ Block UI until auth is resolved
-   */
   if (loading || (isAuthenticated && !claims)) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -102,9 +93,6 @@ export function GuardedLayout({ children }: PropsWithChildren) {
     );
   }
 
-  /**
-   * 🔒 Prevent rendering before redirect happens
-   */
   return null;
 }
 export function resolveRule(pathname: string | null) {

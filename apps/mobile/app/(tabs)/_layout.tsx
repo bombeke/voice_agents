@@ -6,7 +6,6 @@ import { ActivityIndicator, View } from "react-native";
 export default function TabsLayout() {
   const { loading, isAuthenticated, claims } = useAuth();
 
-  // wait for auth
   if (loading || (isAuthenticated && !claims)) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -15,7 +14,6 @@ export default function TabsLayout() {
     );
   }
 
-  // 🔒 protect tabs
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
