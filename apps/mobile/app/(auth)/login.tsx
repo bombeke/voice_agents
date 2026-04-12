@@ -41,7 +41,7 @@ function LoginScreen() {
   */
   const redirectUri = makeRedirectUri({
     scheme: "voiceagents",
-    path: "callback",
+    //path: "callback",
   });
 
   const [request, response, promptAsync] = useAuthRequest(
@@ -98,7 +98,7 @@ function LoginScreen() {
           Alert.alert("Login failed", "Please try again");
           return;
         }
-
+        console.log("Screen start")
         await login(token, res.data.expires_at);
         console.log("Screen look")
         router.replace(`${ Routes.TABS}`);

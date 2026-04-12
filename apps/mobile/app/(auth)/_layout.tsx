@@ -22,7 +22,10 @@ function AuthLayout() {
     if (!claims) return;
 
     const target = redirectAfterLogin ?? Routes.TABS;
-
+    console.log("target:",{
+      target,
+      pathname
+    })
     if (pathname !== target) {
       setRedirectAfterLogin(undefined);
       router.replace(target as any);

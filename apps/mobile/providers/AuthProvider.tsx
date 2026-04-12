@@ -129,6 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = useCallback(async (token: string, expiresAt: number) => {
+    console.log("login claims start:")
     const decoded = jwtDecode<IClaims>(token);
     console.log("login claims:",decoded)
     await saveToken(token);
@@ -137,6 +138,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     setClaims(decoded);
     setIsAuthenticated(true);
+    console.log("End of login")
     return;
   }, []);
 
