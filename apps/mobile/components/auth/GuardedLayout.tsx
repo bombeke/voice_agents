@@ -3,79 +3,53 @@ import { ACCESS_CONTROL } from "@/services/auth/AccessControl";
 import { hasPerm } from "@/services/auth/AuthUtils";
 import { Routes } from "@/services/Routes";
 import { usePathname, useRouter } from "expo-router";
-import { PropsWithChildren, useEffect, useRef, useState } from "react";
+import { PropsWithChildren, useEffect } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 export function GuardedLayout({ children }: PropsWithChildren) {
   const { loading, isAuthenticated, isAdmin, adminMode, claims } = useAuth();
-  const [resolveClaim, setResolveClaim] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
 
-  const redirectedRef = useRef(false);
-
   const rule = resolveRule(pathname);
 
-  useEffect(() => {
-    if (!rule) return;
-    if (loading) return;
+ useEffect(() => {
+  if (!rule) return;
+  if (loading) return;
 
-    // Auth required
-    if (rule.requireAuth && !isAuthenticated) {
-      console.log("1")
-      redirectedRef.current = true;
-      router.replace(rule.fallback ?? (Routes.LOGIN as any));
-      return;
-    }
+  // Wait until claims are ready if authenticated
+  if (isAuthenticated && !claims) return;
 
-    // Admin required
-    if (rule.requireAdmin && !isAdmin) {
-      console.log("2")
-      redirectedRef.current = true;
-      router.replace(rule.fallback ?? (Routes.TABS as any));
-      return;
-    }
-
-    // Claims not ready yet → wait
-    if (rule.permission && !claims) {
-      console.log("3")
-      setResolveClaim(true);
-    }
-
-    // Permission required
-    if (rule.permission && !hasPerm(claims as any, rule.permission)) {
-      console.log("4")
-      redirectedRef.current = true;
-      router.replace(rule.fallback ?? (Routes.TABS as any));
-      return;
-    }
-
-    // Offline restriction → handled in render (no redirect)
-  }, [rule, loading, isAuthenticated, isAdmin, claims, router]);
-
-  useEffect(() => {
-    redirectedRef.current = false;
-  }, [pathname, isAuthenticated]);
-
-  if (!loading && rule?.requireAuth && !isAuthenticated) {
+  // Not authenticated
+  if (rule.requireAuth && !isAuthenticated) {
     router.replace(rule.fallback ?? Routes.LOGIN as any);
-    return null;
+    return;
   }
-  if (!rule) {
-    router.replace(Routes.LOGIN as any);
-    return null;
+
+  // Admin check
+  if (rule.requireAdmin && !isAdmin) {
+    router.replace(rule.fallback ?? Routes.TABS as any);
+    return;
   }
-  /**
-   * Loading / resolving state
-   */
-  if (loading || resolveClaim) {
-    console.log("5")
-    return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+
+  // Permission check
+  if (rule.permission && !hasPerm(claims as any, rule.permission)) {
+    router.replace(rule.fallback ?? Routes.TABS as any);
+    return;
   }
+
+}, [rule, loading, isAuthenticated, isAdmin, claims]);
+
+
+if (loading || (isAuthenticated && !claims)) {
+  console.log("5")
+  return (
+    <View style={{ flex: 1, justifyContent: "center" }}>
+      <ActivityIndicator size="large" />
+    </View>
+  );
+}
+
 
 
   // Offline read-only message
@@ -94,13 +68,6 @@ export function GuardedLayout({ children }: PropsWithChildren) {
     );
   }
 
-  if (rule && redirectedRef.current) {
-    console.log("7")
-    return null;
-  }
-  if (!isAuthenticated && rule?.requireAuth) {
-    return null;
-  }
   console.log("Rule:",rule, "loading:",loading, "auth:",isAuthenticated, "isadmin:",isAdmin, "claims:",claims)
   return <>{children}</>;
 }

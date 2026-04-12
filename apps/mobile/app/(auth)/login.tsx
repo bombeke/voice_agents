@@ -16,6 +16,7 @@ import {
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
 import axios from "axios";
+import { useRouter } from "expo-router";
 import {
   coolDownAsync,
   maybeCompleteAuthSession,
@@ -26,8 +27,9 @@ maybeCompleteAuthSession();
 
 function LoginScreen() {
   const { login } = useAuth();
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
-  const handledRef = useRef(false);
+  const handledRef = useRef<string | null>(null);
   /*const { data } = useQuery({
     queryKey: ["state"],
     queryFn: async () => {
@@ -38,7 +40,7 @@ function LoginScreen() {
   */
   const redirectUri = makeRedirectUri({
     scheme: "voiceagents",
-    //path: "callback",
+    path: "callback",
   });
 
   const [request, response, promptAsync] = useAuthRequest(
@@ -53,12 +55,12 @@ function LoginScreen() {
     },
   );
 
-  console.log("request:",request);
-  console.log("response:",response);
+
   
   const promptLogin = async (e: any) => {
     return await promptAsync();
   };
+
   useEffect(() => {
     warmUpAsync();
 
@@ -68,32 +70,46 @@ function LoginScreen() {
   }, []);
 
   useEffect(() => {
-    if (!response) return;
+    console.log("1XX")
+    if (response === null) return;
+    console.log("1X1")
     if (response?.type !== "success") return;
-    if (handledRef.current) return;
+    console.log("1X2")
+    const { code, state } = response.params ?? {};
 
-    handledRef.current = true;
+    if (!code) {
+      Alert.alert("Login failed", "Missing authorization code.");
+      return;
+    }
+    if (handledRef.current === code ) return;
+
+    handledRef.current = code;
 
     const completeLogin = async () => {
+      console.log("Logging IN")
       try {
         setSubmitting(true);
 
-        const { code, state } = response.params;
+        //const { code: authCode, state } = response.params;
         //const { publicKey } = await getDeviceKeypair();
         const res = await axios.post(`${API_URL}/auth/callback`, {
           code,
           state,
           //device_public_key: publicKey,
         });
-        const token = res.data.token || res.data.access_token;
+        console.log("Token:",res.data)
+        const token = res.data.token ?? res.data.access_token;
         if (!token || !res.data.expires_at) {
           Alert.alert("Login failed", "Please try again");
           return;
         }
 
         await login(token, res.data.expires_at);
-      } catch (e) {
-        handledRef.current = false;
+        router.replace("/");
+      } 
+      catch (e) {
+        console.log("Catch error:",e)
+        handledRef.current = null;
         setSubmitting(false);
         Alert.alert("Login failed", "Please try again.");
       }
@@ -101,7 +117,8 @@ function LoginScreen() {
 
     completeLogin();
   }, [response, login]);
-
+  console.log("request:",request);
+  console.log("response:",response);
   if (submitting) {
     return (
       <View className="flex-1 justify-center items-center">

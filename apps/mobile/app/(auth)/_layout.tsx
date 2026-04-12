@@ -1,7 +1,7 @@
 import { useAuth } from "@/providers/AuthProvider";
 import { Routes } from "@/services/Routes";
 import { Stack, usePathname, useRouter } from "expo-router";
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 function AuthLayout() {
@@ -10,53 +10,45 @@ function AuthLayout() {
     loading,
     redirectAfterLogin,
     setRedirectAfterLogin,
+    claims
   } = useAuth();
 
   const pathname = usePathname();
   const router = useRouter();
 
-  const capturedRef = useRef<string | null>(null);
-  const redirectedRef = useRef(false);
 
   /**
    * Capture intended route before login
    */
   useEffect(() => {
     if (loading) return;
-    if (isAuthenticated) return;
-    if (!pathname) return;
-    if (pathname.startsWith("/(auth)")) return;
-    if (capturedRef.current === pathname) return;
-
-    capturedRef.current = pathname;
-    setRedirectAfterLogin(pathname);
-  }, [pathname, loading, isAuthenticated, setRedirectAfterLogin]);
-
-  /**
-   * Perform redirect ONCE after authentication
-   */
-  useEffect(() => {
-    if (loading) return;
     if (!isAuthenticated) return;
-    if (redirectedRef.current) return;
+
+    if (!claims) return;
 
     const target = redirectAfterLogin ?? Routes.TABS;
 
     if (pathname === target) return;
 
-    redirectedRef.current = true;
-
     setRedirectAfterLogin(undefined);
-
-    router.replace(target as any);
+    if (pathname !== target) {
+      router.replace(target as any);
+    }
   }, [
     loading,
     isAuthenticated,
+    claims,
     redirectAfterLogin,
     pathname,
-    router,
-    setRedirectAfterLogin,
   ]);
+
+  console.log("AUTH:",{
+    loading,
+    isAuthenticated,
+    claims,
+    redirectAfterLogin,
+    pathname
+  })
 
   if (loading) {
     return (
