@@ -99,11 +99,12 @@ function LoginScreen() {
           return;
         }
         console.log("Screen start")
-        await login(token, res.data.expires_at);
+        await login(token, res.data.expires_at, res.data.claims);
         console.log("Screen look")
         router.replace(`${ Routes.TABS}`);
       } 
       catch (e) {
+        console.log("Login Screen failure:",e)
         handledRef.current = null;
         setSubmitting(false);
         Alert.alert("Login failed", "Please try again.");
@@ -112,8 +113,7 @@ function LoginScreen() {
 
     completeLogin();
   }, [response, login]);
-  console.log("request:",request);
-  console.log("response:",response);
+
   if (submitting) {
     return (
       <View className="flex-1 justify-center items-center">

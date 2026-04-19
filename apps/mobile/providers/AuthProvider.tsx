@@ -40,7 +40,7 @@ export type AuthContextType = {
 
   redirectAfterLogin?: string;
 
-  login: (token: string, expiresAt: number) => Promise<void>;
+  login: (token: string, expiresAt: number, claim: IClaims | null ) => Promise<void>;
   logout: () => Promise<void>;
   setRedirectAfterLogin: (path?: string) => void;
 };
@@ -76,8 +76,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const expired = expiry < now;
 
         if (!expired) {
+          console.log("Eff decode")
           const decoded = jwtDecode<IClaims>(token);
-
+          console.log("Eff decode:",decoded)
           if (!cancelled) {
             setClaims(decoded); 
             setIsAuthenticated(true);
@@ -101,7 +102,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (refreshed) {
           const newToken = await getToken();
           if (newToken && !cancelled) {
+            console.log("Eff refresh decode")
             setClaims(jwtDecode(newToken));
+            console.log("Eff resf decode")
             setIsAuthenticated(true);
           }
         } else {
@@ -128,9 +131,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const login = useCallback(async (token: string, expiresAt: number) => {
+  const login = useCallback(async (token: string, expiresAt: number,claim: IClaims | null = null) => {
     console.log("login claims start:")
-    const decoded = jwtDecode<IClaims>(token);
+    let decoded = claim;
+    try {
+      decoded = jwtDecode<IClaims>(token);
+    }
+    catch (error: any) {
+      console.log("Decoding: ", error.message);
+    }
+
     console.log("login claims:",decoded)
     await saveToken(token);
     await saveExpiry(expiresAt);
@@ -168,7 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const permissions = claims?.permissions ?? [];
   const org = claims?.org;
-
+  console.log("claims:",claims)
   return (
     <AuthContext.Provider
       value={{

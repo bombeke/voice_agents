@@ -19,7 +19,7 @@ export async function saveToken(token: string) {
 
 export async function getExpiry() {
   const expiry = mmkv.getNumber("expiry");
-  return expiry ?? null;
+  return expiry ?? 60;
 }
 
 export async function saveExpiry(expiry: number=300) {

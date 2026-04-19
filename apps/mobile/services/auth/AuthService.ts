@@ -41,12 +41,18 @@ export async function refreshSession(): Promise<boolean> {
 
     const res = await axiosClient.post("/auth/refresh", { token });
 
-    const newToken = res.data?.token || res.data?.access_token;
+    const newToken = res.data?.token ?? res.data?.access_token;
     if (!newToken) {
       await clearAuth();
       return false;
     }
-    const decoded: IClaims = jwtDecode(newToken);
+    let decoded = res.data?.claims;
+    try {
+      decoded = jwtDecode<IClaims>(newToken);
+    }
+    catch (error: any) {
+      console.log("Refresh Decoding: ", error.message);
+    }
     console.log("Refresh Token Decoded:", decoded);
     const newExpiry = decoded.exp;
     await saveToken(newToken);
