@@ -80,7 +80,7 @@ function LoginScreen() {
       Alert.alert("Login failed", "Missing authorization code.");
       return;
     }
-    if (handledRef.current === code ) return;
+    //if (handledRef.current === code ) return;
 
     handledRef.current = code;
 
