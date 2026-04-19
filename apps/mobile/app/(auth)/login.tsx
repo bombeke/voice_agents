@@ -71,26 +71,29 @@ function LoginScreen() {
   }, []);
 
   useEffect(() => {
-
-    if (response === null) return;
+    //console.log("Screen start1")
+    //if (response === null) return;
+     console.log("Screen start2")
     if (response?.type !== "success") return;
-    const { code, state } = response.params ?? {};
+     console.log("Screen start3")
+    //const { code, state } = response.params ?? {};
 
-    if (!code) {
+    if (!response?.params?.code) {
       Alert.alert("Login failed", "Missing authorization code.");
       return;
     }
-    //if (handledRef.current === code ) return;
-
-    handledRef.current = code;
+    //if (handledRef.current === response?.params?.code ) return;
+     console.log("Screen start4")
+    handledRef.current = response?.params?.code;
 
     const completeLogin = async () => {
       try {
         setSubmitting(true);
         //const { publicKey } = await getDeviceKeypair();
+         console.log("Screen start5")
         const res = await axios.post(`${API_URL}/auth/callback`, {
-          code,
-          state,
+          code: response?.params?.code,
+          state: response?.params?.state
           //device_public_key: publicKey,
         });
         const token = res.data?.token ?? res.data?.access_token;
@@ -112,7 +115,8 @@ function LoginScreen() {
     };
 
     completeLogin();
-  }, [response, login]);
+    //@ts-ignore
+  }, [response?.params?.code,response?.params?.state,response?.type, login]);
 
   if (submitting) {
     return (
