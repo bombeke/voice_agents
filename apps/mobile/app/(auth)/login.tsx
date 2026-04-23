@@ -15,7 +15,6 @@ import {
 
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
-import { Routes } from "@/services/Routes";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import {
@@ -82,7 +81,7 @@ function LoginScreen() {
       Alert.alert("Login failed", "Missing authorization code.");
       return;
     }
-    //if (handledRef.current === response?.params?.code ) return;
+    if (handledRef.current === response?.params?.code ) return;
      console.log("Screen start4")
     handledRef.current = response?.params?.code;
 
@@ -100,12 +99,14 @@ function LoginScreen() {
         const token = res.data?.token ?? res.data?.access_token;
         if (!token || !res.data.expires_at) {
           Alert.alert("Login failed", "Please try again");
+          handledRef.current = null;
+          setSubmitting(false);  
           return;
         }
         console.log("Screen start")
         await login(token, res.data.expires_at, res.data.claims);
         console.log("Screen look")
-        router.replace(`${ Routes.TABS}`);
+        //router.replace(`${ Routes.TABS}`);
       } 
       catch (e) {
         console.log("Login Screen failure:",e)

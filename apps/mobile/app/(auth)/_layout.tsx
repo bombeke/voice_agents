@@ -21,8 +21,7 @@ function AuthLayout() {
     console.log("AUTH1")
     if (!isAuthenticated) return;
     console.log("AUTH2")
-    if (!claims) return;
-    console.log("AUTH2")
+    //if (!claims) return;
 
     const target = redirectAfterLogin ?? Routes.TABS;
     console.log("target:",{
