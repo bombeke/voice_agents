@@ -96,6 +96,7 @@ function LoginScreen() {
           state: response?.params?.state
           //device_public_key: publicKey,
         });
+        console.log("Callback token:",res)
         const token = res.data?.token ?? res.data?.access_token;
         if (!token || !res.data.expires_at) {
           Alert.alert("Login failed", "Please try again");

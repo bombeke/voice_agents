@@ -18,8 +18,11 @@ function AuthLayout() {
 
   useEffect(() => {
     if (loading) return;
+    console.log("AUTH1")
     if (!isAuthenticated) return;
+    console.log("AUTH2")
     if (!claims) return;
+    console.log("AUTH2")
 
     const target = redirectAfterLogin ?? Routes.TABS;
     console.log("target:",{
@@ -30,7 +33,7 @@ function AuthLayout() {
       setRedirectAfterLogin(undefined);
       router.replace(target as any);
     }
-  }, [loading, isAuthenticated, claims, redirectAfterLogin, pathname]);
+  }, [loading, isAuthenticated, claims, redirectAfterLogin, pathname,setRedirectAfterLogin]);
 
   if (loading) {
     return (
