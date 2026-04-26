@@ -97,14 +97,14 @@ function LoginScreen() {
         });
         console.log("Callback token:",res)
         const token = res.data?.token ?? res.data?.access_token;
-        if (!token || !res.data.expires_at) {
+        if (!token || !res.data.expires_in) {
           Alert.alert("Login failed", "Please try again");
           handledRef.current = null;
           setSubmitting(false);  
           return;
         }
         console.log("Screen start")
-        await login(token, res.data.expires_at, res.data.claims);
+        await login(token, res.data.expires_in, res.data.claims);
         console.log("Screen look")
         //router.replace(`${ Routes.TABS}`);
       } 
