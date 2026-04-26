@@ -21,7 +21,7 @@ export default function AppTabs() {
     return (
        <Tabs screenOptions={{ headerShown: false }}>
         <Tabs.Screen
-          name={"index"}
+          name="index"
           options={{
             title: "Home",
             tabBarIcon: () => (<FontAwesome name="home" size={18} />),
@@ -36,7 +36,8 @@ export default function AppTabs() {
         return (
         <Tabs.Screen
           key={item.key}
-          name={item.route.replace(/^\//, "")}
+          //name={item.route.replace(/^\//, "")}
+          name={item.key }
           options={{
             title: item.title,
             tabBarIcon: () => item.icon,

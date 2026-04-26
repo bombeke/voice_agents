@@ -28,7 +28,7 @@ export const Routes = {
   SETTINGS: "/(tabs)/settings" as const,
 
   // App tabs
-  TABS: "/(tabs)/index" as const,
+  TABS: "/(tabs)" as const,
   HOME: "/(tabs)/index" as const,
   AGENTS: "/(tabs)/agents" as const,
 
