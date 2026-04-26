@@ -15,6 +15,7 @@ import {
 
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
+import { Routes } from "@/services/Routes";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import {
@@ -72,9 +73,7 @@ function LoginScreen() {
   useEffect(() => {
     //console.log("Screen start1")
     //if (response === null) return;
-     console.log("Screen start2")
     if (response?.type !== "success") return;
-     console.log("Screen start3")
     //const { code, state } = response.params ?? {};
 
     if (!response?.params?.code) {
@@ -82,20 +81,17 @@ function LoginScreen() {
       return;
     }
     if (handledRef.current === response?.params?.code ) return;
-     console.log("Screen start4")
     handledRef.current = response?.params?.code;
 
     const completeLogin = async () => {
       try {
         setSubmitting(true);
         //const { publicKey } = await getDeviceKeypair();
-         console.log("Screen start5")
         const res = await axios.post(`${API_URL}/auth/callback`, {
           code: response?.params?.code,
           state: response?.params?.state
           //device_public_key: publicKey,
         });
-        console.log("Callback token:",res)
         const token = res.data?.token ?? res.data?.access_token;
         if (!token || !res.data.expires_in) {
           Alert.alert("Login failed", "Please try again");
@@ -103,13 +99,12 @@ function LoginScreen() {
           setSubmitting(false);  
           return;
         }
-        console.log("Screen start")
         await login(token, res.data.expires_in, res.data.claims);
-        console.log("Screen look")
-        //router.replace(`${ Routes.TABS}`);
+        setSubmitting(false);
+        router.replace(`${ Routes.TABS}`);
+        
       } 
       catch (e) {
-        console.log("Login Screen failure:",e)
         handledRef.current = null;
         setSubmitting(false);
         Alert.alert("Login failed", "Please try again.");

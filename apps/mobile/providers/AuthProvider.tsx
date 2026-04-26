@@ -76,9 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const expired = expiry < now;
 
         if (!expired) {
-          console.log("Eff decode")
           const decoded = jwtDecode<IClaims>(token);
-          console.log("Eff decode:",decoded)
           if (!cancelled) {
             setClaims(decoded); 
             setIsAuthenticated(true);
@@ -102,9 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (refreshed) {
           const newToken = await getToken();
           if (newToken && !cancelled) {
-            console.log("Eff refresh decode")
             setClaims(jwtDecode(newToken));
-            console.log("Eff resf decode")
             setIsAuthenticated(true);
           }
         } else {
@@ -132,7 +128,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = useCallback(async (token: string, expiresAt: number,claim: IClaims | null = null) => {
-    console.log("login claims start:")
     let decoded = claim;
     try {
       decoded = jwtDecode<IClaims>(token);
@@ -140,15 +135,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     catch (error: any) {
       console.log("Decoding: ", error.message);
     }
-
-    console.log("login claims:",decoded)
     await saveToken(token);
     await saveExpiry(expiresAt);
     //saveClaims(decoded);
 
     setClaims(decoded);
     setIsAuthenticated(true);
-    console.log("End of login")
     return;
   }, []);
 

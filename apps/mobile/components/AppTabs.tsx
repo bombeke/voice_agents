@@ -1,6 +1,7 @@
 import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
+import { FontAwesome } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useMemo } from "react";
 
@@ -16,17 +17,26 @@ export default function AppTabs() {
       }),
     [isAdmin, claims, adminMode],
   );
-  console.log("TAB ROUTE:");
+  if (menu.length === 0) {
+    return (
+       <Tabs screenOptions={{ headerShown: false }}>
+        <Tabs.Screen
+          name={"index"}
+          options={{
+            title: "Home",
+            tabBarIcon: () => (<FontAwesome name="home" size={18} />),
+          }}
+        />
+    </Tabs>
+    )
+  }
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       {menu.map((item: any) =>{
-        console.log("TAB ROUTE:", item.route);
-        console.log("TAB NAME:", item.route.replace("/(tabs)/", ""));
-        console.log("TAB NAME1:", item.route.replace("/^\//", ""));
         return (
         <Tabs.Screen
           key={item.key}
-          name={item.route.replace("/^\//", "")}
+          name={item.route.replace(/^\//, "")}
           options={{
             title: item.title,
             tabBarIcon: () => item.icon,

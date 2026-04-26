@@ -4,9 +4,9 @@ import { Redirect } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
 export default function TabsLayout() {
-  const { loading, isAuthenticated, claims } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
 
-  if (loading || (isAuthenticated && !claims)) {
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <ActivityIndicator size="large" />
