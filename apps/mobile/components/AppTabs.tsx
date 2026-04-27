@@ -1,7 +1,7 @@
 import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
-import { FontAwesome } from "@expo/vector-icons";
+//import { FontAwesome } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useMemo } from "react";
 
@@ -17,7 +17,7 @@ export default function AppTabs() {
       }),
     [isAdmin, claims, adminMode],
   );
-  if (menu.length === 0) {
+  /*if (menu.length === 0) {
     return (
        <Tabs screenOptions={{ headerShown: false }}>
         <Tabs.Screen
@@ -29,15 +29,15 @@ export default function AppTabs() {
         />
     </Tabs>
     )
-  }
+  }*/
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       {menu.map((item: any) =>{
         return (
         <Tabs.Screen
           key={item.key}
-          //name={item.route.replace(/^\//, "")}
-          name={item.key }
+          name={item.route.replace(/^\//, "")}
+          //name={item.key }
           options={{
             title: item.title,
             tabBarIcon: () => item.icon,

@@ -70,10 +70,7 @@ function LoginScreen() {
   }, []);
 
   useEffect(() => {
-    //console.log("Screen start1")
-    //if (response === null) return;
     if (response?.type !== "success") return;
-    //const { code, state } = response.params ?? {};
 
     if (!response?.params?.code) {
       Alert.alert("Login failed", "Missing authorization code.");
@@ -101,7 +98,6 @@ function LoginScreen() {
         await login(token, res.data.expires_in, res.data.claims);
         setSubmitting(false);
         //router.replace(`${ Routes.TABS}`);
-        
       } 
       catch (e) {
         handledRef.current = null;
