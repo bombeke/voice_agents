@@ -170,7 +170,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const permissions = claims?.permissions ?? [];
   const org = claims?.org;
-  console.log("claims:",claims)
   return (
     <AuthContext.Provider
       value={{
