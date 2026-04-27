@@ -15,7 +15,6 @@ import {
 
 import { API_URL } from "@/constants/Config";
 import { useAuth } from "@/providers/AuthProvider";
-import { Routes } from "@/services/Routes";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import {
@@ -101,7 +100,7 @@ function LoginScreen() {
         }
         await login(token, res.data.expires_in, res.data.claims);
         setSubmitting(false);
-        router.replace(`${ Routes.TABS}`);
+        //router.replace(`${ Routes.TABS}`);
         
       } 
       catch (e) {
