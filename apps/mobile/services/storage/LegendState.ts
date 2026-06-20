@@ -1,9 +1,19 @@
 import { TrackedDetection } from "@/hooks/Types";
 import { observable, syncState } from "@legendapp/state";
-import { ObservablePersistMMKV } from "@legendapp/state/persist-plugins/mmkv";
 import { configureSynced, syncObservable } from "@legendapp/state/sync";
 import { syncedQuery } from "@legendapp/state/sync-plugins/tanstack-query";
-import { randomUUID } from "expo-crypto";
+import { Platform } from "react-native";
+
+const randomUUID = (): string => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === "x" ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 import { AuthType, axiosClient, queryClient } from "../Api";
 import { Operation } from "../sync/Types";
 import { LocalEventRecord } from "./EventStore";
@@ -92,7 +102,13 @@ if (!poleVisionDBDeviceId$.get()) {
 
 export function initPersistence() {
   if (configured) return;
+  if (Platform.OS === 'web') {
+    configured = true;
+    return;
+  }
 
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { ObservablePersistMMKV } = require("@legendapp/state/persist-plugins/mmkv");
   const syncPlugin = configureSynced({
     persist: {
       plugin: ObservablePersistMMKV,

@@ -1,0 +1,4 @@
+- [Expo Web Stubs](expo-web-stubs.md) — 21 native-only packages need Metro resolveRequest stubs; full list in topic file
+- [LegendState MMKV Web](legendstate-mmkv-web.md) — initPersistence must early-return on web; expo-crypto randomUUID breaks SSR
+- [Web Platform Guards](web-platform-guards.md) — PrepareModel.ts and login.tsx warmUpAsync need Platform.OS!=='web' guards
+- [Workflow Node Path](workflow-node-path.md) — workflow must use full nix path for node binary

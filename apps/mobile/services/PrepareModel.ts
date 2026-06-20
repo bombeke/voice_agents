@@ -1,9 +1,15 @@
-import { Asset } from "expo-asset";
-import { File, Paths } from "expo-file-system";
+import { Platform } from "react-native";
 
 const MODEL_NAME = "model.pte";
 
 export async function prepareModel(): Promise<string> {
+  if (Platform.OS === 'web') {
+    return '';
+  }
+
+  const { Asset } = await import("expo-asset");
+  const { File, Paths } = await import("expo-file-system");
+
   const destination = new File(Paths.document, MODEL_NAME);
 
   if (destination.exists) {

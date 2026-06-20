@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
   Pressable,
   Text,
   View,
@@ -62,10 +63,13 @@ function LoginScreen() {
   };
 
   useEffect(() => {
-    warmUpAsync();
-
+    if (Platform.OS !== 'web') {
+      warmUpAsync();
+    }
     return () => {
-      coolDownAsync();
+      if (Platform.OS !== 'web') {
+        coolDownAsync();
+      }
     };
   }, []);
 
