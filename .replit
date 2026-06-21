@@ -7,16 +7,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 5001
-externalPort = 3000
-
-[[ports]]
 localPort = 8080
 externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
 
 [workflows]
 runButton = "Project"
@@ -30,17 +22,48 @@ author = "agent"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Mobile (Expo Go)"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "EAS Build (Android APK)"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
 
 [workflows.workflow.metadata]
-outputType = "console"
+outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "export REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN; cd apps/mobile && /nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-22.22.0/bin/node /home/runner/workspace/node_modules/expo/bin/cli start --port 8080"
+args = "cd apps/mobile && /nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-22.22.0/bin/node /home/runner/workspace/node_modules/expo/bin/cli start --web --localhost --port 5000"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Mobile (Expo Go)"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "source scripts/setup-android.sh && cd apps/mobile && export REACT_NATIVE_PACKAGER_HOSTNAME=$(echo $REPLIT_DEV_DOMAIN | sed 's|https://||') && pnpm start --port 8080"
 waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "EAS Build (Android APK)"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "source scripts/setup-android.sh && cd apps/mobile && pnpm easbuild --platform android --profile development --local"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [nix]
 channel = "stable-25_05"
