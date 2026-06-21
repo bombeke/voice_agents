@@ -23,7 +23,10 @@ export function BackendSyncObserver() {
     const unsub = NetInfo.addEventListener((state) => {
       isOnline$.set(!!state.isConnected);
     });
-    return unsub;
+    return () => {
+      if (typeof unsub === 'function') unsub();
+      else (unsub as any)?.remove?.();
+    };
   }, []);
 
   /** 🔹 React to remote poles + connectivity */

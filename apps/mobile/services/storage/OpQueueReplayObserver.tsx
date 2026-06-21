@@ -30,7 +30,8 @@ export function OpQueueReplayObserver() {
 
     return () => {
       sub.remove();
-      unsubNet();
+      if (typeof unsubNet === 'function') unsubNet();
+      else (unsubNet as any)?.remove?.();
     };
   }, []);
 
