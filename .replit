@@ -35,7 +35,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd apps/mobile && /nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-22.22.0/bin/node /home/runner/workspace/node_modules/expo/bin/cli start --port 8080"
+args = "export REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN; cd apps/mobile && /nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-22.22.0/bin/node /home/runner/workspace/node_modules/expo/bin/cli start --port 8080"
 waitForPort = 8080
 
 [nix]
