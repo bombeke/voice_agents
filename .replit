@@ -7,6 +7,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 5001
+externalPort = 3000
+
+[[ports]]
 localPort = 8080
 externalPort = 8080
 
@@ -34,25 +38,29 @@ args = "EAS Build (Android APK)"
 name = "Start application"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd apps/mobile && /nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-22.22.0/bin/node /home/runner/workspace/node_modules/expo/bin/cli start --web --localhost --port 5000"
 waitForPort = 5000
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow]]
 name = "Mobile (Expo Go)"
+mode = "parallel"
 author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd apps/mobile JAVA_HOME=/nix/store/xad649j61kwkh0id5wvyiab5rliprp4d-openjdk-17.0.15+6/lib/openjdk ANDROID_HOME=/home/runner/android-sdk ANDROID_SDK_ROOT=/home/runner/android-sdk GRADLE_OPTS=\"-Xmx4g\" REACT_NATIVE_PACKAGER_HOSTNAME=$(echo $REPLIT_DEV_DOMAIN | sed 's|https://||') /nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-22.22.0/bin/node /home/runner/workspace/node_modules/expo/bin/cli start --port 8080"
-waitForPort = 8080
+args = "source scripts/setup-android.sh  && cd apps/mobile && export REACT_NATIVE_PACKAGER_HOSTNAME=$(echo $REPLIT_DEV_DOMAIN | sed 's|https://||') && pnpm start --port 8080"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "source scripts/setup-android.sh  && cd apps/mobile && export REACT_NATIVE_PACKAGER_HOSTNAME=$(echo $REPLIT_DEV_DOMAIN | sed 's|https://||') && pnpm android"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "EAS Build (Android APK)"
@@ -60,7 +68,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd apps/mobile JAVA_HOME=/nix/store/xad649j61kwkh0id5wvyiab5rliprp4d-openjdk-17.0.15+6/lib/openjdk ANDROID_HOME=/home/runner/android-sdk ANDROID_SDK_ROOT=/home/runner/android-sdk GRADLE_OPTS=\"-Xmx4g\" PATH=/home/runner/android-sdk/cmdline-tools/latest/bin:/home/runner/android-sdk/platform-tools:$PATH npx eas build --platform android --profile development --local"
+args = "source scripts/setup-android.sh && cd apps/mobile  && pnpm easbuild --platform android --profile development --local"
 
 [workflows.workflow.metadata]
 outputType = "console"
