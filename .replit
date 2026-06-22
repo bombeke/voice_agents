@@ -28,7 +28,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd artifacts/mobile && pnpm install && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1 pnpm exec expo start --web --port 4999 --host localhost & PORT=5000 /nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node /home/runner/workspace/artifacts/mobile/server/android-sim.js"
+args = "pnpm install && cd artifacts/mobile && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1 pnpm exec expo start --web --port 4999 --host localhost & PORT=5000 /nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node /home/runner/workspace/artifacts/mobile/server/android-sim.js"
 
 [[workflows.workflow]]
 name = "Mobile (Expo Go)"

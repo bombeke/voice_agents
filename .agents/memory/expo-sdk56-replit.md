@@ -35,7 +35,9 @@ description: Fixes required to run Expo SDK 56 Metro server reliably on Replit (
     - `react-native-worklets-core`: export `useSharedValue`, `Worklets`
     - `react-native-executorch`: export `ObjectDetectionModule`, `Bbox`, `RnExecutorchErrorCode.ModuleNotLoaded/ModelGenerating`, `PixelData`
 
-11. **artifacts/mobile: expo health check**: This workflow always shows "FAILED" because Replit's health check expects port 18115 (internal Expo proxy) and Metro takes longer than the 120-second window to fully start. Metro IS running (QR code + Expo Go URL shown). Non-fixable without reducing Metro startup time.
+11. **artifacts/mobile: expo PORT injection**: The `[workflows.workflow.tasks.env]` TOML block in `.replit` does NOT reliably inject env vars into the pnpm process. Root fix: in `artifact.toml → [services.development] run`, inline PORT directly: `PORT=18115 pnpm --filter mobile run dev`. This shell-level assignment always wins over outer env, so Metro starts on 18115 and `waitForPort = 18115` passes. After `verifyAndReplaceArtifactToml`, restart the workflow — on second start the Metro cache is warm and health check passes in ~5s.
+
+11b. **Cannot edit .replit directly** — use `verifyAndReplaceArtifactToml` (in code_execution) for artifact services/ports/commands, and `configureWorkflow` for regular workflows. `.replit` direct edits are blocked by Replit's tooling.
 
 12. **Node.js nix path**: `/nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node` (as of 2026-06-22). This path changes on container resets — always verify with `which node` before hardcoding.
 

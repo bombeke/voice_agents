@@ -4,9 +4,8 @@ import { requestSavePermission } from '@/hooks/Helpers'
 import { useIsForeground } from '@/hooks/useIsForeground'
 import { StatusBarBlurBackground } from '@/views/StatusBarBlurBackground'
 import IonIcon from '@expo/vector-icons/Ionicons'
-//import { CameraRoll } from '@react-native-camera-roll/camera-roll'
 import { useIsFocused } from '@react-navigation/core'
-import { createAssetAsync } from 'expo-media-library'
+import { Asset } from 'expo-media-library'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
 import type { ImageLoadEvent, NativeSyntheticEvent } from 'react-native'
@@ -56,7 +55,7 @@ export default function MediaPage(): React.ReactElement {
         Alert.alert('Permission denied!', 'Vision Camera does not have permission to save the media to your camera roll.')
         return
       }
-      await createAssetAsync(`file:///${path}`, type)
+      await Asset.create(`file:///${path}`)
       setSavingState('saved')
     } catch (e) {
       const message = e instanceof Error ? e.message : JSON.stringify(e)
