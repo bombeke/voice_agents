@@ -27,8 +27,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd artifacts/mobile && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 pnpm exec expo start --web --port 5000"
-waitForPort = 5000
+args = "cd artifacts/mobile && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 pnpm exec expo start --web --port 4999 --host localhost & PORT=5000 /nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node /home/runner/workspace/artifacts/mobile/server/android-sim.js"
 
 [[workflows.workflow]]
 name = "Mobile (Expo Go)"
@@ -95,13 +94,17 @@ task = "workflow.run"
 args = "Start application"
 
 [[ports]]
+localPort = 4999
+externalPort = 3001
+exposeLocalhost = true
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 
 [[ports]]
 localPort = 5001
 externalPort = 3000
-exposeLocalhost = true
 
 [[ports]]
 localPort = 8080

@@ -90,6 +90,6 @@ voice-agents-workspace/
 ---
 
 ## User Preferences
-- Use full nix path for node in workflows: `/nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-24.13.0/bin/node`
+- Use full nix path for node in workflows: `/nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node`
 - Web stubs pattern: add native-only packages to `metro.config.js` WEB_STUBS map + create stub in `web-stubs/`
 - Always add `Platform.OS !== 'web'` guard before calling native-only APIs
