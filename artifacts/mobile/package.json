@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "dev": "REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1  EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --port $PORT",
+    "dev": "REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1  EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --port $PORT --dev-client",
     "build": "node scripts/build.js",
     "serve": "node server/serve.js",
     "android": "expo run:android",
@@ -39,6 +39,7 @@
     "expo-blur": "~56.0.3",
     "expo-constants": "~56.0.18",
     "expo-crypto": "^56.0.4",
+    "expo-dev-client": "~4.0.29",
     "expo-device": "^56.0.4",
     "expo-file-system": "^56.0.8",
     "expo-font": "~56.0.7",
@@ -94,9 +95,9 @@
   "devDependencies": {
     "@expo/metro-runtime": "^56.0.15",
     "@expo/ngrok": "^4.1.0",
-    "expo": "^56.0.8",
     "@types/react": "~19.2.14",
-    "@types/react-dom": "~19.2.3"
+    "@types/react-dom": "~19.2.3",
+    "expo": "^56.0.8"
   },
   "private": true
 }
