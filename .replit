@@ -21,21 +21,23 @@ runButton = "Project"
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
+mode = "sequential"
 
 [workflows.workflow.metadata]
 outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd artifacts/mobile && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 pnpm exec expo start --web --port 4999 --host localhost & PORT=5000 /nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node /home/runner/workspace/artifacts/mobile/server/android-sim.js"
+args = "cd artifacts/mobile && pnpm install && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1 pnpm exec expo start --web --port 4999 --host localhost & PORT=5000 /nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node /home/runner/workspace/artifacts/mobile/server/android-sim.js"
 
 [[workflows.workflow]]
 name = "Mobile (Expo Go)"
 author = "agent"
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash -c 'export REACT_NATIVE_DISABLE_DEVTOOLS=1 && export REACT_NATIVE_PACKAGER_HOSTNAME=$(echo $REPLIT_DEV_DOMAIN | sed \"s|https://||\") && pnpm start --host tunnel --port 8080'"
+args = "bash -c 'export EXPO_NO_DEV_TOOLS=1 && export REACT_NATIVE_DISABLE_DEVTOOLS=1 && export REACT_NATIVE_PACKAGER_HOSTNAME=$(echo $REPLIT_DEV_DOMAIN | sed \"s|https://||\") && pnpm start --host tunnel --port 8080'"
 waitForPort = 8080
 
 [workflows.workflow.metadata]
@@ -44,10 +46,11 @@ outputType = "console"
 [[workflows.workflow]]
 name = "Android Emulator"
 author = "agent"
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash -c 'cd artifacts/mobile && export REACT_NATIVE_DISABLE_DEVTOOLS=1 && export GRADLE_OPTS=\"-Xmx6g\" && npx expo prebuild --platform android && pnpm dev'"
+args = "bash -c 'cd artifacts/mobile && export EXPO_NO_DEV_TOOLS=1 && export REACT_NATIVE_DISABLE_DEVTOOLS=1 && export GRADLE_OPTS=\"-Xmx6g\" && npx expo prebuild --platform android && pnpm dev'"
 
 [workflows.workflow.metadata]
 outputType = "console"
@@ -55,6 +58,7 @@ outputType = "console"
 [[workflows.workflow]]
 name = "EAS Build (Android APK)"
 author = "agent"
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

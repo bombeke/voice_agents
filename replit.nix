@@ -1,5 +1,23 @@
 {pkgs}: {
   deps = [
+    pkgs.libudev0-shim
+    pkgs.libvdpau
+    pkgs.libva
+    pkgs.libglvnd
+    pkgs.xvfb-run
+    pkgs.xorg.libXau
+    pkgs.xorg.libXScrnSaver
+    pkgs.xorg.libXtst
+    pkgs.xorg.libXrender
+    pkgs.xorg.libXi
+    pkgs.xorg.libXcursor
+    pkgs.libdrm
+    pkgs.mesa
+    pkgs.gdk-pixbuf
+    pkgs.harfbuzz
+    pkgs.at-spi2-core
+    pkgs.at-spi2-atk
+    pkgs.atk
     pkgs.dbus
     pkgs.nss
     pkgs.nspr
@@ -7,5 +25,20 @@
     pkgs.android-tools
     pkgs.jdk17
     pkgs.glib
+    pkgs.gtk3
+    pkgs.pango
+    pkgs.cairo
+    pkgs.cups
+    pkgs.alsa-lib
+    pkgs.xorg.libX11
+    pkgs.xorg.libXcomposite
+    pkgs.xorg.libXdamage
+    pkgs.xorg.libXext
+    pkgs.xorg.libXfixes
+    pkgs.xorg.libXrandr
+    pkgs.xorg.libxcb
+    pkgs.libxkbcommon
+    pkgs.chromium
+    pkgs.libgbm
   ];
 }
