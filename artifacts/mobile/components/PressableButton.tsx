@@ -1,49 +1,101 @@
-import { ReactNode, useCallback } from 'react';
-import { Pressable, PressableProps, PressableStateCallbackType, StyleProp, ViewStyle } from 'react-native';
+import * as Haptics from "expo-haptics";
+import { ReactNode, useCallback, useRef } from "react";
+import {
+  Animated,
+  Platform,
+  Pressable,
+  PressableProps,
+  ViewStyle,
+} from "react-native";
 
-export type StyleType = (state: PressableStateCallbackType) => StyleProp<ViewStyle>;
+const NATIVE_DRIVER = Platform.OS !== "web";
 
-export interface IPressableButton extends PressableProps{
-    /**
-	 * The opacity to use when `disabled={true}`
-	 *
-	 * @default 0.3
-	 */
-	disabledOpacity?: number;
-	/**
-	 * The opacity to animate to when the user presses the button
-	 *
-	 * @default 0.2
-	 */
-	activeOpacity?: number;
-    children: ReactNode;
+export interface IPressableButton extends PressableProps {
+  /**
+   * Opacity to use when `disabled={true}`
+   * @default 0.35
+   */
+  disabledOpacity?: number;
+  /**
+   * Opacity to animate to when pressed
+   * @default 0.85
+   */
+  activeOpacity?: number;
+  /**
+   * Scale to animate to when pressed
+   * @default 0.96
+   */
+  activeScale?: number;
+  /**
+   * Fire haptic feedback on press (native only)
+   * @default true
+   */
+  haptic?: boolean;
+  children: ReactNode;
 }
 
-export const PressableButton =({
-	style,
-	disabled = false,
-	disabledOpacity = 0.3,
-	activeOpacity = 0.2,
-    ...passThroughProps
-}: IPressableButton)=>{
-	const getOpacity = useCallback((pressed: boolean) => {
-        if (disabled) {
-            return disabledOpacity;
-        } 
-        else {
-            if (pressed) return activeOpacity;
-            else return 1;
-        }
+export const PressableButton = ({
+  style,
+  disabled = false,
+  disabledOpacity = 0.35,
+  activeOpacity = 0.85,
+  activeScale = 0.96,
+  haptic = true,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: IPressableButton) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(
+    (e: any) => {
+      if (haptic && Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      Animated.spring(scale, {
+        toValue: activeScale,
+        useNativeDriver: NATIVE_DRIVER,
+        speed: 50,
+        bounciness: 4,
+      }).start();
+      onPressIn?.(e);
     },
-    [activeOpacity, disabled, disabledOpacity],
-	);
-	const _style = useCallback<StyleType>(({ pressed }) => [style as ViewStyle, { opacity: getOpacity(pressed) }], [getOpacity, style]);
+    [haptic, scale, activeScale, onPressIn],
+  );
 
-    return (
-        <Pressable
-            style={_style} 
-            disabled={disabled}
-            {...passThroughProps}
-        />
-    )
-}
+  const handlePressOut = useCallback(
+    (e: any) => {
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: NATIVE_DRIVER,
+        speed: 50,
+        bounciness: 4,
+      }).start();
+      onPressOut?.(e);
+    },
+    [scale, onPressOut],
+  );
+
+  return (
+    <Animated.View
+      style={[
+        style as ViewStyle,
+        {
+          opacity: disabled ? disabledOpacity : 1,
+          transform: [{ scale }],
+        },
+      ]}
+    >
+      <Pressable
+        disabled={disabled}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={({ pressed }) => ({ opacity: pressed ? activeOpacity : 1 })}
+        {...rest}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+};
