@@ -100,7 +100,6 @@ args = "Start application"
 [[ports]]
 localPort = 4999
 externalPort = 3001
-exposeLocalhost = true
 
 [[ports]]
 localPort = 5000
