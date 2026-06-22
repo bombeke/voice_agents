@@ -1,5 +1,7 @@
 export const RnExecutorchErrorCode = {
   MODULE_NOT_FOUND: 'MODULE_NOT_FOUND',
+  ModuleNotLoaded: 'ModuleNotLoaded',
+  ModelGenerating: 'ModelGenerating',
   UNKNOWN: 'UNKNOWN',
 };
 
@@ -11,16 +13,31 @@ export class RnExecutorchError extends Error {
 }
 
 export const ResourceSource = {};
-
 export const ObjectDetectionConfig = {};
 
 export class Detection {
   constructor() {
     this.label = '';
     this.score = 0;
-    this.bbox = { x: 0, y: 0, width: 0, height: 0 };
+    this.bbox = { x1: 0, y1: 0, x2: 0, y2: 0 };
   }
 }
+
+export const Bbox = { x1: 0, y1: 0, x2: 0, y2: 0 };
+
+export const ObjectDetectionModule = {
+  fromCustomModel: async () => ({
+    forward: async () => [],
+    runOnFrame: null,
+    delete: () => {},
+    getAvailableInputSizes: () => [],
+  }),
+};
+
+export const ObjectDetectionModelSources = {};
+export const ObjectDetectionOptions = {};
+export const ObjectDetectionType = {};
+export const PixelData = {};
 
 export function initExecutorch(options) {
   return Promise.resolve();
@@ -29,9 +46,12 @@ export function initExecutorch(options) {
 export function useObjectDetection() {
   return {
     forward: async () => [],
+    runOnFrame: null,
     error: null,
     isReady: false,
     isGenerating: false,
+    downloadProgress: 0,
+    getAvailableInputSizes: () => [],
   };
 }
 
@@ -41,6 +61,7 @@ export function useClassification() {
     error: null,
     isReady: false,
     isGenerating: false,
+    downloadProgress: 0,
   };
 }
 
@@ -51,4 +72,5 @@ export default {
   ResourceSource,
   ObjectDetectionConfig,
   Detection,
+  ObjectDetectionModule,
 };

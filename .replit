@@ -27,7 +27,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd artifacts/mobile && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 pnpm exec expo start --web --host localhost --port 5000"
+args = "cd artifacts/mobile && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 pnpm exec expo start --web --port 5000"
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -97,7 +97,6 @@ args = "Start application"
 [[ports]]
 localPort = 5000
 externalPort = 80
-exposeLocalhost = true
 
 [[ports]]
 localPort = 5001
