@@ -21,7 +21,7 @@ Start the **Mobile (Expo Go)** workflow from the Replit workflow panel.
 Run the **EAS Build (Android APK)** workflow, or from the shell:
 ```bash
 source scripts/setup-android.sh
-cd apps/mobile
+cd artifacts/mobile
 npx eas login          # first time only
 npx eas build --platform android --profile development
 ```
@@ -38,8 +38,8 @@ All tools are installed via Nix and available in the shell:
 | JDK | OpenJDK 17.0.15 | via Nix (`jdk17`) |
 | ADB | 37.0.0 | `/home/runner/android-sdk/platform-tools/adb` |
 | Gradle | 8.14.2 | via Nix (`gradle`) |
-| Android Build-Tools | 35.0.0 | `/home/runner/android-sdk/build-tools/35.0.0` |
-| Android Platform | API 35 | `/home/runner/android-sdk/platforms/android-35` |
+| Android Build-Tools | 36.0.0 | `/home/runner/android-sdk/build-tools/36.0.0` |
+| Android Platform | API 36 | `/home/runner/android-sdk/platforms/android-36` |
 | sdkmanager | 11.0 | `/home/runner/android-sdk/cmdline-tools/latest/bin/sdkmanager` |
 
 Key environment variables (set in workflow commands):
@@ -66,7 +66,7 @@ iOS simulator requires macOS. Replit runs on Linux. Use a physical iOS device wi
 
 ```
 voice-agents-workspace/
-├── apps/mobile/           # Expo React Native app
+├── artifacts/mobile/           # Expo React Native app
 │   ├── app/               # Expo Router screens
 │   │   ├── (auth)/        # Login screen
 │   │   ├── (tabs)/        # Main app tabs
@@ -84,12 +84,12 @@ voice-agents-workspace/
 
 ## EAS Project
 - Project ID: `d1ba06a7-8e54-4cc7-abe2-6be9c680f040`
-- Android package: `org.bombeke.voiceagents`
-- iOS bundle: `org.bombeke.voiceagents`
+- Android package: `org.bombeke.mobile`
+- iOS bundle: `org.bombeke.mobile`
 
 ---
 
 ## User Preferences
-- Use full nix path for node in workflows: `/nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-22.22.0/bin/node`
+- Use full nix path for node in workflows: `/nix/store/bl6iwirn83qj9r8wng43kfdqd5mfahj8-nodejs-24.13.0/bin/node`
 - Web stubs pattern: add native-only packages to `metro.config.js` WEB_STUBS map + create stub in `web-stubs/`
 - Always add `Platform.OS !== 'web'` guard before calling native-only APIs

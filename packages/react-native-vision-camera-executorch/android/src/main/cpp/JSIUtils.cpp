@@ -1,1 +1,0 @@
-jsi::Object convertMapToJSI(jsi::Runtime& rt, jobject map);

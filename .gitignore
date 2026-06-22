@@ -16,7 +16,13 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
-
+# compiled output
+dist
+tmp
+out-tsc
+*.tsbuildinfo
+.expo
+.expo-shared
 # Metro
 .metro-health-check*
 
