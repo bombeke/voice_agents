@@ -9,7 +9,7 @@ on:
       - dev
 
 env:
-  PNPM_VERSION: 9.15.4
+  PNPM_VERSION: 10.26.1
   URL: ${{ secrets.URL }}
   API_URL: ${{ secrets.API_URL }}
   API_USERNAME: ${{ secrets.API_USERNAME }}
@@ -114,7 +114,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.18.x
+          node-version: 24.13.x
           #cache: pnpm
 
       - name: Install pnpm
@@ -183,22 +183,6 @@ jobs:
       #- name: Build on EAS (Android)
       #  run: eas build --platform android --profile development --non-interactive --no-wait --local
 
-      #- name: Build apk
-      #  run: npx expo run:android --variant release
-
-      #- name: Pre-bundle JS
-      #  run: npx expo export --experimental-bundle --platform android
-      #- name: Ensure android/gradle.properties values (increase JVM)
-      #  run: |
-      #    # Append or replace recommended JVM args and flags (idempotent)
-      #    FILE=android/gradle.properties
-      #    grep -q "org.gradle.jvmargs" $FILE || echo "org.gradle.jvmargs=-Xmx6g -Dfile.encoding=UTF-8 -XX:+UseParallelGC" >> $FILE
-      #    grep -q "org.gradle.workers.max" $FILE || echo "org.gradle.workers.max=2" >> $FILE
-      #    grep -q "android.enableR8.fullMode" $FILE || echo "android.enableR8.fullMode=false" >> $FILE
-      #    # optional: disable dex in process on CI
-      #    grep -q "android.enableDexInProcess" $FILE || echo "android.enableDexInProcess=false" >> $FILE
-
-      #    ./gradlew :react-native-vision-camera-executorch:compileReleaseKotlin --stacktrace --info
       - name: Build Release APK
         working-directory: apps/mobile/android
         run: |
