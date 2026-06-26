@@ -28,7 +28,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       gradle-key: ${{ steps.gradle-key.outputs.key }}
-      #pnpm-key: ${{ steps.pnpm-key.outputs.key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,17 +37,12 @@ jobs:
       - name: Compute cache keys
         id: gradle-key
         run: |
-          # include gradle wrapper and gradle.properties checksum for cache invalidation
-          echo "::set-output name=key::gradle-cache-$(sha1sum android/gradle/wrapper/gradle-wrapper.jar android/gradle.properties | sha1sum | awk '{print $1}')"
-
-      #- name: Compute pnpm key
-      #  id: pnpm-key
-      #  run: |
-      #    if [ -f pnpm-lock.yaml ]; then
-      #      echo "::set-output name=key::pnpm-cache-$(sha1sum pnpm-lock.yaml | awk '{print $1}')"
-      #    else
-      #      echo "::set-output name=key::key::pnpm-cache-nolock"
-      #    fi
+          if [ -f artifacts/mobile/android/gradle/wrapper/gradle-wrapper.jar ]; then
+            HASH=$(sha1sum artifacts/mobile/android/gradle/wrapper/gradle-wrapper.jar artifacts/mobile/android/gradle.properties 2>/dev/null | sha1sum | awk '{print $1}')
+          else
+            HASH="nolock"
+          fi
+          echo "key=gradle-cache-${HASH}" >> "$GITHUB_OUTPUT"
 
   build:
     name: Install and build
@@ -97,20 +91,10 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-            android/.gradle
+            artifacts/mobile/android/.gradle
           key: ${{ needs.setup-cache-keys.outputs.gradle-key }}
           restore-keys: |
             gradle-cache-
-
-      #- name: Cache pnpm store & node_modules
-      #  uses: actions/cache@v4
-      #  with:
-      #    path: |
-      #      ~/.pnpm-store
-      #      node_modules
-      #    key: ${{ needs.setup-cache-keys.outputs.pnpm-key }}
-      #    restore-keys: |
-      #      pnpm-cache-
 
       - uses: actions/setup-node@v4
         with:
@@ -129,7 +113,7 @@ jobs:
           pnpm config set node-linker=hoisted
           
       - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -140,51 +124,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --shamefully-hoist
 
-      #- name: Generate Nitro bindings
-      #  run: pnpm dlx nitro-codegen generate
-
       - name: Install Skia binaries
         run: |
           cd node_modules/@shopify/react-native-skia
           pnpm install || true
           pnpm run skia:install || true
-
-      #- name: Build react-native-vision-camera-executorch plugin
-      #  run: pnpm --filter react-native-vision-camera-executorch build
-
+          
       - name: Clean & regenerate native project
         run: |
           cd apps/mobile
           npx expo prebuild --clean
 
-      - name: Install CocoaPods deps
-        run: npx pod-install || true
-
       - name: Clean C++ build artifacts
         run: |
           rm -rf node_modules/**/.cxx || true
-          rm -rf apps/mobile/android/.cxx || true
+          rm -rf artifacts/mobile/android/.cxx || true
 
       - name: Deduplicate react-native-vision-camera
         run: pnpm dedupe react-native-vision-camera
-
-      # ❗️ Free up system space
-      #- name: Cleanup system to free disk space
-      #  run: |
-      #    docker system prune -af || true
-      #    sudo rm -rf /usr/share/dotnet
-      #    sudo rm -rf /opt/ghc
-      #    sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-      #    df -h
-      # name: Fix Hermes executable permissions
-      #  run: chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
-
 
       #- name: Build on EAS (Android)
       #  run: eas build --platform android --profile development --non-interactive --no-wait --local
 
       - name: Build Release APK
-        working-directory: apps/mobile/android
+        working-directory: artifacts/mobile/android
         run: |
           ./gradlew clean assembleRelease --stacktrace --no-daemon --info
 
@@ -192,12 +155,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
-          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          path: artifacts/mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: ignore
-
-      #- name: Upload build artifacts
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: expo-dev-client
-      #    path: dist/**
-      #    if-no-files-found: ignore
