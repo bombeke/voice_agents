@@ -157,8 +157,10 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
       "exec",
       "expo",
       "start",
-      "--no-dev",
-      "--minify",
+      //"--no-dev", //commented out to enable dev mode
+      //"--minify", //commented out to enable dev mode
+      "--dev-client", // added to enable dev client
+      "--web", // added to enable web
       "--localhost",
       "--port",
       String(METRO_BUILD_PORT),
@@ -239,10 +241,10 @@ async function downloadBundle(platform, timestamp) {
   const bundlePath = path.relative(workspaceRoot, entryPath);
   const url = new URL(`http://localhost:${METRO_BUILD_PORT}/${bundlePath}.bundle`);
   url.searchParams.set("platform", platform);
-  url.searchParams.set("dev", "false");
+  url.searchParams.set("dev", "true"); // from false
   url.searchParams.set("hot", "false");
   url.searchParams.set("lazy", "false");
-  url.searchParams.set("minify", "true");
+  url.searchParams.set("minify", "false"); // from true
 
   const output = path.join(
     "static-build",
