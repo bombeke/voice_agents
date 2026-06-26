@@ -132,7 +132,7 @@ jobs:
           
       - name: Clean & regenerate native project
         run: |
-          cd apps/mobile
+          cd artifacts/mobile
           npx expo prebuild --clean
 
       - name: Clean C++ build artifacts
