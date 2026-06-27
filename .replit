@@ -20,20 +20,20 @@ runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start application"
-author = "agent"
 mode = "sequential"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm install && cd artifacts/mobile && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1 pnpm exec expo start --web --dev-client --port 4999 --host localhost & PORT=5000 /nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node /home/runner/workspace/artifacts/mobile/server/android-sim.js"
 
 [workflows.workflow.metadata]
 outputType = "webview"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm install && cd artifacts/mobile && BROWSER=none REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1 pnpm exec expo start --web --port 4999 --host localhost & PORT=5000 /nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin/node /home/runner/workspace/artifacts/mobile/server/android-sim.js"
-
 [[workflows.workflow]]
 name = "Mobile (Expo Go)"
-author = "agent"
 mode = "sequential"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
@@ -45,20 +45,20 @@ outputType = "console"
 
 [[workflows.workflow]]
 name = "Android Emulator"
-author = "agent"
 mode = "sequential"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash -c 'cd artifacts/mobile && export EXPO_NO_DEV_TOOLS=1 && export REACT_NATIVE_DISABLE_DEVTOOLS=1 && export GRADLE_OPTS=\"-Xmx6g\" && npx expo prebuild --platform android && pnpm dev'"
+args = "bash -c 'cd artifacts/mobile && export EXPO_NO_DEV_TOOLS=1 && export REACT_NATIVE_DISABLE_DEVTOOLS=1 && export GRADLE_OPTS=\"-Xmx6g\" && pnpm run:android && pnpm dev'"
 
 [workflows.workflow.metadata]
 outputType = "console"
 
 [[workflows.workflow]]
 name = "EAS Build (Android APK)"
-author = "agent"
 mode = "sequential"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
@@ -78,7 +78,7 @@ artifactId = "artifacts/mobile"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm --filter mobile run dev"
+args = "PORT=18115 pnpm --filter mobile run dev"
 cwd = "./artifacts/mobile"
 waitForPort = 18115
 ensurePreviewReachable = "/status"
@@ -87,15 +87,6 @@ router = "expo-domain"
 [workflows.workflow.tasks.env]
 PORT = "18115"
 BASE_PATH = "/"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
 
 [[ports]]
 localPort = 4999

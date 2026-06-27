@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "dev": "REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1  EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --port $PORT --dev-client",
+    "dev": "pnpm install && REACT_NATIVE_DISABLE_DEVTOOLS=1 EXPO_NO_DEV_TOOLS=1  EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --port $PORT --dev-client",
     "build": "node scripts/build.js",
     "serve": "node server/serve.js",
     "dev:build": "node scripts/dev.js",
@@ -15,7 +15,7 @@
     "easbuild": "eas build --platform android --profile development --local"
   },
   "dependencies": {
-    "@config-plugins/react-native-webrtc": "^15.0.1",
+    "@config-plugins/react-native-webrtc": "^14.0.0",
     "@expo/vector-icons": "^15.0.3",
     "@legendapp/state": "3.0.0-beta.47",
     "@lodev09/react-native-exify": "^1.0.0",
@@ -28,7 +28,7 @@
     "@react-navigation/core": "^7.13.2",
     "@react-navigation/elements": "^2.6.0",
     "@react-navigation/native": "^7.1.15",
-    "@shopify/react-native-skia": "2.4.18",
+    "@shopify/react-native-skia": "2.6.6",
     "@signalwire/sdk": "^2.0.5",
     "@tamagui/config": "^1.137.1",
     "@tanstack/react-query": "^5.90.11",
