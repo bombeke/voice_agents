@@ -1,5 +1,5 @@
 import { usePhotoGeoJSON } from "@/hooks/useGeoJsonHooks";
-import { Camera, CameraRef, CircleLayer, MapView, ShapeSource, SymbolLayer } from "@maplibre/maplibre-react-native";
+import { Camera, CameraRef, CircleLayer, Map, ShapeSource, SymbolLayer } from "@maplibre/maplibre-react-native";
 import { Accuracy, getCurrentPositionAsync } from "expo-location";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -37,7 +37,7 @@ export default function DashboardMaps() {
   }, [lng, lat]);
 
   return (
-    <MapView
+    <Map
       style={{ flex: 1 }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
     >
@@ -45,7 +45,8 @@ export default function DashboardMaps() {
 
       {memoGeoJSON && memoGeoJSON.features && (
         <ShapeSource id="photos" shape={memoGeoJSON}>
-          <CircleLayer
+          <Layer
+            type="circle"
             id="photoPoints"
             style={{
               circleRadius: 6,
@@ -55,8 +56,9 @@ export default function DashboardMaps() {
             }}
           />
 
-          <SymbolLayer
+          <Layer
             id="photoIcons"
+            type="symbol"
             style={{
               textField: ["get", "created"],
               textSize: 10,
@@ -66,6 +68,6 @@ export default function DashboardMaps() {
           />
         </ShapeSource>
       )}
-    </MapView>
+    </Map>
   );
 }
