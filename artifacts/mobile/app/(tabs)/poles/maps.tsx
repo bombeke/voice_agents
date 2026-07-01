@@ -1,52 +1,97 @@
 import { usePhotoGeoJSON } from "@/hooks/useGeoJsonHooks";
-import { Camera, CameraRef, CircleLayer, Map, ShapeSource, SymbolLayer } from "@maplibre/maplibre-react-native";
-import { Accuracy, getCurrentPositionAsync } from "expo-location";
-import { useEffect, useMemo, useRef } from "react";
+import {
+  Camera,
+  CameraRef,
+  CircleLayer,
+  MapView,
+  ShapeSource,
+  SymbolLayer,
+} from "@maplibre/maplibre-react-native";
+import {
+  Accuracy,
+  getCurrentPositionAsync,
+  requestForegroundPermissionsAsync,
+} from "expo-location";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Platform, Text, View } from "react-native";
+
+const DEFAULT_CENTER: [number, number] = [29.2297, -1.6712];
 
 export default function DashboardMaps() {
-    const geojson: any = usePhotoGeoJSON();
-    const memoGeoJSON = useMemo(() => geojson, [geojson]);
-    const cameraRef = useRef<CameraRef>(null);
+  const geojson = usePhotoGeoJSON();
+  const memoGeoJSON = useMemo(() => geojson, [geojson]);
+  const cameraRef = useRef<CameraRef>(null);
+  const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  const [zoom, setZoom] = useState(8);
 
-    // Fallback center if geojson is empty
-    const firstFeature = memoGeoJSON?.features?.[0];
-    const lng = firstFeature?.geometry?.coordinates?.[0];
-    const lat = firstFeature?.geometry?.coordinates?.[1];
-    const initialCenter = useRef<[number, number]>([
-      lng,
-      lat
-    ]);
-    
-
-  // Update camera only when geojson first loads
   useEffect(() => {
-    const initMap = async()=>{
-        const locationResult = await getCurrentPositionAsync({
-          accuracy: Accuracy.High,
-        });
-        if (cameraRef.current) {
-          initialCenter.current = [locationResult.coords.longitude ?? lng, locationResult.coords.latitude ?? lat]
-          cameraRef.current.setCamera({
-            centerCoordinate: initialCenter.current,
-            zoomLevel: 8,
-            animationDuration: 800,
-          });
-        }
-      }
-      initMap();
-  }, [lng, lat]);
+    if (Platform.OS === "web") return;
+
+    let cancelled = false;
+
+    const initMap = async () => {
+      const { status } = await requestForegroundPermissionsAsync();
+      if (cancelled || status !== "granted") return;
+
+      const loc = await getCurrentPositionAsync({ accuracy: Accuracy.Balanced });
+      if (cancelled) return;
+
+      const coords: [number, number] = [
+        loc.coords.longitude,
+        loc.coords.latitude,
+      ];
+      setCenter(coords);
+      setZoom(13);
+
+      cameraRef.current?.setCamera({
+        centerCoordinate: coords,
+        zoomLevel: 13,
+        animationDuration: 800,
+      });
+    };
+
+    initMap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#EFF6FF",
+        }}
+      >
+        <Text style={{ color: "#64748B", fontSize: 15 }}>
+          Map is only available on mobile devices.
+        </Text>
+      </View>
+    );
+  }
+
+  const hasFeatures =
+    Array.isArray(memoGeoJSON?.features) && memoGeoJSON.features.length > 0;
 
   return (
-    <Map
+    <MapView
       style={{ flex: 1 }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
     >
-      <Camera zoomLevel={8} ref={cameraRef} />
+      <Camera
+        ref={cameraRef}
+        zoomLevel={zoom}
+        centerCoordinate={center}
+        animationMode="flyTo"
+        animationDuration={800}
+      />
 
-      {memoGeoJSON && memoGeoJSON.features && (
+      {hasFeatures && (
         <ShapeSource id="photos" shape={memoGeoJSON}>
-          <Layer
-            type="circle"
+          <CircleLayer
             id="photoPoints"
             style={{
               circleRadius: 6,
@@ -55,19 +100,18 @@ export default function DashboardMaps() {
               circleStrokeColor: "#fff",
             }}
           />
-
-          <Layer
-            id="photoIcons"
-            type="symbol"
+          <SymbolLayer
+            id="photoLabels"
             style={{
-              textField: ["get", "created"],
+              textField: ["get", "id"],
               textSize: 10,
-              textColor: "#000",
+              textColor: "#111",
               textAnchor: "top",
+              textOffset: [0, 1],
             }}
           />
         </ShapeSource>
       )}
-    </Map>
+    </MapView>
   );
 }
