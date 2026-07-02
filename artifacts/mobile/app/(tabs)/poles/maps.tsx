@@ -2,10 +2,9 @@ import { usePhotoGeoJSON } from "@/hooks/useGeoJsonHooks";
 import {
   Camera,
   CameraRef,
-  CircleLayer,
-  MapView,
-  ShapeSource,
-  SymbolLayer,
+  Layer,
+  Map,
+  GeoJSONSource,
 } from "@maplibre/maplibre-react-native";
 import {
   Accuracy,
@@ -43,10 +42,10 @@ export default function DashboardMaps() {
       setCenter(coords);
       setZoom(13);
 
-      cameraRef.current?.setCamera({
-        centerCoordinate: coords,
-        zoomLevel: 13,
-        animationDuration: 800,
+      cameraRef.current?.setStop({
+        center: coords,
+        zoom: 13,
+        duration: 800,
       });
     };
 
@@ -77,41 +76,43 @@ export default function DashboardMaps() {
     Array.isArray(memoGeoJSON?.features) && memoGeoJSON.features.length > 0;
 
   return (
-    <MapView
+    <Map
       style={{ flex: 1 }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
     >
       <Camera
         ref={cameraRef}
-        zoomLevel={zoom}
-        centerCoordinate={center}
-        animationMode="flyTo"
-        animationDuration={800}
+        zoom={zoom}
+        center={center}
+        easing="fly"
+        duration={800}
       />
 
       {hasFeatures && (
-        <ShapeSource id="photos" shape={memoGeoJSON}>
-          <CircleLayer
+        <GeoJSONSource id="photos" data={memoGeoJSON}>
+          <Layer
             id="photoPoints"
-            style={{
-              circleRadius: 6,
-              circleColor: "rgba(177, 99, 54, 0.9)",
-              circleStrokeWidth: 2,
-              circleStrokeColor: "#fff",
+            type="circle"
+            paint={{
+              "circle-radius": 6,
+              "circle-color": "rgba(177, 99, 54, 0.9)",
+              "circle-stroke-width": 2,
+              "circle-stroke-color": "#fff",
             }}
           />
-          <SymbolLayer
+          <Layer
             id="photoLabels"
-            style={{
-              textField: ["get", "id"],
-              textSize: 10,
-              textColor: "#111",
-              textAnchor: "top",
-              textOffset: [0, 1],
+            type="symbol"
+            layout={{
+              "text-field": ["get", "id"],
+              "text-size": 10,
+              "text-color": "#111",
+              "text-anchor": "top",
+              "text-offset": [0, 1],
             }}
           />
-        </ShapeSource>
+        </GeoJSONSource>
       )}
-    </MapView>
+    </Map>
   );
 }
