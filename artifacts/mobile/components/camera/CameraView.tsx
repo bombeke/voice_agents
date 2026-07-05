@@ -1,6 +1,5 @@
-
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import type { CameraDevice } from "react-native-vision-camera";
 import {
   Camera,
@@ -8,13 +7,13 @@ import {
   useCameraDevices,
   useCameraPermission,
   useFrameOutput,
-  usePhotoOutput
+  usePhotoOutput,
 } from "react-native-vision-camera";
 import { scheduleOnRN } from "react-native-worklets";
+import { useSharedValue } from "react-native-worklets-core";
 
 import { useCameraController } from "@/hooks/useCameraController";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
-import { Dimensions } from "react-native";
 import {
   Bbox,
   Detection,
@@ -23,23 +22,20 @@ import {
   ObjectDetectionOptions,
   ObjectDetectionProps,
   ObjectDetectionType,
-  PixelData
-} from 'react-native-executorch';
+  PixelData,
+} from "react-native-executorch";
 
 import { MODEL_DETECTION_CONFIG, YOLO26N } from "@/constants/Config";
 import { CocoLabelYolo } from "@/constants/Enum";
 import { Track, TrackedDetection } from "@/hooks/Types";
 import { useModuleFactory } from "@/hooks/useModuleFactory";
-import {
-  useLocation
-} from 'react-native-vision-camera-location';
+import { useLocation } from "react-native-vision-camera-location";
 import { useAppReady } from "../AppReadyContext";
 import { CameraControls } from "./CameraControl";
 import { NoCameraDevice } from "./NoCameraDevice";
 import { PermissionsPage } from "./PermissionsPage";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
 
 export interface Props {
   device?: any;
@@ -48,19 +44,21 @@ export interface Props {
     selectedTag?: string;
     comment?: string;
   };
-  onChange?: (values: {
-    selectedTag: string | "";
-    comment: string | "";
-  }) => void;
+  onChange?: (values: { selectedTag: string | ""; comment: string | "" }) => void;
   detections?: any;
   error?: string;
 }
 
-let TRACKS: Track[] = [];
-let NEXT_ID = 1;
+/**
+ * Tracker state is held in a plain object that is passed BY REFERENCE into the
+ * worklet. Module-level `let TRACKS` was shared across every mount and mutated
+ * from the frame-processor thread, causing races/stale state. We keep the state
+ * on a single object created per-mount and only mutate it inside the worklet.
+ */
+type TrackerState = { tracks: Track[]; nextId: number };
 
-export const iou=(a: Bbox, b: Bbox)=> {
-  'worklet';
+export const iou = (a: Bbox, b: Bbox) => {
+  "worklet";
   const xA = Math.max(a.x1, b.x1);
   const yA = Math.max(a.y1, b.y1);
   const xB = Math.min(a.x2, b.x2);
@@ -71,11 +69,11 @@ export const iou=(a: Bbox, b: Bbox)=> {
   const areaB = (b.x2 - b.x1) * (b.y2 - b.y1);
 
   return inter / (areaA + areaB - inter + 1e-6);
-}
+};
 
-// simple Kalman-like prediction (constant velocity)
-export const predict =(track: Track)=>{
-  'worklet';
+// simple constant-velocity prediction
+export const predict = (track: Track): Track => {
+  "worklet";
   return {
     ...track,
     bbox: {
@@ -86,10 +84,10 @@ export const predict =(track: Track)=>{
     },
     age: track.age + 1,
   };
-}
+};
 
-function updateVelocity(prev: Track, det:  Detection<typeof CocoLabelYolo>) {
-  'worklet';
+function updateVelocity(prev: Track, det: Detection<typeof CocoLabelYolo>) {
+  "worklet";
   const dx = det.bbox.x1 - prev.bbox.x1;
   const dy = det.bbox.y1 - prev.bbox.y1;
 
@@ -102,19 +100,23 @@ function updateVelocity(prev: Track, det:  Detection<typeof CocoLabelYolo>) {
   };
 }
 
-export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
-  'worklet';
+export const trackSORT = (
+  state: TrackerState,
+  detections: Detection<typeof CocoLabelYolo>[]
+): Track[] => {
+  "worklet";
 
-  let predicted: Track[] = TRACKS.map(predict);
-
+  const predicted: Track[] = state.tracks.map(predict);
   const updated: Track[] = [];
+  const usedTrackIds: number[] = [];
 
   detections.forEach((det) => {
     let best: Track | null = null;
     let bestScore = 0;
 
-    predicted.forEach((track: Track ) => {
+    predicted.forEach((track: Track) => {
       if (track.label !== det.label) return;
+      if (usedTrackIds.indexOf(track.trackId) !== -1) return; // one det per track
 
       const score = iou(track.bbox, det.bbox);
       if (score > bestScore) {
@@ -123,9 +125,10 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
       }
     });
 
-    if (best && best !== null && bestScore > 0.3) {
-      const vel = updateVelocity(best, det);
-      const matched  = best as Track;
+    if (best !== null && bestScore > 0.3) {
+      const matched = best as Track;
+      const vel = updateVelocity(matched, det);
+      usedTrackIds.push(matched.trackId);
       updated.push({
         trackId: matched.trackId,
         bbox: det.bbox,
@@ -134,23 +137,23 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
         hits: matched.hits + 1,
         age: 0,
         label: matched.label,
-        score: det.score
+        score: det.score,
       });
-    }
-    else {
+    } else {
       updated.push({
-        trackId: NEXT_ID++,
+        trackId: state.nextId++,
         bbox: det.bbox,
         vx: 0,
         vy: 0,
         age: 0,
         hits: 1,
         label: det.label,
-        score: det.score
+        score: det.score,
       });
     }
   });
 
+  // keep recently-lost tracks alive briefly (coast on prediction)
   predicted.forEach((track) => {
     const stillExists = updated.find((t) => t.trackId === track.trackId);
     if (!stillExists && track.age < 5) {
@@ -158,23 +161,14 @@ export const trackSORT=(detections:  Detection<typeof CocoLabelYolo>[])=> {
     }
   });
 
-  TRACKS = updated;
-
+  state.tracks = updated;
   return updated;
-}
-/**
- * React hook for managing an Object Detection model instance.
- * @typeParam C - A {@link ObjectDetectionModelSources} config specifying which built-in model to load.
- * @category Hooks
- * @param props - Configuration object containing `model` config and optional `preventLoad` flag.
- * @returns An object with model state (`error`, `isReady`, `isGenerating`, `downloadProgress`) and typed `forward` and `runOnFrame` functions.
- */
+};
+
 export const useTagObjectDetection = <C extends ObjectDetectionModelSources>({
   model,
   preventLoad = false,
-}: ObjectDetectionProps<C>): ObjectDetectionType<
-  typeof CocoLabelYolo
-> => {
+}: ObjectDetectionProps<C>): ObjectDetectionType<typeof CocoLabelYolo> => {
   const {
     error,
     isReady,
@@ -185,7 +179,6 @@ export const useTagObjectDetection = <C extends ObjectDetectionModelSources>({
     instance,
   } = useModuleFactory({
     factory: (modelSource, config, onProgress) =>
-      
       ObjectDetectionModule.fromCustomModel(modelSource, config, onProgress),
     modelSource: model?.modelSource,
     config: MODEL_DETECTION_CONFIG,
@@ -213,171 +206,200 @@ export const useTagObjectDetection = <C extends ObjectDetectionModelSources>({
 };
 
 export const CameraView = memo(({ form, onChange }: Props) => {
-    const ready = useAppReady();
-    const { hasPermission, requestPermission } = useCameraPermission();
-    //const exposure = useSharedValue(2);
-    const location = useLocation()
-    const devices = useCameraDevices()
-    const device = useMemo(() => devices.find((d: CameraDevice ) => d.position === 'back'),[devices]);
-    const [flash] = useState<"off" | "on">("off");
-    const [modelPath, setModelPath] = useState<string | null>(null);
+  const ready = useAppReady();
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const location = useLocation();
+  const devices = useCameraDevices();
+  const device = useMemo(
+    () => devices.find((d: CameraDevice) => d.position === "back"),
+    [devices]
+  );
+  const [flash] = useState<"off" | "on">("off");
+  const [modelPath, setModelPath] = useState<string | null>(null);
 
-    const photoOutput = usePhotoOutput({});
-    const { takePhoto } = useCameraController({photoOutput});
-    const model = useTagObjectDetection({ model: YOLO26N });
-    const [detections, setDetections] = useState<TrackedDetection[]>([]);
-    const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
+  const photoOutput = usePhotoOutput({});
+  const { takePhoto } = useCameraController({ photoOutput });
+  const model = useTagObjectDetection({ model: YOLO26N });
+  const [detections, setDetections] = useState<TrackedDetection[]>([]);
+  const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
 
-    const detRof = model.runOnFrame;
+  const detRof = model.runOnFrame;
 
-    const updateDetections = useCallback((results: TrackedDetection[]) => {
-      setDetections(results);
-    }, []);
-    
+  // Per-mount tracker state that is safe to mutate inside the worklet.
+  const trackerState = useSharedValue<TrackerState>({ tracks: [], nextId: 1 });
 
-    const frameOutput = useFrameOutput({
-      pixelFormat: 'rgb',
-      dropFramesWhileBusy: true,
-      onFrame: useCallback(
-        (frame: Frame) => {
-          'worklet';
-          try {
-            if (!detRof || !model.isReady) return;
-            const isFrontCamera = false; // using back camera
-            const result = detRof(frame, isFrontCamera, { detectionThreshold: 0.5 });
-            scheduleOnRN(setFrameSize, {
-              width: frame.width,
-              height: frame.height,
-            });
-            if (Array.isArray(result) && result.length > 0) {
-              const tracked = trackSORT(result);
-              scheduleOnRN(updateDetections, tracked);
-            } 
-            else {
-              scheduleOnRN(updateDetections, []);
-            }
-          } 
-          finally {
-            frame.dispose();
+  const updateDetections = useCallback((results: TrackedDetection[]) => {
+    setDetections(results);
+  }, []);
+
+  const frameOutput = useFrameOutput({
+    pixelFormat: "rgb",
+    dropFramesWhileBusy: true,
+    onFrame: useCallback(
+      (frame: Frame) => {
+        "worklet";
+        try {
+          if (!detRof || !model.isReady) return;
+          const isFrontCamera = false; // using back camera
+          const result = detRof(frame, isFrontCamera, {
+            detectionThreshold: 0.5,
+          });
+
+          scheduleOnRN(setFrameSize, {
+            width: frame.width,
+            height: frame.height,
+          });
+
+          if (Array.isArray(result) && result.length > 0) {
+            const tracked = trackSORT(trackerState.value, result);
+            // send hits>=2 to reduce flicker; drop the filter if you want raw
+            scheduleOnRN(updateDetections, tracked as TrackedDetection[]);
+          } else {
+            scheduleOnRN(updateDetections, []);
           }
-        },
-        [detRof, updateDetections,setFrameSize, model.isReady]
-      ),
-    });
-    const handleCapture = async () => {
-      await takePhoto({ flashMode: flash, detections })
-    };
+        } finally {
+          frame.dispose();
+        }
+      },
+      [detRof, updateDetections, model.isReady, trackerState]
+    ),
+  });
 
-    useEffect(() => {
-      (async () => {
-        const path = await prepareAndInitializeModel();
-        setModelPath(path);
-      })();
-    }, []);
+  const handleCapture = async () => {
+    await takePhoto({ flashMode: flash, detections });
+  };
 
-    useEffect(() => {
-      if (!location.hasPermission) {
-        location.requestPermission()
-      }
-    }, [location.hasPermission])
-    
-  
-    useEffect(() => {
-      if (!hasPermission) requestPermission();
-    }, [hasPermission,requestPermission]);
-  
-  
-    const allowCameraLocationPermissions = useCallback(
-      async () => { 
-        await requestPermission(); 
-        await location.requestPermission();
-        return; 
-    },[requestPermission,location]);
-  
+  useEffect(() => {
+    (async () => {
+      const path = await prepareAndInitializeModel();
+      setModelPath(path);
+    })();
+  }, []);
 
-    if (!ready || !modelPath) return null;
+  useEffect(() => {
+    if (!location.hasPermission) {
+      location.requestPermission();
+    }
+  }, [location.hasPermission]);
 
-    if (!hasPermission)
-      return (
-        <PermissionsPage
-          allowCameraLocationPermissions={allowCameraLocationPermissions}
-        />
-      );
+  useEffect(() => {
+    if (!hasPermission) requestPermission();
+  }, [hasPermission, requestPermission]);
 
-    if (!device) return <NoCameraDevice />;
+  const allowCameraLocationPermissions = useCallback(async () => {
+    await requestPermission();
+    await location.requestPermission();
+    return;
+  }, [requestPermission, location]);
 
+  if (!ready || !modelPath) return null;
+
+  if (!hasPermission)
     return (
-      <View style={styles.container}>
-        <View style={styles.cameraWrapper}>
-          <Camera
-            style={StyleSheet.absoluteFill}
-            device= "back"
-            isActive={ true }
-            outputs={[frameOutput, photoOutput]}
-            enableNativeZoomGesture={ true }
-            enableNativeTapToFocusGesture={ true }
-            orientationSource="device"
-            enableLowLightBoost ={ true }
-          />
-        </View>
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: "transparent" }]}>
-          {(detections ?? []).map((det, i) => {
-            const { x1, y1, x2, y2 } = det.bbox;
-            const screenRatio = screenHeight / screenWidth;
-            const frameRatio = frameSize.height / frameSize.width;
-            let offsetY = 0;
-            let offsetX = 0;
+      <PermissionsPage
+        allowCameraLocationPermissions={allowCameraLocationPermissions}
+      />
+    );
 
-            if (frameRatio > screenRatio) {
-              const scaledHeight = frameSize.height * (screenWidth / frameSize.width);
-              offsetY = (scaledHeight - screenHeight) / 2;
+  if (!device) return <NoCameraDevice />;
 
-            }
-            else {
-              const scaledWidth = frameSize.width * (screenHeight / frameSize.height);
-              offsetX = (scaledWidth - screenWidth) / 2;
-            }
-            const scaleX = screenWidth / frameSize.height;
-            const scaleY = screenHeight / frameSize.width;
-            const left = y1 * scaleX;
-            const top = x1 * scaleY;
-
-            const width = (y2 - y1) * scaleX;
-            const height = (x2 - x1) * scaleY;
-
-            return (
-              <View
-                key={i}
-                style={[
-                  styles.box,
-                  {
-                    left: y1,
-                    top: x1,
-                    width: y2-y1,
-                    height: x2-x1,
-                  },
-                ]}
-              >
-                <Text style={styles.boxLabel}>
-                  #{det.trackId} {det.label} {(det.score * 100).toFixed(1)}%
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-        <CameraControls
-          onCapture={handleCapture}
-          disabled={ false }
+  return (
+    <View style={styles.container}>
+      <View style={styles.cameraWrapper}>
+        <Camera
+          style={StyleSheet.absoluteFill}
+          device={device}
+          isActive={true}
+          outputs={[frameOutput, photoOutput]}
+          enableNativeZoomGesture={true}
+          enableNativeTapToFocusGesture={true}
+          orientationSource="device"
+          enableLowLightBoost={true}
         />
       </View>
-    );
-  },
-);
+
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: "transparent" }]}
+        pointerEvents="none"
+      >
+        {(detections ?? []).map((det, i) => {
+          const box = mapBboxToScreen(det.bbox, frameSize);
+          return (
+            <View
+              key={det.trackId ?? i}
+              style={[
+                styles.box,
+                {
+                  left: box.left,
+                  top: box.top,
+                  width: box.width,
+                  height: box.height,
+                },
+              ]}
+            >
+              <Text style={styles.boxLabel}>
+                #{det.trackId} {det.label} {(det.score * 100).toFixed(1)}%
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <CameraControls onCapture={handleCapture} disabled={false} />
+    </View>
+  );
+});
+
+/**
+ * Maps a detection bbox (in the model input frame's pixel space) onto the
+ * on-screen preview using an aspect-fill ("cover") transform — matching how
+ * VisionCamera's preview fills the view.
+ *
+ * The preview is portrait but the frame buffer arrives landscape, so the
+ * frame's width maps to the screen's HEIGHT and vice-versa. We compute a single
+ * `scale` (the larger of the two ratios, = cover) and center-crop offsets, then
+ * clamp the result so boxes never spill off-screen.
+ */
+function mapBboxToScreen(
+  bbox: Bbox,
+  frameSize: { width: number; height: number }
+) {
+  // Buffer is landscape; portrait preview swaps the axes.
+  const srcW = frameSize.height; // frame height -> screen X extent
+  const srcH = frameSize.width; // frame width  -> screen Y extent
+
+  // "cover" scale: fill the screen, cropping the overflow axis.
+  const scale = Math.max(screenWidth / srcW, screenHeight / srcH);
+
+  const displayedW = srcW * scale;
+  const displayedH = srcH * scale;
+
+  const offsetX = (displayedW - screenWidth) / 2;
+  const offsetY = (displayedH - screenHeight) / 2;
+
+  // Axis swap: model x -> screen y, model y -> screen x.
+  let left = bbox.y1 * scale - offsetX;
+  let top = bbox.x1 * scale - offsetY;
+  let right = bbox.y2 * scale - offsetX;
+  let bottom = bbox.x2 * scale - offsetY;
+
+  // Clamp to screen so the box fits and hugs the object edge.
+  left = Math.max(0, Math.min(left, screenWidth));
+  top = Math.max(0, Math.min(top, screenHeight));
+  right = Math.max(0, Math.min(right, screenWidth));
+  bottom = Math.max(0, Math.min(bottom, screenHeight));
+
+  return {
+    left,
+    top,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+  };
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    //backgroundColor: "#000", // Ensures preview always has visible base
   },
   formContainer: {
     padding: 16,
@@ -386,14 +408,13 @@ const styles = StyleSheet.create({
   },
   cameraWrapper: {
     flex: 1,
-    //backgroundColor: "#000", // Forces preview background visible
     overflow: "hidden",
   },
   label: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 40,
-    alignSelf: 'center',
-    color: 'white',
+    alignSelf: "center",
+    color: "white",
     fontSize: 16,
   },
   pickerWrapper: {
