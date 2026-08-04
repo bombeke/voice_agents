@@ -8,6 +8,7 @@ import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import { requestSavePermission } from "./Helpers";
 import { ICameraOutputs, ITakePhotoProps } from "./Types";
+import { axiosClient } from "@/services/Api";
 
 
 export function useCameraController({ photoOutput }: ICameraOutputs ) {
@@ -41,12 +42,7 @@ export function useCameraController({ photoOutput }: ICameraOutputs ) {
         const path = await photo.saveToTemporaryFileAsync();
         await createAssetAsync(`file:///${path}`, "photo");
         const encodedData = await photo.getFileDataAsync()
-        // Upload to backend:
-        /*await fetch('https://my-backend.com/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'image/jpeg' },
-          body: Buffer.from(encodedData)
-        })*/
+
         const tags = detections.map((d)=>({
           ...d,
           latitude: locationResult.coords.latitude,
@@ -59,6 +55,28 @@ export function useCameraController({ photoOutput }: ICameraOutputs ) {
         }) as SyncedUtilityPole );
 
         await addPole(tags);
+        // Upload to backend:
+        /*await fetch('https://my-backend.com/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: Buffer.from(encodedData)
+        })*/
+       try {
+          const url = `/observations/v1/stream`;
+          const formData = new FormData();
+          formData.append("metadata",JSON.stringify(tags));
+          formData.append("image",{
+            uri: path,
+            name: `capture-${Date.now()}.jpg`,
+            type: "image/jpeg",
+          } as any);
+          const res = await axiosClient.post(url, formData);
+          if (res.status !== 200) {
+            console.log("Failed to sync pole");
+          }
+        } catch (e: any) {
+          console.log("Failed to save:", e);
+        }
         return router.navigate("/poles/maps");
       } 
       catch (e) {
