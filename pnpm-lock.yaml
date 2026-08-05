@@ -86,6 +86,10 @@ overrides:
   '@expo/ngrok-bin>@expo/ngrok-bin-win32-x64': '-'
   '@esbuild-kit/esm-loader': npm:tsx@^4.21.0
   esbuild: 0.27.3
+  node-forge: 1.3.2
+  expo-sqlite: 55.0.16
+  '@shopify/react-native-skia': 2.6.6
+  unrs-resolver: 1.12.2
 
 importers:
 
@@ -251,7 +255,7 @@ importers:
         specifier: ~55.0.21
         version: 55.0.22(expo@55.0.27)(typescript@5.9.3)
       expo-sqlite:
-        specifier: ~55.0.16
+        specifier: 55.0.16
         version: 55.0.16(expo@55.0.27)(react-native@0.83.10(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
       expo-status-bar:
         specifier: ~55.0.6
@@ -1259,7 +1263,7 @@ packages:
   '@legendapp/state@3.0.0-beta.47':
     resolution: {integrity: sha512-MPgPacXXSoAazAv7ulW/o0ZAtK4YHk3twvXZ241l2HqAHciHozb7tg5SMbEAc2HKUUfC3JBh+9+DXfMsYokLpQ==}
     peerDependencies:
-      expo-sqlite: ^15.0.0
+      expo-sqlite: 55.0.16
     peerDependenciesMeta:
       expo-sqlite:
         optional: true
@@ -4627,8 +4631,8 @@ packages:
       encoding:
         optional: true
 
-  node-forge@1.4.0:
-    resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
+  node-forge@1.3.2:
+    resolution: {integrity: sha512-6xKiQ+cph9KImrRh0VsjH2d8/GXA4FIMlgU4B757iI1ApvcyA9VlouP0yZJha01V+huImO+kKMU7ih+2+E14fw==}
     engines: {node: '>= 6.13.0'}
 
   node-int64@0.4.0:
@@ -5123,7 +5127,7 @@ packages:
   react-native-vision-camera-skia@5.0.11:
     resolution: {integrity: sha512-oXTwu0rvUur3a/UIPOnUmGv0uPub2S/XAdPwUVVa7TZrvmeuS2goBRFtCkIxScrfYp6TlbK2T0r1UnmWo/9CpA==}
     peerDependencies:
-      '@shopify/react-native-skia': '*'
+      '@shopify/react-native-skia': 2.6.6
       react: '*'
       react-native: '*'
       react-native-reanimated: '*'
@@ -6695,7 +6699,7 @@ snapshots:
       glob: 13.0.6
       lan-network: 0.2.1
       multitars: 1.0.0
-      node-forge: 1.4.0
+      node-forge: 1.3.2
       npm-package-arg: 11.0.3
       ora: 3.4.0
       picomatch: 4.0.4
@@ -6732,7 +6736,7 @@ snapshots:
 
   '@expo/code-signing-certificates@0.0.6':
     dependencies:
-      node-forge: 1.4.0
+      node-forge: 1.3.2
 
   '@expo/config-plugins@55.0.10':
     dependencies:
@@ -11713,7 +11717,7 @@ snapshots:
     dependencies:
       whatwg-url: 5.0.0
 
-  node-forge@1.4.0: {}
+  node-forge@1.3.2: {}
 
   node-int64@0.4.0: {}
 
