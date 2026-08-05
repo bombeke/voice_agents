@@ -118,10 +118,10 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
           packager: pnpm
           patch-watchers: false
-          expo-version: latest
+          expo-version: 55
 
       - name: Install dependencies
-        run: pnpm install  --shamefully-hoist --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Install Skia binaries
         run: |
@@ -130,9 +130,9 @@ jobs:
           pnpm run skia:install || true
           
       - name: Clean & regenerate native project
+        working-directory: artifacts/mobile
         run: |
-          cd artifacts/mobile
-          npx expo prebuild --clean
+          pnpm exec expo prebuild --clean
 
       - name: Clean C++ build artifacts
         run: |
