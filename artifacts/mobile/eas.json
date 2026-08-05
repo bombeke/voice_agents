@@ -8,7 +8,7 @@
     "development": {
       "developmentClient": false,
       "distribution": "internal",
-      "pnpm": "9.15.4",
+      "pnpm": "11.9.0",
       "environment": "development",
       "android": {
         "buildType": "apk"
@@ -22,7 +22,7 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
-      "pnpm": "9.15.4",
+      "pnpm": "11.9.0",
       "env": {
         "APP_VARIANT": "preview"
       }
@@ -32,7 +32,7 @@
       "autoIncrement": true,
       "distribution": "store",
       "environment":"production",
-      "pnpm": "9.15.4",
+      "pnpm": "11.9.0",
       "env": {
         "APP_VARIANT": "production"
       }

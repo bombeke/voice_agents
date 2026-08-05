@@ -15,7 +15,7 @@
     "easbuild": "eas build --platform android --profile development --local"
   },
   "dependencies": {
-    "@config-plugins/react-native-webrtc": "^14.0.0",
+
     "@expo/vector-icons": "^15.0.3",
     "@legendapp/state": "3.0.0-beta.47",
     "@lodev09/react-native-exify": "^1.0.0",
@@ -84,9 +84,6 @@
     "react-native-vision-camera-location": "5.0.11",
     "react-native-vision-camera-resizer": "5.0.11",
     "react-native-vision-camera-skia": "5.0.11",
-    "react-native-web": "^0.21.0",
-    "react-native-webrtc": "124.0.7",
-    "react-native-webrtc-web-shim": "^1.0.7",
     "react-native-worklets": "0.8.1",
     "react-native-worklets-core": "1.6.3",
     "rxjs": "^7.8.0",

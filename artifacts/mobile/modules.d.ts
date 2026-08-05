@@ -1,1 +1,1 @@
-declare module 'react-native-webrtc-web-shim';
+//declare module 'react-native-webrtc-web-shim';

@@ -67,7 +67,6 @@
       ],
       "expo-router",
       "expo-asset",
-      "@config-plugins/react-native-webrtc",
       "expo-web-browser",
       "expo-font",
       "@maplibre/maplibre-react-native",
