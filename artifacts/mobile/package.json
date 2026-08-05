@@ -92,7 +92,8 @@
     "rxjs": "^7.8.0",
     "tailwindcss": "^4.1.17",
     "tamagui": "^1.137.1",
-    "uniwind": "^1.0.1"
+    "uniwind": "^1.0.1",
+    "uuid": "14.0.1"
   },
   "devDependencies": {
     "@expo/metro-runtime": "~55.0.11",
