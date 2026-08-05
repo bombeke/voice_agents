@@ -42,8 +42,11 @@ build/
 **/*.apk
 **/*.aab
 local.properties
-**/android/
-artifacts/mobile/ios/
+# Expo / React Native generated native projects
+artifacts/mobile/android/
+
+# Expo generated files
+artifacts/mobile/.expo/
 
 # iOS / Xcode
 **/DerivedData/
