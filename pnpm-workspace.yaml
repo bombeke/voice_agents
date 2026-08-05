@@ -1,4 +1,4 @@
-nodeLinker: hoisted
+#nodeLinker: hoisted
 #minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude:
@@ -114,6 +114,7 @@ overrides:
   "expo-sqlite": "55.0.16"  
   "@shopify/react-native-skia": "2.6.6"
   "unrs-resolver": "1.12.2"
+  "uuid": "14.0.1"
 
 allowBuilds:
   unrs-resolver: true
