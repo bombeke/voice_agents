@@ -42,6 +42,8 @@ build/
 **/*.apk
 **/*.aab
 local.properties
+artifacts/mobile/android/
+artifacts/mobile/ios/
 
 # iOS / Xcode
 **/DerivedData/
