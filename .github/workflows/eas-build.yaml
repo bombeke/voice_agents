@@ -9,7 +9,7 @@ on:
       - dev
 
 env:
-  PNPM_VERSION: 10.26.1
+  PNPM_VERSION: 11.9.0
   URL: ${{ secrets.URL }}
   API_URL: ${{ secrets.API_URL }}
   API_USERNAME: ${{ secrets.API_USERNAME }}
