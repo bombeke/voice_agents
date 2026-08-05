@@ -9,7 +9,7 @@ on:
       - dev
 
 env:
-  PNPM_VERSION: 11.9.0
+  PNPM_VERSION: 11.20.0
   URL: ${{ secrets.URL }}
   API_URL: ${{ secrets.API_URL }}
   API_USERNAME: ${{ secrets.API_USERNAME }}
@@ -114,7 +114,7 @@ jobs:
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v9
         with:
-          eas-version: latest
+          eas-version: 18.13.1
           token: ${{ secrets.EXPO_TOKEN }}
           packager: pnpm
           patch-watchers: false

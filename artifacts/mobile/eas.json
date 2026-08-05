@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 16.16.0",
+    "version": ">= 18.13.1",
     "appVersionSource": "remote"
   },
 
@@ -8,7 +8,7 @@
     "development": {
       "developmentClient": false,
       "distribution": "internal",
-      "pnpm": "11.9.0",
+      "pnpm": "11.20.0",
       "environment": "development",
       "android": {
         "buildType": "apk"
@@ -22,7 +22,7 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
-      "pnpm": "11.9.0",
+      "pnpm": "11.20.0",
       "env": {
         "APP_VARIANT": "preview"
       }
@@ -32,7 +32,7 @@
       "autoIncrement": true,
       "distribution": "store",
       "environment":"production",
-      "pnpm": "11.9.0",
+      "pnpm": "11.20.0",
       "env": {
         "APP_VARIANT": "production"
       }
