@@ -121,7 +121,7 @@ jobs:
           #expo-version: 55
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Install Skia binaries
         run: |
