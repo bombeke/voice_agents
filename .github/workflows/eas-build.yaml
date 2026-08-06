@@ -118,7 +118,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
           packager: pnpm
           patch-watchers: false
-          expo-version: 55
+          #expo-version: 55
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
