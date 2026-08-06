@@ -1,11 +1,6 @@
 {
   "name": "voice-agents-workspace",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "artifacts/*",
-    "packages/*"
-  ],
   "scripts": {
     "lint": "pnpm -r lint",
     "typecheck:all": "pnpm -r typecheck",

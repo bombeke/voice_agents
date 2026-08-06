@@ -12,6 +12,7 @@ packages:
 
 onlyBuiltDependencies:
   - unrs-resolver
+  - dtrace-provider
     
 peerDependencyRules: 
   ignoreMissing: 
@@ -32,3 +33,4 @@ overrides:
 
 allowBuilds:
   unrs-resolver: true
+  dtrace-provider: true
