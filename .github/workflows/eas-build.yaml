@@ -110,6 +110,7 @@ jobs:
       - name: Configure pnpm (IMPORTANT)
         run: |
           pnpm config set package-import-method=copy
+          pnpm config set ignore-scripts false
           
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v9
