@@ -124,11 +124,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Install Skia binaries
-        run: |
-          cd node_modules/@shopify/react-native-skia
-          pnpm install || true
-          pnpm run skia:install || true
+      #- name: Install Skia binaries
+      #  run: |
+      #    cd node_modules/@shopify/react-native-skia
+      #    pnpm install || true
+      #    pnpm run skia:install || true
           
       - name: Clean & regenerate native project
         working-directory: artifacts/mobile
