@@ -112,14 +112,14 @@ jobs:
           pnpm config set package-import-method=copy
           pnpm config set ignore-scripts false
           
-      - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v9
-        with:
-          eas-version: 18.13.1
-          token: ${{ secrets.EXPO_TOKEN }}
-          packager: pnpm
-          patch-watchers: false
-          #expo-version: 55
+      #- name: Setup Expo and EAS
+      #  uses: expo/expo-github-action@v9
+      #  with:
+      #    eas-version: 18.13.1
+      #    token: ${{ secrets.EXPO_TOKEN }}
+      #    packager: pnpm
+      #    patch-watchers: false
+      #    expo-version: "~55.0.26"
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
