@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Select, Sheet, Adapt, get=useAdapt } from 'tamagui';
+import { Select, Sheet, Adapt } from 'tamagui';
 import { Check, ChevronDown, ChevronUp } from '@tamagui/lucide-icons';
 
 const items = [
@@ -9,8 +9,6 @@ const items = [
 ];
 
 export function TagSelectInput() {
-  const { is=useAdapt } = get=useAdapt.state; // Use this hook if you want to manually check the adapt state
-
   return (
     <Select defaultValue="" disablePreventBodyScroll>
       <Select.Trigger width={220} iconAfter={<ChevronDown size="$1" />}>

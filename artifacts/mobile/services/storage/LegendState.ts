@@ -3,20 +3,20 @@ import { observable, syncState } from "@legendapp/state";
 import { configureSynced, syncObservable } from "@legendapp/state/sync";
 import { syncedQuery } from "@legendapp/state/sync-plugins/tanstack-query";
 import { Platform } from "react-native";
+import { AuthType, axiosClient, queryClient } from "../Api";
+import { Operation } from "../sync/Types";
+import { LocalEventRecord } from "./EventStore";
 
 const randomUUID = (): string => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === "x" ? r : (r & 0x3 | 0x8);
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 };
-import { AuthType, axiosClient, queryClient } from "../Api";
-import { Operation } from "../sync/Types";
-import { LocalEventRecord } from "./EventStore";
 
 export const STORAGE_OPS_KEY = "polevision_events_opqueue_v1";
 
@@ -59,8 +59,6 @@ export interface UtilityPole {
   vc: VectorClock;
 }
 
-
-
 export type SyncedPole = UtilityPole & SyncMeta;
 
 export interface AuditEvent {
@@ -75,7 +73,7 @@ export interface CRDTPole extends UtilityPole {
   deleted?: boolean;
 }
 
-export type SyncedUtilityPole = CRDTPole & SyncedPole & TrackedDetection
+export type SyncedUtilityPole = CRDTPole & SyncedPole & TrackedDetection;
 
 let configured = false;
 
@@ -102,13 +100,14 @@ if (!poleVisionDBDeviceId$.get()) {
 
 export function initPersistence() {
   if (configured) return;
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     configured = true;
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { ObservablePersistMMKV } = require("@legendapp/state/persist-plugins/mmkv");
+  const {
+    ObservablePersistMMKV,
+  } = require("@legendapp/state/persist-plugins/mmkv");
   const syncPlugin = configureSynced({
     persist: {
       plugin: ObservablePersistMMKV,
@@ -201,30 +200,24 @@ export const remotePoles$ = observable(
   }),
 );
 
-export const syncPoleToServer = async (pole: SyncedPole) => {
-  if (pole.deleted) {
-    console.log("DELETING POLE");
-    const deleteRes = await axiosClient.delete(`/alkuistore/${pole.pid}`);
-    if (deleteRes.status !== 200) {
-      console.log("Failed to sync pole");
-      return null;
-    }
-    return deleteRes.data;
-  } 
-  else {
-    const url = pole?.pid ? `/alkuistore/${pole?.pid}` : `/alkuistore`;
-    try {
-      const res = await axiosClient.put(url, pole);
-      if (res.status !== 200) {
-        console.log("Failed to sync pole");
-        return null;
-      }
-      return res.data;
-    } catch (e: any) {
-      console.log("Failed to save:", e);
-      return null;
-    }
+export const OBSERVATIONS_SYNC_URL = "/observations/v1/stream";
+
+export const syncPoleToServer = async (pole: Partial<SyncedUtilityPole>) => {
+  const formData = new FormData();
+  formData.append("metadata", JSON.stringify(pole));
+  if (pole.imageUri && !pole.deleted) {
+    formData.append("image", {
+      uri: pole.imageUri,
+      name: `capture-${pole.pid ?? Date.now()}.jpg`,
+      type: "image/jpeg",
+    } as any);
   }
+
+  const res = await axiosClient.post(OBSERVATIONS_SYNC_URL, formData);
+  if (res.status !== 200 && res.status !== 201) {
+    throw new Error("Failed to sync pole");
+  }
+  return res.data;
 };
 
 export const getPoleVision = () => {
@@ -235,9 +228,11 @@ export const getPoleVision = () => {
 
 //const remotePolesStatus$ = syncState(remotePoles$);
 
-export const setPoleVision = (data: SyncedUtilityPole |  SyncedUtilityPole[]) => {
+export const setPoleVision = (
+  data: SyncedUtilityPole | SyncedUtilityPole[],
+) => {
   const deviceId = poleVisionDBDeviceId$.get();
-  if(!Array.isArray(data)){
+  if (!Array.isArray(data)) {
     const synced: Partial<SyncedUtilityPole> = {
       ...data,
       updatedAt: new Date().toISOString(),
@@ -260,9 +255,8 @@ export const setPoleVision = (data: SyncedUtilityPole |  SyncedUtilityPole[]) =>
       { type: "POLE_UPSERT", payload: synced, ts: Date.now() },
     ]);
     console.log("POLE ADDED");
-  }
-  else{
-    data.forEach((d)=>{
+  } else {
+    data.forEach((d) => {
       const dsynced: Partial<SyncedUtilityPole> = {
         ...data,
         updatedAt: new Date().toISOString(),
@@ -285,8 +279,7 @@ export const setPoleVision = (data: SyncedUtilityPole |  SyncedUtilityPole[]) =>
         { type: "POLE_UPSERT", payload: dsynced, ts: Date.now() },
       ]);
       console.log("POLE ADDED");
-    })
-    
+    });
   }
 };
 
@@ -303,7 +296,7 @@ export const deletePoleVision = (id: string) => {
   poleVisionDB$.poles.set((prev) => prev.filter((p) => p.pid !== id));
 
   // Enqueue op for offline retry
-  enqueuePoleOp(deletedPole as SyncedUtilityPole );
+  enqueuePoleOp(deletedPole as SyncedUtilityPole);
 
   // Audit trail
   eventsStore$.set((e: any) => [
@@ -347,21 +340,23 @@ export const resolveConflict = (
 };
 
 export const enqueuePoleOp = (pole: Partial<SyncedUtilityPole>) => {
-  opQueue$.set((q: any) => [
-    ...q,
-    {
-      pid: randomUUID(),
-      type: "SYNC_POLE",
-      payload: pole,
-      retries: 0,
-      createdAt: Date.now(),
-    },
-  ]);
+  const deviceId = poleVisionDBDeviceId$.get();
+  const op: Operation = {
+    opId: randomUUID(),
+    kind: pole.deleted ? "delete" : "update",
+    recordLocalId: pole.pid ?? randomUUID(),
+    payload: pole,
+    actor: deviceId,
+    timestamp: new Date().toISOString(),
+    attempts: 0,
+    idempotencyKey: `op-${pole.pid}-${Date.now()}`,
+  };
+  opQueue$.set((q) => [...q, op]);
 };
 
-export const upsertPole = (pole: SyncedUtilityPole ) => {
+export const upsertPole = (pole: SyncedUtilityPole) => {
   const deviceId = poleVisionDBDeviceId$.get();
-  const synced: SyncedUtilityPole  = {
+  const synced: SyncedUtilityPole = {
     ...pole,
     updatedAt: new Date().toISOString(),
     deviceId: poleVisionDBDeviceId$.get(),
@@ -399,19 +394,18 @@ export const deletePole = (id: string) => {
 };
 
 export const replayOpQueue = async (status$: ReturnType<typeof syncState>) => {
-  const queue: any = opQueue$.get();
+  const queue = opQueue$.get();
 
   for (const op of queue) {
     try {
-      // poleVisionDB$.poles.set(prev => [...prev.filter(p => p.id !== op.payload.id), op.payload]);
-      await syncPoleToServer(op.payload);
+      await syncPoleToServer(op.payload as Partial<SyncedUtilityPole>);
+      opQueue$.set((q) => q.filter((o) => o.opId !== op.opId));
       await status$.sync();
-      opQueue$.set((q: any) => q.filter((o: any) => o?.pid !== op?.pid));
     } catch (err) {
       // Increment retry count
       opQueue$.set((q) =>
-        q.map((o: any) =>
-          o?.pid === op?.pid ? { ...o, retries: (o?.retries ?? 0) + 1 } : o,
+        q.map((o) =>
+          o.opId === op.opId ? { ...o, attempts: (o.attempts ?? 0) + 1 } : o,
         ),
       );
       break; // stop on first failure

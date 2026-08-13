@@ -8,10 +8,8 @@ import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import { requestSavePermission } from "./Helpers";
 import { ICameraOutputs, ITakePhotoProps } from "./Types";
-import { axiosClient } from "@/services/Api";
 
-
-export function useCameraController({ photoOutput }: ICameraOutputs ) {
+export function useCameraController({ photoOutput }: ICameraOutputs) {
   const { addPole } = useUtilityStorePoles();
   const router = useRouter();
   const [isInitialized, setIsInitialized] = useState(false);
@@ -28,8 +26,7 @@ export function useCameraController({ photoOutput }: ICameraOutputs ) {
         const locationResult = await getCurrentPositionAsync({
           accuracy: Accuracy.High,
         });
-        const photo = await photoOutput.capturePhoto(
-          { flashMode},{ });
+        const photo = await photoOutput.capturePhoto({ flashMode }, {});
         //const image = await photo.toImageAsync()
         const hasPermission = await requestSavePermission();
         if (!hasPermission) {
@@ -41,54 +38,34 @@ export function useCameraController({ photoOutput }: ICameraOutputs ) {
         }
         const path = await photo.saveToTemporaryFileAsync();
         await createAssetAsync(`file:///${path}`, "photo");
-        const encodedData = await photo.getFileDataAsync()
 
-        const tags = detections.map((d)=>({
-          ...d,
-          latitude: locationResult.coords.latitude,
-          longitude: locationResult.coords.longitude,
-          timestamp: Date.now(),
-          imageUri: path,
-          detectionConfidence: d.score,
-          pid: randomUUID(),
-          synced: false,
-        }) as SyncedUtilityPole );
+        const tags = detections.map(
+          (d) =>
+            ({
+              ...d,
+              latitude: locationResult.coords.latitude,
+              longitude: locationResult.coords.longitude,
+              timestamp: Date.now(),
+              imageUri: path,
+              detectionConfidence: d.score,
+              pid: randomUUID(),
+              synced: false,
+            }) as SyncedUtilityPole,
+        );
 
+        // addPole() persists the capture locally and enqueues it on the
+        // offline-safe op queue, which is replayed to OBSERVATIONS_SYNC_URL
+        // ("/observations/v1/stream") by OpQueueReplayObserver/replayOpQueue
+        // once connectivity is available — see services/storage/LegendState.ts.
         await addPole(tags);
-        // Upload to backend:
-        /*await fetch('https://my-backend.com/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'image/jpeg' },
-          body: Buffer.from(encodedData)
-        })*/
-       try {
-          const url = `/observations/v1/stream`;
-          const formData = new FormData();
-          formData.append("metadata",JSON.stringify(tags));
-          formData.append("image",{
-            uri: path,
-            name: `capture-${Date.now()}.jpg`,
-            type: "image/jpeg",
-          } as any);
-          const res = await axiosClient.post(url, formData);
-          if (res.status !== 200) {
-            console.log("Failed to sync pole");
-          }
-        } catch (e: any) {
-          console.log("Failed to save:", e);
-        }
         return router.navigate("/poles/maps");
-      } 
-      catch (e) {
+      } catch (e) {
         console.error("Photo capture failed:", e);
-      } 
-      finally {
+      } finally {
         setIsCapturing(false);
       }
     },
-    [addPole,photoOutput],
-
-
+    [addPole, photoOutput],
   );
 
   return {
