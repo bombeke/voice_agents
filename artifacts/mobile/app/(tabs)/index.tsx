@@ -1,6 +1,6 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import {
   Animated,
   Platform,
@@ -13,52 +13,11 @@ import {
 const NATIVE_DRIVER = Platform.OS !== "web";
 
 import { useAuth } from "@/providers/AuthProvider";
+import { MENU_CONFIG, MenuItem } from "@/services/auth/MenuConfig";
+import { filterMenu } from "@/services/auth/MenuFilter";
 
-type Module = {
-  icon: string;
-  title: string;
-  desc: string;
-  color: string;
-  bg: string;
-  route: string;
-};
 
-const MODULES: Module[] = [
-  {
-    icon: "camera",
-    title: "Pole Inspection",
-    desc: "AI-powered pole defect detection",
-    color: "#2563EB",
-    bg: "#EFF6FF",
-    route: "/poles",
-  },
-  {
-    icon: "recycle",
-    title: "Sanitation",
-    desc: "Monitor sanitation conditions",
-    color: "#059669",
-    bg: "#ECFDF5",
-    route: "/sanitation",
-  },
-  {
-    icon: "road",
-    title: "Roads & Traffic",
-    desc: "Road condition analytics",
-    color: "#D97706",
-    bg: "#FFFBEB",
-    route: "/roads",
-  },
-  {
-    icon: "user",
-    title: "AI Agents",
-    desc: "Deploy disease surveillance agents",
-    color: "#7C3AED",
-    bg: "#F5F3FF",
-    route: "/agents",
-  },
-];
-
-function ModuleCard({ item }: { item: Module }) {
+function ModuleCard({ item }: { item: MenuItem }) {
   const scale = useRef(new Animated.Value(1)).current;
   const router = useRouter();
 
@@ -130,8 +89,11 @@ function ModuleCard({ item }: { item: Module }) {
 }
 
 export default function HomeScreen() {
-  const { claims, isAdmin } = useAuth();
-
+const { isAdmin, claims, adminMode } = useAuth();
+const menu = useMemo(
+  () => filterMenu(MENU_CONFIG, { isAdmin, claims, adminMode }),
+  [isAdmin, claims, adminMode],
+);
   return (
     <ScrollView
       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
@@ -175,7 +137,7 @@ export default function HomeScreen() {
 
       {/* Module cards */}
       <View>
-        {MODULES.map((item) => (
+        {menu.map((item) => (
           <ModuleCard key={item.title} item={item} />
         ))}
       </View>

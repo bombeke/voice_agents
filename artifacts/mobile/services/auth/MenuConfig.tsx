@@ -11,6 +11,9 @@ export type MenuItem = {
   requireAdmin?: boolean;
   offlineVisible?: boolean;
   children?: MenuItem[];
+  desc?: string;
+  color?: string;
+  bg?: string;
 };
 
 export const MENU_CONFIG: MenuItem[] = [
@@ -27,6 +30,9 @@ export const MENU_CONFIG: MenuItem[] = [
     route: "/agents",
     icon: <FontAwesome name="user" size={18} />,
     permission: "agents:view",
+    desc: "Deploy disease surveillance agents",
+    color: "#7C3AED",
+    bg: "#F5F3FF",
   },
 
   {
@@ -34,6 +40,9 @@ export const MENU_CONFIG: MenuItem[] = [
     title: "Poles",
     route: "/poles",
     icon: <FontAwesome name="camera" size={18} />,
+    desc: "AI-powered pole defect detection",
+    color: "#2563EB",
+    bg: "#EFF6FF",
   },
 
   {
@@ -41,6 +50,9 @@ export const MENU_CONFIG: MenuItem[] = [
     title: "Sanitation",
     route: "/sanitation",
     icon: <FontAwesome name="recycle" size={18} />,
+    desc: "Monitor sanitation conditions",
+    color: "#059669",
+    bg: "#ECFDF5",
   },
 
   {
@@ -48,6 +60,9 @@ export const MENU_CONFIG: MenuItem[] = [
     title: "Roads",
     route: "/roads",
     icon: <FontAwesome name="road" size={18} />,
+    desc: "Road condition analytics",
+    color: "#D97706",
+    bg: "#FFFBEB",
   },
 
   {
