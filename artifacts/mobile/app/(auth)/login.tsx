@@ -95,7 +95,6 @@ function LoginScreen() {
           state: response?.params?.state,
         });
         const token = res.data?.token ?? res.data?.access_token;
-        console.log("Login response:", res.data);
         if (!token || !res.data.expires_in) {
           Alert.alert("Login failed", "Please try again");
           handledRef.current = null;

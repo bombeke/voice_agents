@@ -30,7 +30,7 @@ const MODULES: Module[] = [
     desc: "AI-powered pole defect detection",
     color: "#2563EB",
     bg: "#EFF6FF",
-    route: "/(tabs)/poles",
+    route: "/poles",
   },
   {
     icon: "recycle",
@@ -38,7 +38,7 @@ const MODULES: Module[] = [
     desc: "Monitor sanitation conditions",
     color: "#059669",
     bg: "#ECFDF5",
-    route: "/(tabs)/sanitation",
+    route: "/sanitation",
   },
   {
     icon: "road",
@@ -46,7 +46,7 @@ const MODULES: Module[] = [
     desc: "Road condition analytics",
     color: "#D97706",
     bg: "#FFFBEB",
-    route: "/(tabs)/roads",
+    route: "/roads",
   },
   {
     icon: "user",
@@ -54,7 +54,7 @@ const MODULES: Module[] = [
     desc: "Deploy disease surveillance agents",
     color: "#7C3AED",
     bg: "#F5F3FF",
-    route: "/(tabs)/agents",
+    route: "/agents",
   },
 ];
 
