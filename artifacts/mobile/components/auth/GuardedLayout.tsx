@@ -71,21 +71,29 @@ export function GuardedLayout({ children }: PropsWithChildren) {
   const { loading, isAuthenticated, claims } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (loading) return;
+  // Auth is still settling: we know neither where to send the user nor whether
+  // the guarded subtree is allowed to render.
+  const resolving = loading || (isAuthenticated && !claims);
+  const hasChildren = Boolean(children);
 
-    if (isAuthenticated && !claims) return;
+  useEffect(() => {
+    if (resolving) return;
 
     if (!isAuthenticated) {
       router.replace(Routes.LOGIN as any);
       return;
     }
 
-    router.replace(Routes.TABS as any);
+    // Used as a bare entry gate (no children): bounce into the app shell.
+    // When it wraps a subtree we must NOT redirect — doing so unconditionally
+    // sends every navigation inside that subtree straight back to the tabs
+    // root, which looks exactly like the tabs not responding to taps.
+    if (!hasChildren) {
+      router.replace(Routes.TABS as any);
+    }
+  }, [resolving, isAuthenticated, hasChildren, router]);
 
-  }, [loading, isAuthenticated, claims]);
-
-  if (loading || (isAuthenticated && !claims)) {
+  if (resolving) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <ActivityIndicator size="large" />
@@ -93,8 +101,11 @@ export function GuardedLayout({ children }: PropsWithChildren) {
     );
   }
 
-  return null;
+  if (!isAuthenticated) return null;
+
+  return <>{children}</>;
 }
+
 export function resolveRule(pathname: string | null) {
   if (!pathname) return null;
 

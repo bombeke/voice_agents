@@ -40,7 +40,7 @@ function ModuleCard({ item }: { item: MenuItem }) {
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
       <Pressable
-        onPress={() => router.push(item.route as any)}
+        onPress={() => router.push(item.href as any)}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         style={{
@@ -68,7 +68,7 @@ function ModuleCard({ item }: { item: MenuItem }) {
             justifyContent: "center",
           }}
         >
-          <FontAwesome name={item.icon as any} size={22} color={item.color} />
+          <FontAwesome name={item.icon} size={22} color={item.color} />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -137,9 +137,12 @@ const menu = useMemo(
 
       {/* Module cards */}
       <View>
-        {menu.map((item) => (
-          <ModuleCard key={item.title} item={item} />
-        ))}
+        {menu
+          // The Home entry is the screen we are already on - it is a tab, not a card.
+          .filter((item) => item.tab !== "index")
+          .map((item) => (
+            <ModuleCard key={item.key} item={item} />
+          ))}
       </View>
     </ScrollView>
   );

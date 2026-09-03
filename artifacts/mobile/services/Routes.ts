@@ -29,7 +29,7 @@ export const Routes = {
 
   // App tabs
   TABS: "/(tabs)" as const,
-  HOME: "/(tabs)/index" as const,
+  HOME: "/(tabs)" as const,
   AGENTS: "/(tabs)/agents" as const,
 
   // Admin

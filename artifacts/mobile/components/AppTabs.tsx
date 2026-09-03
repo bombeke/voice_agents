@@ -1,18 +1,39 @@
 import { useAuth } from "@/providers/AuthProvider";
-import { MENU_CONFIG } from "@/services/auth/MenuConfig";
+import { MENU_CONFIG, MenuItem } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
+import { FontAwesome } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { cloneElement, useMemo } from "react";
-import { Platform } from "react-native";
+import { useMemo } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HapticTab } from "./HapticTab";
+
+/**
+ * Every route that exists under `app/(tabs)`.
+ *
+ * Expo Router auto-appends any file-system route that is not declared here, so
+ * the list has to be complete: a route we leave out would still show up as a
+ * tab even when the menu filter decided to hide it. Hidden entries get
+ * `href: null`, which is how expo-router removes a tab from the bar.
+ */
+const TAB_ROUTES = [
+  "index",
+  "agents",
+  "poles",
+  "sanitation",
+  "roads",
+  "settings",
+] as const;
 
 export default function AppTabs() {
   const { isAdmin, claims, adminMode } = useAuth();
+  const insets = useSafeAreaInsets();
 
-  const menu = useMemo(
-    () => filterMenu(MENU_CONFIG, { isAdmin, claims, adminMode }),
-    [isAdmin, claims, adminMode],
-  );
+  const visible = useMemo(() => {
+    const menu = filterMenu(MENU_CONFIG, { isAdmin, claims, adminMode });
+    return new Map<string, MenuItem>(
+      menu.filter((item) => item.tab).map((item) => [item.tab!, item]),
+    );
+  }, [isAdmin, claims, adminMode]);
 
   return (
     <Tabs
@@ -29,8 +50,11 @@ export default function AppTabs() {
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.06,
           shadowRadius: 12,
-          height: Platform.OS === "ios" ? 80 : 64,
-          paddingBottom: Platform.OS === "ios" ? 24 : 8,
+          // Android is edge-to-edge from SDK 54 on, so the bar is drawn behind
+          // the system navigation bar. Without the inset the buttons sit under
+          // it and taps never reach the app.
+          height: 56 + insets.bottom,
+          paddingBottom: insets.bottom + 8,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
@@ -40,17 +64,26 @@ export default function AppTabs() {
         },
       }}
     >
-      {menu.map((item: any) => (
-        <Tabs.Screen
-          key={item.key}
-          name={item.route.replace(/^\//, "")}
-          options={{
-            title: item.title,
-            tabBarIcon: ({ color }: { color: string }) =>
-              cloneElement(item.icon as React.ReactElement<any>, { color }),
-          }}
-        />
-      ))}
+      {TAB_ROUTES.map((name) => {
+        const item = visible.get(name);
+
+        return (
+          <Tabs.Screen
+            key={name}
+            name={name}
+            options={
+              item
+                ? {
+                    title: item.title,
+                    tabBarIcon: ({ color }: { color: string }) => (
+                      <FontAwesome name={item.icon} size={18} color={color} />
+                    ),
+                  }
+                : { href: null }
+            }
+          />
+        );
+      })}
     </Tabs>
   );
 }

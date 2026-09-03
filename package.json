@@ -6,6 +6,7 @@
     "typecheck:all": "pnpm -r typecheck",
     "build:all": "pnpm -r build",
     "android": "pnpm --filter mobile android",
+    "android:build": "pnpm --filter mobile android:build",
     "web": "pnpm --filter mobile web",
     "dev": "pnpm --filter mobile dev",
     "ios": "pnpm --filter mobile ios",

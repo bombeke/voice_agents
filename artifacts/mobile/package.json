@@ -9,6 +9,7 @@
     "serve": "node server/serve.js",
     "dev:build": "node scripts/dev.js",
     "android": "expo run:android",
+    "android:build": "expo run:android --no-launch",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
