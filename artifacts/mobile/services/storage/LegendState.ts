@@ -180,6 +180,8 @@ export function initPersistence() {
   configured = true;
 }
 
+export const OBSERVATIONS_SYNC_URL = "/observations/v1/stream";
+
 /** observable for network state */
 export const isOnline$ = observable(true);
 export const remotePoles$ = observable(
@@ -187,20 +189,20 @@ export const remotePoles$ = observable(
     queryClient,
 
     query: {
-      queryKey: ["alkuistore"],
+      queryKey: [OBSERVATIONS_SYNC_URL],
       queryFn: async () => {
-        const res = await axiosClient.post("/alkuistore", {});
+        const res = await axiosClient.get(OBSERVATIONS_SYNC_URL, {});
         if (res.status !== 200) {
           console.log("Failed to fetch poles");
           return [];
         }
-        return res.data?.data;
+        return res.data?.items;
       },
     },
   }),
 );
 
-export const OBSERVATIONS_SYNC_URL = "/observations/v1/stream";
+
 
 export const syncPoleToServer = async (pole: Partial<SyncedUtilityPole>) => {
   const formData = new FormData();
