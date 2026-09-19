@@ -1,59 +1,50 @@
 import { useObserve } from "@legendapp/state/react";
 import NetInfo from "@react-native-community/netinfo";
+import { focusManager, onlineManager } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { queryClient } from "../Api";
+import { AppState } from "react-native";
 import {
   authStore$,
-  CRDTPole,
   isOnline$,
-  poleVisionDB$,
+  mergeRemotePoles,
+  refreshRemotePoles,
   remotePoles$,
-  resolveCRDTPole,
-  OBSERVATIONS_SYNC_URL
 } from "./LegendState";
 
-
+/**
+ * Owns the pull side of sync: connectivity, refetching, and merging the
+ * server's poles into the local (persisted) store the dashboard reads from.
+ */
 export function BackendSyncObserver() {
   /** 🔹 React to auth changes */
   useObserve(() => {
     if (!authStore$.get()) return;
-    queryClient.invalidateQueries({ queryKey: [OBSERVATIONS_SYNC_URL] });
+    refreshRemotePoles();
   });
 
-  /** 🔹 Track network state (non-observable → observable bridge) */
+  /** 🔹 Track network state and app focus, and feed them to TanStack Query so it
+   *  pauses fetches while offline and refetches on reconnect / foreground. */
   useEffect(() => {
-    const unsub = NetInfo.addEventListener((state) => {
-      isOnline$.set(!!state.isConnected);
+    const unsubNet = NetInfo.addEventListener((state) => {
+      // isConnected is null while unknown; only treat an explicit false as offline.
+      const online = state.isConnected !== false;
+      isOnline$.set(online);
+      onlineManager.setOnline(online);
+    });
+    const appState = AppState.addEventListener("change", (status) => {
+      focusManager.setFocused(status === "active");
     });
     return () => {
-      if (typeof unsub === 'function') unsub();
-      else (unsub as any)?.remove?.();
+      if (typeof unsubNet === "function") unsubNet();
+      else (unsubNet as any)?.remove?.();
+      appState.remove();
     };
   }, []);
 
-  /** 🔹 React to remote poles + connectivity */
+  /** 🔹 Merge every fresh server snapshot into local storage */
   useObserve(() => {
-    if (!isOnline$.get()) return;
-
     const remote = remotePoles$.get();
-    if (!remote) return;
-
-    poleVisionDB$.poles.set((local) => {
-      const map = new Map(local.map((p) => [p.pid, p as CRDTPole]));
-
-      for (const rp of remote) {
-        const lp = map.get(rp.pid);
-        const merged = resolveCRDTPole(lp, rp);
-
-        if (merged?.deleted) {
-          map.delete(rp.pid);
-        } else if (merged) {
-          map.set(rp.pid, merged);
-        }
-      }
-
-      return Array.from(map.values());
-    });
+    if (Array.isArray(remote)) mergeRemotePoles(remote);
   });
 
   return null;

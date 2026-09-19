@@ -57,4 +57,6 @@ export type Operation<T = BaseEvent> = {
   timestamp: string;     // ISO
   attempts?: number;
   idempotencyKey?: string;
+  lastAttemptAt?: string;
+  lastError?: string;
 };

@@ -22,20 +22,19 @@ export const [UtilityStoreProvider, useUtilityStorePoles] = createContextHook(
      * Add pole
      */
     const addPoleMutation = useMutation({
+      // Saving is local-only (the op queue uploads later), so it must not be
+      // paused by TanStack's onlineManager while the device is offline.
+      networkMode: "always",
       mutationFn: async (pole: SyncedUtilityPole | SyncedUtilityPole[]) => {
         if(Array.isArray(pole)){
-          setPoleVision(pole)
-          return pole;
+          return setPoleVision(pole);
         }
         else{
-          const newPole:  SyncedUtilityPole = {
+          const [newPole] = setPoleVision({
             ...pole,
-            pid: randomUUID(),
-            synced: false,
-          };
-
-          setPoleVision(newPole);
-          console.log(`Added new pole: ${newPole.pid}`);
+            pid: pole.pid ?? randomUUID(),
+          });
+          console.log(`Added new pole: ${newPole?.pid}`);
           return newPole;
         }
       },
