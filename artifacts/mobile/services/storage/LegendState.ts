@@ -243,6 +243,7 @@ export function initPersistence() {
 
 const fetchRemotePoles = async (): Promise<LocalPole[]> => {
   const res = await axiosClient.get(OBSERVATIONS_SYNC_URL);
+  console.log("GET DATA:",res)
   const data = res.data;
   const items = Array.isArray(data)
     ? data
@@ -300,6 +301,7 @@ export const syncPoleToServer = async (
     },
     timeout: UPLOAD_TIMEOUT_MS,
   });
+  console.log("ADDED:",res)
 
   if (res.status < 200 || res.status >= 300) {
     throw new Error(`Failed to sync pole (${res.status})`);
