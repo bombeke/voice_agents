@@ -9,13 +9,15 @@ import {
   poleVisionDB$,
   remotePoles$,
   resolveCRDTPole,
+  OBSERVATIONS_SYNC_URL
 } from "./LegendState";
+
 
 export function BackendSyncObserver() {
   /** 🔹 React to auth changes */
   useObserve(() => {
     if (!authStore$.get()) return;
-    queryClient.invalidateQueries({ queryKey: ["alkuistore"] });
+    queryClient.invalidateQueries({ queryKey: [OBSERVATIONS_SYNC_URL] });
   });
 
   /** 🔹 Track network state (non-observable → observable bridge) */

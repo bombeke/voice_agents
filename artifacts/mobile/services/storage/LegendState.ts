@@ -214,11 +214,13 @@ export const syncPoleToServer = async (pole: Partial<SyncedUtilityPole>) => {
       type: "image/jpeg",
     } as any);
   }
-
+  console.log("Syncing0::::")
   const res = await axiosClient.post(OBSERVATIONS_SYNC_URL, formData);
+  console.log("Syncing::::",res)
   if (res.status !== 200 && res.status !== 201) {
     throw new Error("Failed to sync pole");
   }
+
   return res.data;
 };
 
@@ -280,7 +282,7 @@ export const setPoleVision = (
         ...e,
         { type: "POLE_UPSERT", payload: dsynced, ts: Date.now() },
       ]);
-      console.log("POLE ADDED");
+      console.log("POLE ADDED", dsynced);
     });
   }
 };
