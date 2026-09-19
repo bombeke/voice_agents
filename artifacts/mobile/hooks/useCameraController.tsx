@@ -1,7 +1,7 @@
 import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
 import { SyncedUtilityPole } from "@/services/storage/LegendState";
 import { randomUUID } from "expo-crypto";
-import { Accuracy, getCurrentPositionAsync } from "expo-location";
+import { Accuracy, getCurrentPositionAsync, watchPositionAsync } from "expo-location";
 import { createAssetAsync } from "expo-media-library";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -23,8 +23,12 @@ export function useCameraController({ photoOutput }: ICameraOutputs) {
     async ({ detections, flashMode = "off" }: ITakePhotoProps) => {
       try {
         setIsCapturing(true);
+        /*await watchPositionAsync({ 
+          accuracy: Accuracy.Highest,
+          distanceInterval: 2
+        })*/
         const locationResult = await getCurrentPositionAsync({
-          accuracy: Accuracy.High,
+          accuracy: Accuracy.Highest,
         });
         const photo = await photoOutput.capturePhoto({ flashMode }, {});
         //const image = await photo.toImageAsync()

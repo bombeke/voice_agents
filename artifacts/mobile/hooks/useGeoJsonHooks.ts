@@ -14,7 +14,7 @@ export function usePhotoGeoJSON() {
     setPhotos((prev) => {
       const same =
         prev.length === poles.length &&
-        prev.every((p, i) => p.pid === poles[i].pid);
+        prev.every((p, i) => (p.pid === poles[i].pid || p.id === poles[i].id));
 
       return same ? prev : poles;
     });
@@ -32,12 +32,12 @@ export function toGeoJSON(docs: any[]) {
     features: docs?.map((doc: any) => ({
       type: "Feature",
       properties: {
-        id: doc.pid,
+        id: doc.pid || doc.id,
         uri: doc.uri,
       },
       geometry: {
         type: "Point",
-        coordinates: [doc.longitude, doc.latitude],
+        coordinates: [doc.longitude??doc.lon, doc.latitude??doc.lat],
       },
     })),
   };

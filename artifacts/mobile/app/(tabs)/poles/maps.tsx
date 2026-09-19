@@ -32,7 +32,7 @@ export default function DashboardMaps() {
       const { status } = await requestForegroundPermissionsAsync();
       if (cancelled || status !== "granted") return;
 
-      const loc = await getCurrentPositionAsync({ accuracy: Accuracy.Balanced });
+      const loc = await getCurrentPositionAsync({ accuracy: Accuracy.Highest });
       if (cancelled) return;
 
       const coords: [number, number] = [
