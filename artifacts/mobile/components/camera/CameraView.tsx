@@ -28,10 +28,12 @@ import {
 import { MODEL_DETECTION_CONFIG, YOLO26N } from "@/constants/Config";
 import { CocoLabelYolo } from "@/constants/Enum";
 import { Track, TrackedDetection } from "@/hooks/Types";
+import { useCaptureAccuracyGate } from "@/hooks/useCaptureAccuracyGate";
 import { useModuleFactory } from "@/hooks/useModuleFactory";
 import { useLocation } from "react-native-vision-camera-location";
 import { useAppReady } from "../AppReadyContext";
 import { CameraControls } from "./CameraControl";
+import { CaptureGateBanner } from "./CaptureGateBanner";
 import { NoCameraDevice } from "./NoCameraDevice";
 import { PermissionsPage } from "./PermissionsPage";
 
@@ -218,7 +220,11 @@ export const CameraView = memo(({ form, onChange }: Props) => {
   const [modelPath, setModelPath] = useState<string | null>(null);
 
   const photoOutput = usePhotoOutput({});
-  const { takePhoto } = useCameraController({ photoOutput });
+  const { takePhoto, isCapturing } = useCameraController({ photoOutput });
+
+  // Capture is locked until the GPS fix is good to within MAX_CAPTURE_ACCURACY_M,
+  // so a pole is never tagged with a coordinate worse than the survey tolerance.
+  const gate = useCaptureAccuracyGate(Boolean(ready));
   const model = useTagObjectDetection({ model: YOLO26N });
   const [detections, setDetections] = useState<TrackedDetection[]>([]);
   const [frameSize, setFrameSize] = useState({ width: 1, height: 1 });
@@ -265,9 +271,15 @@ export const CameraView = memo(({ form, onChange }: Props) => {
     ),
   });
 
-  const handleCapture = async () => {
-    await takePhoto({ flashMode: flash, detections });
-  };
+  const handleCapture = useCallback(async () => {
+    if (!gate.isReady || isCapturing) return;
+
+    await takePhoto({
+      flashMode: flash,
+      detections,
+      position: gate.position,
+    });
+  }, [gate.isReady, gate.position, isCapturing, takePhoto, flash, detections]);
 
   useEffect(() => {
     (async () => {
@@ -345,7 +357,16 @@ export const CameraView = memo(({ form, onChange }: Props) => {
         })}
       </View>
 
-      <CameraControls onCapture={handleCapture} disabled={false} />
+      <CaptureGateBanner
+        status={gate.status}
+        accuracy={gate.accuracy}
+        error={gate.error}
+      />
+
+      <CameraControls
+        onCapture={handleCapture}
+        disabled={!gate.isReady || isCapturing}
+      />
     </View>
   );
 });

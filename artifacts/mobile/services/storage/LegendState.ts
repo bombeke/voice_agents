@@ -243,7 +243,6 @@ export function initPersistence() {
 
 const fetchRemotePoles = async (): Promise<LocalPole[]> => {
   const res = await axiosClient.get(OBSERVATIONS_SYNC_URL);
-  console.log("GET DATA:",res)
   const data = res.data;
   const items = Array.isArray(data)
     ? data
@@ -541,6 +540,7 @@ const onOpFailed = (op: Operation, err: any, outcome: SyncErrorOutcome) => {
         },
       ]);
     });
+    console.log("Error:",err)
     console.warn(`[sync] server rejected op ${op.opId} for pole ${op.recordLocalId}`, errorMessage(err));
     return;
   }
@@ -573,11 +573,13 @@ const drainOpQueue = async (): Promise<ReplayResult> => {
       if (!op) break;
 
       inFlightOpId = op.opId;
+      console.log("Operation:",op)
       try {
         await syncPoleToServer(op.payload as LocalPole, op.idempotencyKey);
         onOpSucceeded(op);
         pushed++;
-      } catch (err) {
+      } 
+      catch (err) {
         const outcome = classifySyncError(err, op);
         if (outcome === "done") {
           onOpSucceeded(op);

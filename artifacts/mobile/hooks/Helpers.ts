@@ -59,3 +59,4 @@ export function base64ToTensor(base64: any) {
 
   return { tensor: out, width, height };
 }
+

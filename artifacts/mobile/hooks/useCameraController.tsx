@@ -1,7 +1,7 @@
 import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
 import { SyncedUtilityPole } from "@/services/storage/LegendState";
 import { randomUUID } from "expo-crypto";
-import { Accuracy, getCurrentPositionAsync, watchPositionAsync } from "expo-location";
+import { Accuracy, getCurrentPositionAsync } from "expo-location";
 import { createAssetAsync } from "expo-media-library";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -20,16 +20,26 @@ export function useCameraController({ photoOutput }: ICameraOutputs) {
   }, []);
 
   const takePhoto = useCallback(
-    async ({ detections, flashMode = "off" }: ITakePhotoProps) => {
+    async ({
+      detections,
+      flashMode = "off",
+      position,
+    }: ITakePhotoProps): Promise<boolean> => {
       try {
         setIsCapturing(true);
-        /*await watchPositionAsync({ 
-          accuracy: Accuracy.Highest,
-          distanceInterval: 2
-        })*/
-        const locationResult = await getCurrentPositionAsync({
-          accuracy: Accuracy.Highest,
-        });
+
+        // `position` is the latest fix from useCaptureAccuracyGate's
+        // watchPositionAsync subscription — the same fix whose accuracy radius
+        // unlocked the button. Only fall back to a fresh read if the watcher has
+        // not produced one yet.
+        const coords =
+          position?.coords ??
+          (
+            await getCurrentPositionAsync({
+              accuracy: Accuracy.Highest,
+            })
+          ).coords;
+
         const photo = await photoOutput.capturePhoto({ flashMode }, {});
         //const image = await photo.toImageAsync()
         const hasPermission = await requestSavePermission();
@@ -38,7 +48,7 @@ export function useCameraController({ photoOutput }: ICameraOutputs) {
             "Permission denied!",
             "Camera does not have permission to save the media.",
           );
-          return;
+          return false;
         }
         const path = await photo.saveToTemporaryFileAsync();
         await createAssetAsync(`file:///${path}`, "photo");
@@ -47,8 +57,8 @@ export function useCameraController({ photoOutput }: ICameraOutputs) {
           (d) =>
             ({
               ...d,
-              latitude: locationResult.coords.latitude,
-              longitude: locationResult.coords.longitude,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
               timestamp: Date.now(),
               imageUri: path,
               detectionConfidence: d.score,
@@ -62,14 +72,16 @@ export function useCameraController({ photoOutput }: ICameraOutputs) {
         // ("/observations/v1/stream") by OpQueueReplayObserver/replayOpQueue
         // once connectivity is available — see services/storage/LegendState.ts.
         await addPole(tags);
-        return router.navigate("/poles/maps");
+        router.navigate("/poles/maps");
+        return true;
       } catch (e) {
         console.error("Photo capture failed:", e);
+        return false;
       } finally {
         setIsCapturing(false);
       }
     },
-    [addPole, photoOutput],
+    [addPole, photoOutput, router],
   );
 
   return {
