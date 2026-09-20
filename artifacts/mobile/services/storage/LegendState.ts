@@ -67,6 +67,10 @@ export interface UtilityPole {
   timestamp: number;
   imageUri?: string;
   detectionConfidence?: number;
+  /** Fault category chosen by the surveyor after the shot, e.g. "leaning". */
+  tag?: string;
+  /** Free-text note the surveyor added alongside the tag. */
+  comment?: string;
   synced: boolean;
   dhis2Id?: string;
   vc: VectorClock;

@@ -27,13 +27,14 @@ import {
 
 import { MODEL_DETECTION_CONFIG, YOLO26N } from "@/constants/Config";
 import { CocoLabelYolo } from "@/constants/Enum";
-import { Track, TrackedDetection } from "@/hooks/Types";
+import { PendingCapture, Track, TrackedDetection } from "@/hooks/Types";
 import { useCaptureAccuracyGate } from "@/hooks/useCaptureAccuracyGate";
 import { useModuleFactory } from "@/hooks/useModuleFactory";
 import { useLocation } from "react-native-vision-camera-location";
 import { useAppReady } from "../AppReadyContext";
 import { CameraControls } from "./CameraControl";
 import { CaptureGateBanner } from "./CaptureGateBanner";
+import { CaptureTagForm } from "./CaptureTagForm";
 import { NoCameraDevice } from "./NoCameraDevice";
 import { PermissionsPage } from "./PermissionsPage";
 
@@ -42,11 +43,6 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 export interface Props {
   device?: any;
   isActive?: boolean;
-  form?: {
-    selectedTag?: string;
-    comment?: string;
-  };
-  onChange?: (values: { selectedTag: string | ""; comment: string | "" }) => void;
   detections?: any;
   error?: string;
 }
@@ -207,7 +203,7 @@ export const useTagObjectDetection = <C extends ObjectDetectionModelSources>({
   };
 };
 
-export const CameraView = memo(({ form, onChange }: Props) => {
+export const CameraView = memo(() => {
   const ready = useAppReady();
   const { hasPermission, requestPermission } = useCameraPermission();
   const location = useLocation();
@@ -220,7 +216,13 @@ export const CameraView = memo(({ form, onChange }: Props) => {
   const [modelPath, setModelPath] = useState<string | null>(null);
 
   const photoOutput = usePhotoOutput({});
-  const { takePhoto, isCapturing } = useCameraController({ photoOutput });
+  const { takePhoto, savePole, isCapturing, isSaving } = useCameraController({
+    photoOutput,
+  });
+
+  // A taken-but-uncommitted shot. While this is set the tag form is open over the
+  // preview; nothing reaches the store until that form is submitted.
+  const [pending, setPending] = useState<PendingCapture | null>(null);
 
   // Capture is locked until the GPS fix is good to within MAX_CAPTURE_ACCURACY_M,
   // so a pole is never tagged with a coordinate worse than the survey tolerance.
@@ -272,14 +274,38 @@ export const CameraView = memo(({ form, onChange }: Props) => {
   });
 
   const handleCapture = useCallback(async () => {
-    if (!gate.isReady || isCapturing) return;
+    if (!gate.isReady || isCapturing || pending) return;
 
-    await takePhoto({
+    const capture = await takePhoto({
       flashMode: flash,
       detections,
       position: gate.position,
     });
-  }, [gate.isReady, gate.position, isCapturing, takePhoto, flash, detections]);
+
+    // Opens the tag form; a null capture means it already alerted the user.
+    if (capture) setPending(capture);
+  }, [
+    gate.isReady,
+    gate.position,
+    isCapturing,
+    pending,
+    takePhoto,
+    flash,
+    detections,
+  ]);
+
+  const handleSubmitTags = useCallback(
+    async ({ tag, comment }: { tag: string; comment: string }) => {
+      if (!pending) return;
+      const saved = await savePole({ capture: pending, tag, comment });
+      // On failure the form stays open over the preview so the surveyor can
+      // retry without losing the shot.
+      if (saved) setPending(null);
+    },
+    [pending, savePole],
+  );
+
+  const handleRetake = useCallback(() => setPending(null), []);
 
   useEffect(() => {
     (async () => {
@@ -365,7 +391,14 @@ export const CameraView = memo(({ form, onChange }: Props) => {
 
       <CameraControls
         onCapture={handleCapture}
-        disabled={!gate.isReady || isCapturing}
+        disabled={!gate.isReady || isCapturing || !!pending}
+      />
+
+      <CaptureTagForm
+        capture={pending}
+        isSaving={isSaving}
+        onSubmit={handleSubmitTags}
+        onRetake={handleRetake}
       />
     </View>
   );
