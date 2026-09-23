@@ -27,7 +27,7 @@ export function HomeView() {
       params: { filter: "pending" },
     });
   const openRecord = ({ id }: CaptureSummary) =>
-    router.navigate({ pathname: Routes.RECORDS, params: { id } });
+    router.push({ pathname: Routes.RECORD_DETAIL, params: { id } });
 
   return (
     <ScrollView

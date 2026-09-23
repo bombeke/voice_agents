@@ -8,6 +8,7 @@ import {
   beginReview,
   beginTagging,
   captureSession$,
+  editRecord,
   rejectDetection,
   removePhoto,
   resetSession,
@@ -294,5 +295,39 @@ describe("CaptureSessionStore tagging", () => {
     setDuplicateChoice("new");
     beginTagging([{ ...POLE_NEARBY, id: "EP-9" }]);
     expect(captureSession$.tagging.peek()?.duplicateChoice).toBeNull();
+  });
+
+  it("opens a saved record in the tagging form, and a new session drops it", () => {
+    editRecord({
+      id: "r1",
+      category: "water",
+      title: "Borehole",
+      capturedAt: "2026-09-22T10:14:00.000Z",
+      photos: [],
+      location: LOCATION,
+      attributes: [],
+      statuses: ["leaking"],
+      suggestedStatuses: [],
+      functional: "no",
+      comment: "Drips",
+      poleIds: [],
+    });
+    expect(captureSession$.peek()).toMatchObject({
+      category: "water",
+      location: LOCATION,
+      photos: [],
+      detections: [],
+      editingId: "r1",
+      tagging: {
+        category: "water",
+        statuses: ["leaking"],
+        suggested: [],
+        functional: "no",
+        comment: "Drips",
+        duplicate: null,
+      },
+    });
+    startSession("energy");
+    expect(captureSession$.editingId.peek()).toBeNull();
   });
 });

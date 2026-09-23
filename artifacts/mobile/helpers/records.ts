@@ -13,6 +13,9 @@ export const RECORD_FILTERS: readonly RecordFilter[] = [
   "flagged",
 ];
 
+export const isRecordFilter = (value: unknown): value is RecordFilter =>
+  RECORD_FILTERS.includes(value as RecordFilter);
+
 export interface RecordCounts extends Record<RecordFilter, number> {
   /** Of the pending ones: the upload that is running, and those that failed. */
   uploading: number;
@@ -128,7 +131,7 @@ export function formatRecordMeta(capture: CaptureSummary): string {
   return parts.join(" · ");
 }
 
-/** The newest record of an asset code or capture id, e.g. from the Map's "View record". */
+/** The record with this capture id, else the newest capture of this asset code. */
 export function findRecord(
   captures: readonly CaptureSummary[],
   id: string,

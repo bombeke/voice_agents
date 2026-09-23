@@ -5,6 +5,7 @@ import {
   findRecord,
   formatRecordMeta,
   groupByDay,
+  isRecordFilter,
   recordBadge,
 } from "../records";
 
@@ -140,5 +141,13 @@ describe("findRecord", () => {
     expect(findRecord(list, "a")?.id).toBe("a");
     expect(findRecord(list, "EP-1")?.id).toBe("b");
     expect(findRecord(list, "EP-2")).toBeUndefined();
+  });
+});
+
+describe("isRecordFilter", () => {
+  it("accepts only the tab names", () => {
+    expect(isRecordFilter("pending")).toBe(true);
+    expect(isRecordFilter("synced")).toBe(false);
+    expect(isRecordFilter(undefined)).toBe(false);
   });
 });

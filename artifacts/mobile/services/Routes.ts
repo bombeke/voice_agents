@@ -31,8 +31,11 @@ export const Routes = {
   // App tabs
   TABS: "/(tabs)" as const,
   HOME: "/(tabs)" as const,
+  /** Takes `?id=` (asset code) to select and centre that pin. */
   MAP: "/(tabs)/map" as const,
   RECORDS: "/(tabs)/records" as const,
+  /** One record; `id` is a capture id or an asset code (newest capture). */
+  RECORD_DETAIL: "/(tabs)/records/[id]" as const,
   REVIEW: "/(tabs)/review" as const,
   /** The Profile tab is the settings screen. */
   PROFILE: "/(tabs)/settings" as const,
@@ -42,7 +45,10 @@ export const Routes = {
   CAPTURE: "/capture" as const,
   /** Capture step 2 of 3: review the AI detections before tagging. */
   CAPTURE_REVIEW: "/capture/review" as const,
-  /** Capture step 3 of 3: tag the asset and save the record. */
+  /**
+   * Capture step 3 of 3: tag the asset and save the record. With
+   * `?recordId=` it edits that saved record instead.
+   */
   CAPTURE_TAG: "/capture/tag" as const,
 
   // Admin

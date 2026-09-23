@@ -4,6 +4,10 @@ import { useCaptureSummary } from "@/hooks/useCaptureSummary";
 import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG, MenuItem } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
+import {
+  getFocusedRouteNameFromRoute,
+  type RouteProp,
+} from "@react-navigation/native";
 import { Tabs } from "expo-router";
 import { useMemo } from "react";
 
@@ -27,6 +31,17 @@ const TAB_ROUTES = [
   "sanitation",
   "roads",
 ] as const;
+
+/**
+ * Full-screen routes inside a tab's stack: the tab bar hides there, as the
+ * record detail has its own bottom actions.
+ */
+const FULL_SCREEN_ROUTES = new Set(["[id]"]);
+
+const tabBarStyle = (route: RouteProp<Record<string, object | undefined>>) =>
+  FULL_SCREEN_ROUTES.has(getFocusedRouteNameFromRoute(route) ?? "")
+    ? ({ display: "none" } as const)
+    : undefined;
 
 const renderTabBar = (props: Parameters<typeof TabBar>[0]) => (
   <TabBar {...props} />
@@ -52,10 +67,11 @@ export default function AppTabs() {
           <Tabs.Screen
             key={name}
             name={name}
-            options={
+            options={({ route }) =>
               item
                 ? {
                     title: item.title,
+                    tabBarStyle: tabBarStyle(route),
                     tabBarIcon: ({ color, size }) => (
                       <Icon name={item.icon} color={color} size={size} />
                     ),

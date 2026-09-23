@@ -10,11 +10,13 @@ import { setSpeechToText } from "@/services/capture/SpeechToText";
 import { setGnssSource } from "@/services/location/GnssSource";
 import { mapAssets$ } from "@/services/storage/AssetStore";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
+import { records$, replaceRecords } from "@/services/storage/RecordStore";
 import { setCaptureUploader } from "@/services/sync/CaptureSync";
 import { accountStore } from "./AccountStore";
 import { fakeMapAssets } from "./assets";
 import { FAKE_GNSS, fakeCaptureUploader, fakeCaptures } from "./captures";
 import { fakeDetectionEstimator } from "./detections";
+import { fakeRecords } from "./records";
 import { fakeGnssSource, fakePhotoQuality } from "./gnss";
 import { fakeNearbyAssetSource, fakeSpeechToText } from "./tagging";
 import { FAKE_SSO_USER, type FakeUser, REJECTED_PASSWORD } from "./fixtures";
@@ -23,7 +25,8 @@ import type { DevMocks } from "./types";
 
 /**
  * Dev-only fake backend for the auth endpoints, seed captures for Home and
- * Records with a fake uploader behind "Sync now", assets for the Map tab, a simulated GNSS receiver and photo-quality check
+ * Records (with their full records for the detail screen) and a fake
+ * uploader behind "Sync now", assets for the Map tab, a simulated GNSS receiver and photo-quality check
  * for the capture screen,
  * fake attribute estimates for the detection review, and a nearby duplicate
  * and voice input for the tagging form. The app's real code runs
@@ -59,6 +62,15 @@ export const devMocks: DevMocks = {
     if (!gnssStatus$.get()) gnssStatus$.set(FAKE_GNSS);
     // Map tab pins and asset profiles, likewise only into an empty store.
     if (mapAssets$.get().length === 0) mapAssets$.set(fakeMapAssets());
+    // Record detail screens for the fake captures, never for real ones.
+    if (Object.keys(records$.get()).length === 0) {
+      replaceRecords(
+        fakeRecords(
+          captures$.get().filter((c) => c.id.startsWith("fake-capture-")),
+          mapAssets$.get(),
+        ),
+      );
+    }
     // Records tab: "Sync now" uploads to nowhere.
     setCaptureUploader(fakeCaptureUploader);
 

@@ -1,7 +1,10 @@
+import type { AssetCategory } from "@/constants/Colors";
 import { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
-export type ChipTone = "neutral" | "primary" | "success" | "warning" | "danger";
+/** Status tones, or a category's tile colours (e.g. "Energy & Power"). */
+export type ChipTone =
+  "neutral" | "primary" | "success" | "warning" | "danger" | AssetCategory;
 
 const TONES: Record<ChipTone, { bg: string; fg: string }> = {
   neutral: { bg: "bg-surface-muted", fg: "text-text" },
@@ -9,6 +12,10 @@ const TONES: Record<ChipTone, { bg: string; fg: string }> = {
   success: { bg: "bg-success-soft", fg: "text-on-success-soft" },
   warning: { bg: "bg-warning-soft", fg: "text-on-warning-soft" },
   danger: { bg: "bg-danger-soft", fg: "text-on-danger-soft" },
+  energy: { bg: "bg-energy-tile", fg: "text-energy-ink" },
+  water: { bg: "bg-water-tile", fg: "text-water-ink" },
+  telecom: { bg: "bg-telecom-tile", fg: "text-telecom-ink" },
+  roads: { bg: "bg-roads-tile", fg: "text-roads-ink" },
 };
 
 interface ChipProps {

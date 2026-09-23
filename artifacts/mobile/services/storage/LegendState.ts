@@ -19,6 +19,7 @@ import {
   mapPreferences$,
 } from "./AssetStore";
 import { CAPTURES_STORAGE_KEY, captures$ } from "./CaptureStore";
+import { RECORDS_STORAGE_KEY, records$ } from "./RecordStore";
 import type { LocalEventRecord } from "./EventStore";
 import {
   deleteCaptureImage,
@@ -227,6 +228,15 @@ export function initPersistence() {
     syncPlugin({
       persist: {
         name: CAPTURES_STORAGE_KEY,
+      },
+    }),
+  );
+
+  syncObservable(
+    records$,
+    syncPlugin({
+      persist: {
+        name: RECORDS_STORAGE_KEY,
       },
     }),
   );

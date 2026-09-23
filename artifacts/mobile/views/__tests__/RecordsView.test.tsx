@@ -65,6 +65,9 @@ const RECORDS = [
   }),
 ];
 
+const mockRouter = { push: jest.fn() };
+jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
+
 const row = (title: string) =>
   screen.getByLabelText(new RegExp(`^${title.replace(/[·]/g, ".")}, `));
 
@@ -143,25 +146,22 @@ describe("RecordsView", () => {
     expect(row("Concrete pole")).toHaveAccessibleName(/Pending$/);
   });
 
-  it("opens on a tab from the route and reveals a record linked by asset code", async () => {
-    jest.useFakeTimers();
-    try {
-      await render(<RecordsView filter="flagged" />);
-      expect(
-        screen.getByRole("tab", { name: "Flagged · 1", selected: true }),
-      ).toBeOnTheScreen();
+  it("opens on the tab from the route", async () => {
+    await render(<RecordsView filter="flagged" />);
+    expect(
+      screen.getByRole("tab", { name: "Flagged · 1", selected: true }),
+    ).toBeOnTheScreen();
+  });
 
-      await screen.rerender(
-        <RecordsView filter="flagged" focusId="EP-00412" />,
-      );
-      expect(
-        screen.getByRole("tab", { name: "All · 4", selected: true }),
-      ).toBeOnTheScreen();
-      expect(row("Concrete pole")).toBeOnTheScreen();
-      await act(() => jest.runAllTimers());
-    } finally {
-      jest.useRealTimers();
-    }
+  it("opens a record's detail screen from its row", async () => {
+    await render(<RecordsView />);
+    await fireEvent.press(
+      screen.getByRole("button", { name: /^Culvert · pipe, / }),
+    );
+    expect(mockRouter.push).toHaveBeenCalledWith({
+      pathname: "/(tabs)/records/[id]",
+      params: { id: "culvert" },
+    });
   });
 
   it("points to Capture before the first record", async () => {

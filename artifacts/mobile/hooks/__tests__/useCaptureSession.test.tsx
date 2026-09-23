@@ -1,9 +1,14 @@
 import { MAX_PHOTOS } from "@/constants/Capture";
-import { captures$, clearCaptures } from "@/services/storage/CaptureStore";
+import {
+  addCapture,
+  captures$,
+  clearCaptures,
+} from "@/services/storage/CaptureStore";
 import { setPhotoQualityChecker } from "@/services/capture/PhotoQuality";
 import {
   acceptDetection,
   beginReview,
+  editRecord,
   rejectDetection,
   setAttribute,
   setComment,
@@ -14,7 +19,16 @@ import {
   toggleStatus,
 } from "@/services/storage/CaptureSessionStore";
 import type { LocalPole } from "@/services/storage/LegendState";
-import type { CaptureLocation, CapturedDetection } from "@/types/Capture";
+import {
+  clearRecords,
+  records$,
+  upsertRecord,
+} from "@/services/storage/RecordStore";
+import type {
+  CaptureLocation,
+  CaptureRecord,
+  CapturedDetection,
+} from "@/types/Capture";
 import { act, renderHook } from "@testing-library/react-native";
 import { createAssetAsync } from "expo-media-library";
 import { Alert } from "react-native";
@@ -61,6 +75,7 @@ const detection = (trackId: number, confidence: number): CapturedDetection => ({
 beforeEach(() => {
   jest.clearAllMocks();
   clearCaptures();
+  clearRecords();
   startSession("energy");
   mockPoles = [];
   mockAddPole.mockResolvedValue(undefined);
@@ -217,6 +232,29 @@ describe("useCaptureSession", () => {
     expect(result.current.photos).toEqual([]);
   });
 
+  it("keeps the full record for the detail screen", async () => {
+    const { result } = await captured([detection(1, 0.9)]);
+    toggleStatus("inclined");
+    setComment("leaning");
+    // The op queue's durable copy of the photo.
+    mockAddPole.mockResolvedValueOnce([{ imageUri: "file:///docs/1.jpg" }]);
+    expect(await save(result)).toBe(true);
+
+    const [summary] = captures$.get();
+    const record = records$[summary.id].get();
+    expect(record).toMatchObject({
+      id: summary.id,
+      category: "energy",
+      title: "Pole",
+      statuses: ["inclined"],
+      comment: "leaning",
+      location: { latitude: 0.3476, accuracy: 2.8 },
+      photos: [{ uri: "file:///docs/1.jpg" }],
+      poleIds: [mockAddPole.mock.calls[0][0][0].pid],
+    });
+    expect(record.attributes.length).toBeGreaterThan(0);
+  });
+
   it("saves accepted suggestions and user corrections, and flags them", async () => {
     const { result } = await captured([detection(1, 0.9), detection(2, 0.5)]);
     rejectDetection(1);
@@ -329,5 +367,79 @@ describe("useCaptureSession", () => {
     expect(await save(result)).toBe(false);
     expect(alert).toHaveBeenCalled();
     expect(result.current.photos).toHaveLength(1);
+  });
+
+  describe("editing a saved record", () => {
+    const RECORD: CaptureRecord = {
+      id: "r1",
+      category: "energy",
+      title: "Concrete pole",
+      assetId: "EP-00412",
+      capturedAt: "2026-09-22T10:14:00.000Z",
+      photos: [{ uri: null }],
+      location: LOCATION,
+      attributes: [],
+      statuses: ["inclined"],
+      suggestedStatuses: ["inclined"],
+      functional: "unknown",
+      comment: "",
+      poleIds: ["p1", "p2"],
+    };
+
+    beforeEach(() => {
+      upsertRecord(RECORD);
+      addCapture({
+        id: "r1",
+        category: "energy",
+        title: "Concrete pole",
+        detail: "2 detections",
+        capturedAt: RECORD.capturedAt,
+        accuracyM: 2.8,
+        syncStatus: "synced",
+        flagged: false,
+      });
+      mockPoles = [{ pid: "p1" }];
+      editRecord(RECORD);
+    });
+
+    it("saves the form to the record, its queued records and its row", async () => {
+      const { result } = await renderHook(() => useCaptureSession());
+      expect(result.current.editingId).toBe("r1");
+      toggleStatus("cracked");
+      setComment(" snapped ");
+      expect(await save(result)).toBe(true);
+
+      // Only records still in the queue's store get the change.
+      expect(mockAddPole).toHaveBeenCalledWith([
+        {
+          pid: "p1",
+          category: "energy",
+          statuses: ["inclined", "cracked"],
+          suggestedStatuses: ["inclined"],
+          functional: "unknown",
+          comment: "snapped",
+        },
+      ]);
+      expect(records$.r1.get()).toMatchObject({
+        statuses: ["inclined", "cracked"],
+        comment: "snapped",
+        photos: [{ uri: null }],
+      });
+      expect(captures$.get()).toEqual([
+        expect.objectContaining({
+          id: "r1",
+          detail: "2 detections",
+          syncStatus: "pending",
+        }),
+      ]);
+      expect(result.current.editingId).toBeNull();
+    });
+
+    it("won't save an edit that leaves no status", async () => {
+      const { result } = await renderHook(() => useCaptureSession());
+      toggleStatus("inclined");
+      expect(await save(result)).toBe(false);
+      expect(records$.r1.statuses.get()).toEqual(["inclined"]);
+    });
   });
 });

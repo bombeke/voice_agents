@@ -32,7 +32,7 @@ import {
   UserLocation,
 } from "@maplibre/maplibre-react-native";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { withUniwind } from "uniwind";
 
@@ -56,9 +56,10 @@ function initialView(): InitialViewState {
 /**
  * Map tab: recorded assets as clustered pins coloured by category, with
  * search, category filters, basemap choice, and a card for the tapped pin
- * that opens into its asset profile.
+ * that opens into its asset profile. `focusId` (an asset code, e.g. from a
+ * record's "Show on map") selects that pin and centres the map on it.
  */
-export function AssetMapView() {
+export function AssetMapView({ focusId }: { focusId?: string } = {}) {
   const router = useRouter();
   const {
     total,
@@ -94,6 +95,22 @@ export function AssetMapView() {
       duration: 800,
     });
   };
+
+  // Once per link: later store updates don't re-select or move the map.
+  useEffect(() => {
+    if (!focusId) return;
+    const asset = mapAssets$.peek().find((a) => a.id === focusId);
+    if (!asset) return;
+    setCategory("all");
+    setQuery("");
+    setProfileOpen(false);
+    select(asset.id);
+    camera.current?.flyTo({
+      center: [asset.longitude, asset.latitude],
+      zoom: LOCATE_ZOOM,
+      duration: 800,
+    });
+  }, [focusId, select, setCategory, setQuery]);
 
   const zoomTo = (center: [number, number], zoom: number) =>
     camera.current?.easeTo({ center, zoom, duration: 500 });
@@ -158,8 +175,8 @@ export function AssetMapView() {
               })
             }
             onViewRecord={() =>
-              router.navigate({
-                pathname: Routes.RECORDS,
+              router.push({
+                pathname: Routes.RECORD_DETAIL,
                 params: { id: selected.id },
               })
             }

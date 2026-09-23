@@ -45,17 +45,14 @@ describe("useRecords", () => {
     expect(result.current.sections).toEqual([]);
   });
 
-  it("clears the search when it closes, and reset shows everything", async () => {
+  it("clears the search when it closes", async () => {
     const { result } = await renderHook(() => useRecords("flagged"));
     await act(() => result.current.toggleSearch());
     await act(() => result.current.setQuery("pole"));
     expect(result.current.searchOpen).toBe(true);
     await act(() => result.current.toggleSearch());
     expect(result.current.query).toBe("");
-
-    await act(() => result.current.reset());
-    expect(result.current.filter).toBe("all");
-    expect(ids(result.current.sections)).toHaveLength(14);
+    expect(result.current.searchOpen).toBe(false);
   });
 
   it("follows the store: syncing while any record uploads, and going offline", async () => {

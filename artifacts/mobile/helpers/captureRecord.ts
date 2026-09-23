@@ -10,6 +10,7 @@ import type { SyncedUtilityPole } from "@/services/storage/LegendState";
 import type {
   CaptureFlag,
   CaptureLocation,
+  CaptureRecord,
   CaptureSummary,
   CapturedPhoto,
   ReviewDetection,
@@ -79,7 +80,7 @@ export function buildRecords(input: RecordInput): SyncedUtilityPole[] {
 }
 
 /** "3 detections", else the first problem status, else whether it works. */
-function summaryDetail(
+export function summaryDetail(
   detections: number,
   form: Pick<TagForm, "statuses" | "functional">,
 ): string | undefined {
@@ -126,5 +127,76 @@ export function buildSummary(
       draft ||
       recordFlags(input).length > 0 ||
       shouldFlag(detections, location),
+  };
+}
+
+/**
+ * The record detail screen's copy of a saved capture. `photoUris` are the
+ * photos as stored (see ImageStore), in the order they were taken.
+ */
+export function buildRecord(
+  summary: CaptureSummary,
+  records: readonly SyncedUtilityPole[],
+  input: Pick<RecordInput, "location" | "detections" | "form">,
+  photoUris: readonly string[],
+): CaptureRecord {
+  const { location, detections, form } = input;
+  const primary = acceptedDetections(detections)[0];
+  return {
+    id: summary.id,
+    category: summary.category,
+    title: summary.title,
+    ...(summary.assetId ? { assetId: summary.assetId } : {}),
+    capturedAt: summary.capturedAt,
+    photos: photoUris.map((uri) => ({ uri })),
+    location: { ...location, flags: recordFlags(input) },
+    attributes: primary?.attributes ?? [],
+    statuses: [...form.statuses],
+    suggestedStatuses: [...form.suggested],
+    functional: form.functional,
+    comment: form.comment.trim(),
+    poleIds: records.map((r) => r.pid!),
+  };
+}
+
+/** The tagging form a saved record opens with for "Edit record". */
+export function tagFormFromRecord(record: CaptureRecord): TagForm {
+  return {
+    category: record.category,
+    statuses: [...record.statuses],
+    suggested: [...record.suggestedStatuses],
+    functional: record.functional,
+    comment: record.comment,
+    // The duplicate question was answered when the record was saved.
+    duplicate: null,
+    duplicateChoice: null,
+  };
+}
+
+/**
+ * An edited record, its list row (back to pending, as it has to upload
+ * again) and the changed fields for its queued records.
+ */
+export function applyTagEdit(
+  record: CaptureRecord,
+  summary: CaptureSummary,
+  form: TagForm & { category: AssetCategory },
+) {
+  const fields = {
+    category: form.category,
+    statuses: [...form.statuses],
+    suggestedStatuses: [...form.suggested],
+    functional: form.functional,
+    comment: form.comment.trim(),
+  };
+  return {
+    record: { ...record, ...fields },
+    summary: {
+      ...summary,
+      category: form.category,
+      detail: summaryDetail(record.poleIds.length, form),
+      syncStatus: "pending" as const,
+    },
+    poleFields: fields,
   };
 }

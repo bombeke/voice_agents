@@ -110,8 +110,8 @@ const mockHere = () => HERE;
 const pin = (id: string) => screen.getByLabelText(`Pin ${id}`);
 const shownIds = () => mockMap.features.map((f) => f.properties.id);
 
-async function renderMap() {
-  await render(<AssetMapView />);
+async function renderMap(focusId?: string) {
+  await render(<AssetMapView focusId={focusId} />);
   // Let the position lookup settle.
   await waitFor(() =>
     expect(
@@ -197,8 +197,8 @@ describe("AssetMapView", () => {
       params: { category: "energy" },
     });
     await fireEvent.press(screen.getByRole("button", { name: "View record" }));
-    expect(mockRouter.navigate).toHaveBeenCalledWith({
-      pathname: "/(tabs)/records",
+    expect(mockRouter.push).toHaveBeenCalledWith({
+      pathname: "/(tabs)/records/[id]",
       params: { id: "EP-00412" },
     });
   });
@@ -270,5 +270,17 @@ describe("AssetMapView", () => {
     isOnline$.set(false);
     await renderMap();
     expect(screen.getByText("Offline map · cached tiles")).toBeOnTheScreen();
+  });
+
+  it("selects and centres the asset linked from a record", async () => {
+    const asset = ASSETS.find((a) => a.id === "EP-00412")!;
+    await renderMap("EP-00412");
+    const card = screen.getByLabelText("Selected asset");
+    expect(
+      within(card).getByRole("header", { name: "Concrete pole" }),
+    ).toBeOnTheScreen();
+    expect(mockMap.camera.flyTo).toHaveBeenCalledWith(
+      expect.objectContaining({ center: [asset.longitude, asset.latitude] }),
+    );
   });
 });

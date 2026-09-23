@@ -34,13 +34,6 @@ export function useRecords(initialFilter: RecordFilter = "all") {
     setSearchOpen(!searchOpen);
   }, [searchOpen]);
 
-  /** Show everything again, e.g. to reveal a record linked from the Map. */
-  const reset = useCallback(() => {
-    setFilter("all");
-    setQuery("");
-    setSearchOpen(false);
-  }, []);
-
   return {
     counts,
     sections,
@@ -53,6 +46,5 @@ export function useRecords(initialFilter: RecordFilter = "all") {
     setQuery,
     searchOpen,
     toggleSearch,
-    reset,
   };
 }

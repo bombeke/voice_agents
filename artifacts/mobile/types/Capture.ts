@@ -24,6 +24,35 @@ export interface CaptureSummary {
   flagged: boolean;
 }
 
+/** A stored photo of a record; `uri` is null when the file is gone (or in mocks). */
+export interface RecordPhoto {
+  uri: string | null;
+}
+
+/**
+ * Everything the record detail screen shows for one saved capture. Shares
+ * its id with the capture's CaptureSummary; the summary keeps the sync state.
+ */
+export interface CaptureRecord {
+  id: string;
+  category: AssetCategory;
+  title: string;
+  /** Code of the asset this capture records (see MapAsset.id), once known. */
+  assetId?: string;
+  /** ISO 8601 with timezone. */
+  capturedAt: string;
+  photos: RecordPhoto[];
+  location: CaptureLocation;
+  attributes: DetectionAttribute[];
+  statuses: AssetStatus[];
+  /** What the AI pre-selected, so the screen knows whose the statuses are. */
+  suggestedStatuses: AssetStatus[];
+  functional: Functional;
+  comment: string;
+  /** The op-queue records (one per kept detection) an edit has to update. */
+  poleIds: string[];
+}
+
 export interface GnssStatus {
   /** Frequency bands in use, e.g. "L1+L5". */
   bands: string;

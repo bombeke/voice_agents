@@ -4,9 +4,9 @@ import { Pressable, Text, View } from "react-native";
 
 interface CaptureStepHeaderProps {
   title: string;
-  subtitle: string;
-  /** "Step 2 of 3". */
-  step: string;
+  subtitle?: string;
+  /** "Step 2 of 3"; left out when editing a saved record. */
+  step?: string;
   backLabel: string;
   onBack: () => void;
 }
@@ -33,11 +33,15 @@ export function CaptureStepHeader({
         <Text accessibilityRole="header" className="type-h1 text-text">
           {title}
         </Text>
-        <Text className="type-body-small text-text-muted">{subtitle}</Text>
+        {subtitle ? (
+          <Text className="type-body-small text-text-muted">{subtitle}</Text>
+        ) : null}
       </View>
-      <Text className="w-16 pt-2 pr-2 type-caption text-text-muted">
-        {step}
-      </Text>
+      {step ? (
+        <Text className="w-16 pt-2 pr-2 type-caption text-text-muted">
+          {step}
+        </Text>
+      ) : null}
     </View>
   );
 }

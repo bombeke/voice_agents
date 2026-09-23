@@ -1,13 +1,18 @@
 import { MAX_PHOTOS } from "@/constants/Capture";
 import { DETECTOR_MODEL_VERSION } from "@/constants/DetectorModel";
 import { strings } from "@/constants/Strings";
-import { buildRecords, buildSummary } from "@/helpers/captureRecord";
+import {
+  applyTagEdit,
+  buildRecord,
+  buildRecords,
+  buildSummary,
+} from "@/helpers/captureRecord";
 import { assetFromPole } from "@/helpers/duplicateCheck";
 import { tagFormProblem } from "@/helpers/tagForm";
 import { requestSavePermission } from "@/hooks/Helpers";
 import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
 import { checkPhotoQuality } from "@/services/capture/PhotoQuality";
-import { addCapture } from "@/services/storage/CaptureStore";
+import { addCapture, captures$ } from "@/services/storage/CaptureStore";
 import {
   addPhoto,
   beginTagging,
@@ -15,10 +20,15 @@ import {
   removePhoto,
   resetSession,
 } from "@/services/storage/CaptureSessionStore";
+import { persistCaptureImage, toFileUri } from "@/services/storage/ImageStore";
+import type { SyncedUtilityPole } from "@/services/storage/LegendState";
+import { records$, upsertRecord } from "@/services/storage/RecordStore";
+import type { AssetCategory } from "@/constants/Colors";
 import type {
   CaptureLocation,
   CapturedDetection,
   NearbyAsset,
+  TagForm,
 } from "@/types/Capture";
 import { useSelector } from "@legendapp/state/react";
 import { randomUUID } from "expo-crypto";
@@ -79,6 +89,51 @@ async function takePhoto({
 }
 
 /**
+ * Where the record detail screen finds the photos: the copies the op queue
+ * made (see ImageStore), else a fresh durable copy of each shot.
+ */
+function storedPhotoUris(
+  shots: readonly { imageUri: string }[],
+  records: readonly SyncedUtilityPole[],
+  saved: readonly { imageUri?: string }[] | undefined,
+): string[] {
+  const cache = new Map<string, string>();
+  records.forEach((r, i) => {
+    const from = toFileUri(r.imageUri);
+    const to = saved?.[i]?.imageUri;
+    if (from && to) cache.set(from, to);
+  });
+  return shots.map((s) => persistCaptureImage(s.imageUri, cache) ?? s.imageUri);
+}
+
+/**
+ * "Edit record": writes the changed form to the saved record, sends the
+ * change through the op queue for the records it made, and puts the row
+ * back to pending.
+ */
+async function saveEdit(
+  id: string,
+  form: TagForm & { category: AssetCategory },
+  addPole: (poles: SyncedUtilityPole[]) => Promise<unknown>,
+  known: ReadonlySet<string>,
+): Promise<boolean> {
+  const record = records$[id].peek();
+  const summary = captures$.peek().find((c) => c.id === id);
+  if (!record || !summary) return false;
+  const edit = applyTagEdit(record, summary, form);
+  const queued = record.poleIds.filter((pid) => known.has(pid));
+  if (queued.length) {
+    // setPoleVision merges by pid, so only the changed fields are needed.
+    await addPole(
+      queued.map((pid) => ({ pid, ...edit.poleFields })) as SyncedUtilityPole[],
+    );
+  }
+  upsertRecord(edit.record);
+  addCapture(edit.summary);
+  return true;
+}
+
+/**
  * Up to three shots of one asset, reviewed and then tagged. The session lives
  * in CaptureSessionStore so the camera, review and tagging routes share it.
  * Saving writes one record per accepted detection to the offline op queue and
@@ -90,6 +145,7 @@ export function useCaptureSession() {
   const location = useSelector(captureSession$.location);
   const isCapturing = useSelector(captureSession$.isCapturing);
   const isSaving = useSelector(captureSession$.isSaving);
+  const editingId = useSelector(captureSession$.editingId);
 
   /** Opens the tagging form, checking the stored records for duplicates. */
   const startTagging = useCallback(() => {
@@ -112,11 +168,26 @@ export function useCaptureSession() {
         detections,
         tagging: form,
         isSaving: busy,
+        editingId,
       } = captureSession$.peek();
-      if (busy || !at || shots.length === 0) return false;
-      if (!form?.category || tagFormProblem(form, draft)) return false;
+      if (busy || !at || !form?.category) return false;
+      if (tagFormProblem(form, draft)) return false;
+      if (!editingId && shots.length === 0) return false;
       captureSession$.isSaving.set(true);
       try {
+        if (editingId) {
+          const known = new Set(
+            (poles ?? []).map((p) => p.pid).filter(Boolean) as string[],
+          );
+          const saved = await saveEdit(
+            editingId,
+            { ...form, category: form.category },
+            addPole,
+            known,
+          );
+          if (saved) resetSession();
+          return saved;
+        }
         const input = {
           photos: shots,
           location: at,
@@ -127,8 +198,18 @@ export function useCaptureSession() {
           newId: randomUUID,
         };
         const records = buildRecords(input);
-        await addPole(records);
-        addCapture(buildSummary(records, input));
+        const saved = (await addPole(records)) as
+          { imageUri?: string }[] | undefined;
+        const summary = buildSummary(records, input);
+        addCapture(summary);
+        upsertRecord(
+          buildRecord(
+            summary,
+            records,
+            input,
+            storedPhotoUris(shots, records, saved),
+          ),
+        );
         resetSession();
         return true;
       } catch (e) {
@@ -142,7 +223,7 @@ export function useCaptureSession() {
         captureSession$.isSaving.set(false);
       }
     },
-    [addPole],
+    [addPole, poles],
   );
 
   return {
@@ -150,6 +231,8 @@ export function useCaptureSession() {
     location,
     isCapturing,
     isSaving,
+    /** The saved record being edited; null for a new capture. */
+    editingId,
     isFull: photos.length >= MAX_PHOTOS,
     takePhoto,
     removePhoto,

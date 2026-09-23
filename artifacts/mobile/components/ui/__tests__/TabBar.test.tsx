@@ -62,4 +62,23 @@ describe("TabBar", () => {
     await fireEvent.press(screen.getByRole("tab", { name: "Capture" }));
     expect(navigation.navigate).not.toHaveBeenCalled();
   });
+
+  it("hides on a full-screen route of the focused tab", async () => {
+    await render(
+      <TabBar
+        {...({
+          state: { index: 1, routes },
+          descriptors: {
+            ...descriptors,
+            "records-1": {
+              options: { title: "Records", tabBarStyle: { display: "none" } },
+            },
+          },
+          navigation,
+          insets: { top: 0, right: 0, bottom: 0, left: 0 },
+        } as any)}
+      />,
+    );
+    expect(screen.queryByRole("tablist")).toBeNull();
+  });
 });

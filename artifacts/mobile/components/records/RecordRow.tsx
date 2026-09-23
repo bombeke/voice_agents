@@ -4,18 +4,23 @@ import { strings } from "@/constants/Strings";
 import { fill } from "@/helpers/format";
 import { formatRecordMeta, recordBadge } from "@/helpers/records";
 import type { CaptureSummary } from "@/types/Capture";
+import { memo } from "react";
 import { Pressable, Text, View } from "react-native";
 
 interface RecordRowProps {
   record: CaptureSummary;
-  /** Briefly tinted when opened from another tab (e.g. the Map's "View record"). */
-  highlighted?: boolean;
-  /** Leave out until there is a record detail screen, so the row isn't a dead button. */
+  /** Opens the record; without it the row is plain text, not a dead button. */
   onPress?: (record: CaptureSummary) => void;
 }
 
-/** One record: category icon, name, "10:14 · ±2.8 m · detail" and its status. */
-export function RecordRow({ record, highlighted, onPress }: RecordRowProps) {
+/**
+ * One record: category icon, name, "10:14 · ±2.8 m · detail" and its status.
+ * Memoised: a store update re-renders only the rows whose record changed.
+ */
+export const RecordRow = memo(function RecordRow({
+  record,
+  onPress,
+}: RecordRowProps) {
   const status = recordBadge(record);
   const meta = formatRecordMeta(record);
   const label = fill(strings.records.rowLabel, {
@@ -23,9 +28,7 @@ export function RecordRow({ record, highlighted, onPress }: RecordRowProps) {
     meta,
     status: strings.recordStatus[status],
   });
-  const className = `min-h-16 flex-row items-center gap-3 px-3.5 py-2.5 ${
-    highlighted ? "bg-primary-soft" : ""
-  }`;
+  const className = "min-h-16 flex-row items-center gap-3 px-3.5 py-2.5";
 
   const content = (
     <>
@@ -61,4 +64,4 @@ export function RecordRow({ record, highlighted, onPress }: RecordRowProps) {
       {content}
     </Pressable>
   );
-}
+});

@@ -85,25 +85,41 @@ export function TaggingView() {
   const dictation = useDictation(appendComment);
   const disabled = session.isSaving;
 
+  const editing = session.editingId !== null;
+
   const save = async (draft: boolean) => {
-    if (await session.save({ draft })) router.dismissTo(Routes.HOME);
+    if (!(await session.save({ draft }))) return;
+    // An edit goes back to the record it came from.
+    if (editing) router.back();
+    else router.dismissTo(Routes.HOME);
   };
 
   const problem = tagFormProblem(form, false);
   const canSaveDraft = !disabled && tagFormProblem(form, true) === null;
+  const saveLabel = editing
+    ? strings.capture.tag.saveChanges
+    : strings.capture.tag.save;
 
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-background"
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <CaptureStepHeader
-        title={strings.capture.tag.title}
-        subtitle={tagSubtitle(detections)}
-        step={strings.capture.tag.step}
-        backLabel={strings.capture.tag.back}
-        onBack={() => router.back()}
-      />
+      {editing ? (
+        <CaptureStepHeader
+          title={strings.capture.tag.editTitle}
+          backLabel={strings.capture.tag.editBack}
+          onBack={() => router.back()}
+        />
+      ) : (
+        <CaptureStepHeader
+          title={strings.capture.tag.title}
+          subtitle={tagSubtitle(detections)}
+          step={strings.capture.tag.step}
+          backLabel={strings.capture.tag.back}
+          onBack={() => router.back()}
+        />
+      )}
 
       {form ? (
         <ScrollView
@@ -189,18 +205,20 @@ export function TaggingView() {
           </Text>
         ) : null}
         <View className="flex-row gap-3">
-          <Button
-            variant="secondary"
-            className="flex-[2]"
-            disabled={!canSaveDraft}
-            onPress={() => save(true)}
-          >
-            {strings.capture.tag.saveDraft}
-          </Button>
+          {editing ? null : (
+            <Button
+              variant="secondary"
+              className="flex-[2]"
+              disabled={!canSaveDraft}
+              onPress={() => save(true)}
+            >
+              {strings.capture.tag.saveDraft}
+            </Button>
+          )}
           <Button
             className="flex-[3]"
             disabled={disabled || problem !== null}
-            accessibilityLabel={strings.capture.tag.save}
+            accessibilityLabel={saveLabel}
             accessibilityState={{
               disabled: disabled || problem !== null,
               busy: disabled,
@@ -213,7 +231,7 @@ export function TaggingView() {
               <>
                 <Icon name="check" size={20} color={colors.onPrimary} />
                 <Text className="type-body-strong text-on-primary">
-                  {strings.capture.tag.save}
+                  {saveLabel}
                 </Text>
               </>
             )}

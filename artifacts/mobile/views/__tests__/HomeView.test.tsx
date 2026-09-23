@@ -110,13 +110,13 @@ describe("HomeView", () => {
     expect(mockRouter.navigate).toHaveBeenCalledWith("/(tabs)/settings");
   });
 
-  it("opens the last capture in Records", async () => {
+  it("opens the last capture's record", async () => {
     await render(<HomeView />);
     await fireEvent.press(
       screen.getByRole("button", { name: /Concrete pole · inclined 7°/ }),
     );
-    expect(mockRouter.navigate).toHaveBeenCalledWith({
-      pathname: "/(tabs)/records",
+    expect(mockRouter.push).toHaveBeenCalledWith({
+      pathname: "/(tabs)/records/[id]",
       params: { id: "a" },
     });
   });

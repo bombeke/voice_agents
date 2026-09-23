@@ -12,8 +12,10 @@ import {
   beginReview,
   beginTagging,
   captureSession$,
+  editRecord,
   startSession,
 } from "@/services/storage/CaptureSessionStore";
+import { records$, upsertRecord } from "@/services/storage/RecordStore";
 import type { CapturedPhoto } from "@/types/Capture";
 import {
   fireEvent,
@@ -220,5 +222,54 @@ describe("TaggingView", () => {
     await render(<TaggingView />);
     expect(screen.queryByRole("radio")).toBeNull();
     expect(screen.getByRole("button", { name: "Save draft" })).toBeDisabled();
+  });
+
+  it("edits a saved record and goes back to it", async () => {
+    const record = {
+      id: "r1",
+      category: "energy" as const,
+      title: "Concrete pole",
+      capturedAt: "2026-09-22T10:14:00.000Z",
+      photos: [],
+      location: LOCATION,
+      attributes: [],
+      statuses: ["inclined" as const],
+      suggestedStatuses: ["inclined" as const],
+      functional: "unknown" as const,
+      comment: "",
+      poleIds: [],
+    };
+    upsertRecord(record);
+    captures$.set([
+      {
+        id: "r1",
+        category: "energy",
+        title: "Concrete pole",
+        capturedAt: record.capturedAt,
+        accuracyM: 2.8,
+        syncStatus: "synced",
+        flagged: false,
+      },
+    ]);
+    editRecord(record);
+    await render(<TaggingView />);
+
+    expect(
+      screen.getByRole("header", { name: "Edit record" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Step 3 of 3")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
+    expect(screen.getByText("±2.8 m · 18 sats")).toBeOnTheScreen();
+
+    await fireEvent.changeText(
+      screen.getByLabelText("Comment"),
+      "Leaning more",
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    expect(mockRouter.dismissTo).not.toHaveBeenCalled();
+    expect(records$.r1.comment.get()).toBe("Leaning more");
+    expect(captures$.get()[0].syncStatus).toBe("pending");
+    expect(captureSession$.editingId.get()).toBeNull();
   });
 });

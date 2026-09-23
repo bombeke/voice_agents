@@ -1,4 +1,5 @@
 import type { AssetCategory } from "@/constants/Colors";
+import { tagFormFromRecord } from "@/helpers/captureRecord";
 import { mergeDetections } from "@/helpers/captureSession";
 import { initialDecision, reviewCategory } from "@/helpers/detectionReview";
 import { findDuplicate } from "@/helpers/duplicateCheck";
@@ -15,6 +16,7 @@ import type {
   AssetStatus,
   AttributeKey,
   CaptureCategory,
+  CaptureRecord,
   CaptureLocation,
   CapturedPhoto,
   DuplicateChoice,
@@ -39,6 +41,8 @@ export interface CaptureSessionState {
   tagging: TagForm | null;
   isCapturing: boolean;
   isSaving: boolean;
+  /** The saved record the tagging form is editing; null for a new capture. */
+  editingId: string | null;
 }
 
 const initialState = (
@@ -52,6 +56,7 @@ const initialState = (
   tagging: null,
   isCapturing: false,
   isSaving: false,
+  editingId: null,
 });
 
 /**
@@ -69,6 +74,19 @@ export function startSession(category: CaptureCategory) {
 
 export function resetSession() {
   captureSession$.set(initialState(captureSession$.category.peek()));
+}
+
+/**
+ * "Edit record": the tagging form filled from a saved record, with its fix
+ * for the location card. There are no photos or detections to review again.
+ */
+export function editRecord(record: CaptureRecord) {
+  captureSession$.set({
+    ...initialState(record.category),
+    location: record.location,
+    tagging: tagFormFromRecord(record),
+    editingId: record.id,
+  });
 }
 
 export function addPhoto(photo: CapturedPhoto, at: CaptureLocation) {

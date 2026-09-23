@@ -10,6 +10,12 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
  * Usage: <Tabs tabBar={(props) => <TabBar {...props} />}>; see AppTabs.
  */
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  // A full-screen route in the focused tab (see AppTabs) hides the bar.
+  const current = descriptors[state.routes[state.index].key].options;
+  const barStyle = StyleSheet.flatten(current.tabBarStyle) as
+    { display?: string } | undefined;
+  if (barStyle?.display === "none") return null;
+
   return (
     <View
       accessibilityRole="tablist"

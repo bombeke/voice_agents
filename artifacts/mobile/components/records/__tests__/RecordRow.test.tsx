@@ -22,7 +22,7 @@ describe("RecordRow", () => {
         "Culvert · pipe, 09:20 · ±3.6 m · partly blocked, Flagged",
       ),
     ).toBeOnTheScreen();
-    // Not a button until there is a record detail screen.
+    // Not a dead button when nothing opens it.
     expect(screen.queryByRole("button")).toBeNull();
   });
 

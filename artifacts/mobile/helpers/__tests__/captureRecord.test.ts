@@ -1,10 +1,13 @@
 import {
+  applyTagEdit,
+  buildRecord,
   buildRecords,
   buildSummary,
   recordFlags,
+  tagFormFromRecord,
   type RecordInput,
 } from "@/helpers/captureRecord";
-import type { ReviewDetection } from "@/types/Capture";
+import type { CaptureRecord, ReviewDetection } from "@/types/Capture";
 
 const detection = (over: Partial<ReviewDetection> = {}): ReviewDetection => ({
   trackId: 1,
@@ -158,5 +161,118 @@ describe("buildSummary", () => {
     expect(buildSummary(buildRecords(base), base)).not.toHaveProperty(
       "assetId",
     );
+  });
+});
+
+describe("buildRecord", () => {
+  it("keeps what the detail screen shows, with the stored photos", () => {
+    const attributes = [
+      {
+        key: "material" as const,
+        value: "concrete",
+        source: "ai" as const,
+        confidence: "high" as const,
+      },
+    ];
+    const data = input({
+      detections: [detection({ attributes })],
+      form: { ...input().form, duplicate: DUPLICATE, duplicateChoice: "new" },
+    });
+    const records = buildRecords(data);
+    const summary = buildSummary(records, data);
+    const record = buildRecord(summary, records, data, ["file:///docs/1.jpg"]);
+    expect(record).toEqual({
+      id: "id-1",
+      category: "energy",
+      title: "Pole",
+      capturedAt: "2026-09-23T09:20:00.000Z",
+      photos: [{ uri: "file:///docs/1.jpg" }],
+      location: expect.objectContaining({
+        latitude: 0.3136,
+        flags: ["duplicate_nearby"],
+      }),
+      attributes,
+      statuses: ["inclined"],
+      suggestedStatuses: ["inclined"],
+      functional: "no",
+      comment: "note",
+      poleIds: ["id-1"],
+    });
+  });
+
+  it("has no attributes when no detection was kept", () => {
+    const data = input({ detections: [] });
+    const records = buildRecords(data);
+    const record = buildRecord(buildSummary(records, data), records, data, []);
+    expect(record.attributes).toEqual([]);
+    expect(record.photos).toEqual([]);
+  });
+});
+
+describe("editing a saved record", () => {
+  const RECORD: CaptureRecord = {
+    id: "r1",
+    category: "energy",
+    title: "Concrete pole",
+    assetId: "EP-00412",
+    capturedAt: "2026-09-22T10:14:00.000Z",
+    photos: [],
+    location: input().location,
+    attributes: [],
+    statuses: ["inclined"],
+    suggestedStatuses: ["inclined"],
+    functional: "unknown",
+    comment: "old",
+    poleIds: ["p1"],
+  };
+  const SUMMARY = {
+    id: "r1",
+    category: "energy" as const,
+    title: "Concrete pole",
+    detail: "inclined",
+    capturedAt: RECORD.capturedAt,
+    accuracyM: 2.8,
+    syncStatus: "synced" as const,
+    flagged: true,
+  };
+
+  it("opens the form with the record's answers and no duplicate question", () => {
+    expect(tagFormFromRecord(RECORD)).toEqual({
+      category: "energy",
+      statuses: ["inclined"],
+      suggested: ["inclined"],
+      functional: "unknown",
+      comment: "old",
+      duplicate: null,
+      duplicateChoice: null,
+    });
+  });
+
+  it("applies the form and puts the row back to pending", () => {
+    const edit = applyTagEdit(RECORD, SUMMARY, {
+      ...tagFormFromRecord(RECORD),
+      category: "energy",
+      statuses: ["cracked"],
+      functional: "no",
+      comment: " snapped ",
+    });
+    expect(edit.record).toMatchObject({
+      statuses: ["cracked"],
+      functional: "no",
+      comment: "snapped",
+      poleIds: ["p1"],
+    });
+    expect(edit.summary).toEqual({
+      ...SUMMARY,
+      detail: "Cracked / damaged",
+      syncStatus: "pending",
+    });
+    expect(edit.poleFields).toEqual({
+      category: "energy",
+      statuses: ["cracked"],
+      suggestedStatuses: ["inclined"],
+      functional: "no",
+      comment: "snapped",
+    });
   });
 });
