@@ -22,6 +22,12 @@ env:
   # metro.config.js bundles mocks/stub.ts instead for this variant.
   APP_VARIANT: production
   EXPO_PUBLIC_API_MOCKING: disabled
+  # On-device detector (artifacts/mobile/constants/DetectorModel.ts). Unset
+  # repo variables leave the registry's YOLO26 nano 384 in place. The labels
+  # must list the custom model's classes in output order.
+  EXPO_PUBLIC_DETECTOR_MODEL_URL: ${{ vars.DETECTOR_MODEL_URL }}
+  EXPO_PUBLIC_DETECTOR_LABELS: ${{ vars.DETECTOR_LABELS }}
+  EXPO_PUBLIC_DETECTOR_INPUT_SIZE: ${{ vars.DETECTOR_INPUT_SIZE }}
   JAVA_OPTS: "-Xmx6g"
   _JAVA_OPTIONS: "-Xmx6g"
   JAVA_TOOL_OPTIONS: "-Xmx6g"

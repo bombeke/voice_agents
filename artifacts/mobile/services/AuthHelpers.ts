@@ -1,16 +1,17 @@
-import { getItemAsync, SecureStoreOptions, setItemAsync } from "expo-secure-store";
+import {
+  getItemAsync,
+  SecureStoreOptions,
+  setItemAsync,
+} from "expo-secure-store";
 
-export const saveSecret = async(key: string, value: any, options: SecureStoreOptions | undefined =undefined) =>{
+export async function saveSecret(
+  key: string,
+  value: string,
+  options?: SecureStoreOptions,
+) {
   await setItemAsync(key, value, options);
-  return true;
 }
 
-export const getSecret =async (key: string) =>{
-  const value = await getItemAsync(key);
-  if (value) {
-    return value;
-  } 
-  else {
-    return null;
-  }
+export async function getSecret(key: string) {
+  return (await getItemAsync(key)) ?? null;
 }

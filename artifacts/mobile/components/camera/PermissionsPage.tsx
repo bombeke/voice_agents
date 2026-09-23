@@ -1,30 +1,30 @@
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icons";
+import { strings } from "@/constants/Strings";
 import { colors } from "@/constants/theme";
-import { CameraIcon } from "lucide-react-native";
 import { Text, View } from "react-native";
 
-interface IPermissionsPage {
-  allowCameraLocationPermissions: () => Promise<void>;
+interface PermissionsPageProps {
+  onAllow: () => void;
 }
-export const PermissionsPage = ({
-  allowCameraLocationPermissions,
-}: IPermissionsPage) => {
+
+/** Shown until camera permission is granted; location is asked for with it. */
+export function PermissionsPage({ onAllow }: PermissionsPageProps) {
   return (
-    <View className="flex-1 items-center justify-center p-8 bg-background">
-      <CameraIcon size={64} color={colors.textMuted} />
-      <Text className="mt-6 type-h2 text-text text-center">
-        Camera & Location Access
-      </Text>
-      <Text className="mt-3 type-body text-text-muted text-center">
-        We need camera and location permissions to detect and record utility
-        poles.
-      </Text>
-      <Button
-        className="mt-8 self-stretch"
-        onPress={allowCameraLocationPermissions}
+    <View className="flex-1 items-center justify-center gap-3 p-8 bg-background">
+      <Icon name="capture" size={56} color={colors.textMuted} />
+      <Text
+        accessibilityRole="header"
+        className="mt-3 type-h2 text-text text-center"
       >
-        Grant Permissions
+        {strings.capture.permissions.title}
+      </Text>
+      <Text className="type-body text-text-muted text-center">
+        {strings.capture.permissions.message}
+      </Text>
+      <Button className="mt-5 self-stretch" onPress={onAllow}>
+        {strings.capture.permissions.grant}
       </Button>
     </View>
   );
-};
+}

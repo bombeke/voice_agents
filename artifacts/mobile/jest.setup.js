@@ -42,3 +42,41 @@ jest.mock("react-native-mmkv", () => {
     },
   };
 });
+
+// Worklets and Reanimated ship their own JS-thread mocks.
+jest.mock("react-native-worklets", () => require("react-native-worklets/src/mock"));
+jest.mock("react-native-reanimated", () => require("react-native-reanimated/mock"));
+
+// On-device inference is native; tests get the registry shape and a detector
+// that never loads. Tests that need detections override useObjectDetector.
+jest.mock("react-native-executorch", () => ({
+  models: {
+    objectDetection: {
+      YOLO26: {
+        NANO: {
+          SIZE_384: {
+            DEFAULT: {
+              modelPath: "https://example.test/yolo26n_384_xnnpack_fp32.pte",
+              modelOpts: {
+                labels: ["person", "car", "traffic light", "fire hydrant", "pole"],
+                boxFormat: "xyxy",
+                resizeMode: "letterbox",
+                interpolation: "linear",
+                normalizeOpts: { alpha: 1 / 255, beta: 0 },
+                defaultConfidenceThreshold: 0.25,
+                defaultIouThreshold: 0.7,
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  download: jest.fn(async (source) => source),
+  useObjectDetector: jest.fn(() => ({
+    isReady: false,
+    error: undefined,
+    downloadProgress: 0,
+    detectObjectsWorklet: undefined,
+  })),
+}));

@@ -1,76 +1,44 @@
-export const RnExecutorchErrorCode = {
-  MODULE_NOT_FOUND: 'MODULE_NOT_FOUND',
-  ModuleNotLoaded: 'ModuleNotLoaded',
-  ModelGenerating: 'ModelGenerating',
-  UNKNOWN: 'UNKNOWN',
+// Web stand-in for react-native-executorch 0.10: on-device inference is
+// native-only, so the web build downloads nothing and detects nothing.
+export class RnExecuTorchError extends Error {}
+
+const YOLO26_OPTS = {
+  labels: [],
+  boxFormat: "xyxy",
+  resizeMode: "letterbox",
+  interpolation: "linear",
+  normalizeOpts: { alpha: 1 / 255, beta: 0 },
+  defaultConfidenceThreshold: 0.25,
+  defaultIouThreshold: 0.7,
 };
 
-export class RnExecutorchError extends Error {
-  constructor(message, code) {
-    super(message);
-    this.code = code || RnExecutorchErrorCode.UNKNOWN;
-  }
-}
-
-export const ResourceSource = {};
-export const ObjectDetectionConfig = {};
-
-export class Detection {
-  constructor() {
-    this.label = '';
-    this.score = 0;
-    this.bbox = { x1: 0, y1: 0, x2: 0, y2: 0 };
-  }
-}
-
-export const Bbox = { x1: 0, y1: 0, x2: 0, y2: 0 };
-
-export const ObjectDetectionModule = {
-  fromCustomModel: async () => ({
-    forward: async () => [],
-    runOnFrame: null,
-    delete: () => {},
-    getAvailableInputSizes: () => [],
-  }),
+export const models = {
+  objectDetection: {
+    YOLO26: {
+      NANO: {
+        SIZE_384: {
+          DEFAULT: {
+            modelPath: "web-stub/yolo26n_384.pte",
+            modelOpts: YOLO26_OPTS,
+          },
+        },
+      },
+    },
+  },
 };
 
-export const ObjectDetectionModelSources = {};
-export const ObjectDetectionOptions = {};
-export const ObjectDetectionType = {};
-export const PixelData = {};
-
-export function initExecutorch(options) {
-  return Promise.resolve();
+export async function download(source) {
+  return source;
 }
 
-export function useObjectDetection() {
+export function useObjectDetector(config) {
   return {
-    forward: async () => [],
-    runOnFrame: null,
-    error: null,
     isReady: false,
-    isGenerating: false,
+    error: new RnExecuTorchError("Object detection is not available on web."),
     downloadProgress: 0,
-    getAvailableInputSizes: () => [],
+    resource: undefined,
+    labels: config?.modelOpts?.labels ?? [],
+    detectObjects: undefined,
+    detectObjectsWorklet: undefined,
   };
 }
-
-export function useClassification() {
-  return {
-    forward: async () => [],
-    error: null,
-    isReady: false,
-    isGenerating: false,
-    downloadProgress: 0,
-  };
-}
-
-export default {
-  initExecutorch,
-  RnExecutorchError,
-  RnExecutorchErrorCode,
-  ResourceSource,
-  ObjectDetectionConfig,
-  Detection,
-  ObjectDetectionModule,
-};

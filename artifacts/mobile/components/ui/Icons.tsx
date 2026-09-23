@@ -39,6 +39,25 @@ const ICONS = {
     { d: "M3 3l18 18" },
   ],
   check: [{ d: "m5 12.5 4.5 4.5L19 7.5" }],
+  "chevron-left": [{ d: "m15 5-7 7 7 7" }],
+  info: [{ cx: 12, cy: 12, r: 9 }, { d: "M12 11v5M12 8v.5" }],
+  "chevron-right": [{ d: "m9 5 7 7-7 7" }],
+  sync: [
+    { d: "M20 11a8 8 0 0 0-14-5l-2 2M4 13a8 8 0 0 0 14 5l2-2" },
+    { d: "M4 4v4h4M20 20v-4h-4" },
+  ],
+  user: [{ cx: 12, cy: 8, r: 4 }, { d: "M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" }],
+  close: [{ d: "M6 6l12 12M18 6 6 18" }],
+  flash: [{ d: "M13 2 4 14h7l-1 8 9-12h-7z" }],
+  "flash-off": [
+    { d: "M13 2 9.5 6.7M16 10h3l-3.9 5.2M11.4 16.3 10 22l3.4-4.6M8 12l-4 2h7" },
+    { d: "M3 3l18 18" },
+  ],
+  lock: [{ d: "M5 11h14v10H5z" }, { d: "M8 11V8a4 4 0 0 1 8 0v3" }],
+  crosshair: [
+    { d: "M12 3v3M12 18v3M3 12h3M18 12h3" },
+    { cx: 12, cy: 12, r: 5 },
+  ],
 } satisfies Record<string, Shape[]>;
 
 export type IconName = keyof typeof ICONS;

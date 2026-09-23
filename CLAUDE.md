@@ -6,7 +6,7 @@ Infrastructure Asset Capture app: field teams photograph infrastructure, pin it 
 - pnpm monorepo (`pnpm-workspace.yaml`, packages in `artifacts/*`). The app is `artifacts/mobile`. Use **pnpm only**.
 - Expo SDK 55 (dev client, not Expo Go, for native modules), React Native 0.83, React 19.2.
 - expo-router (file-based, entry `expo-router/entry`), TypeScript strict, alias `@/*` → `artifacts/mobile/*`.
-- Camera: react-native-vision-camera 5 (+ location/resizer/skia plugins). ML: react-native-executorch (`.pte`).
+- Camera: react-native-vision-camera 5.2 (+ resizer/worklets plugins). ML: react-native-executorch 0.10 (`useObjectDetector` + `detectObjectsWorklet`; never the `/legacy` entry). Detector config and CI overrides: `constants/DetectorModel.ts`.
 - Storage: MMKV for small hot state (auth, flags, config, last sync); expo-sqlite / Legend State for durable data (observations, event queue, sync log).
 - Maps: @maplibre/maplibre-react-native. Styling: uniwind (Tailwind v4) only; no tamagui, no react-native-paper, no `StyleSheet.create`. Data: @tanstack/react-query, axios.
 - Native versions are pinned in root `resolutions` and in workspace `overrides`. Don't bump them casually.
@@ -45,12 +45,13 @@ Light, high-contrast theme for sunlight use. Tokens live in `global.css` (`@them
 | success | `#1E6B3A` on `#DDEEE2` (chip text `#143F24`) | Synced, AI high |
 | warning | `#8A4205` / `#9A5B00` on `#FBEBD6` (chip text `#5A2B03`) | Pending, AI medium, "please check" |
 | danger | `#A3261B` on `#F8DCD8` (chip text `#7A1C13`) | Flagged, AI low, reject |
+| infoSoft / onInfoSoft | `#DCE9F4` / `#0F3D61` | Informational notes (`InfoNote`) |
 
-Category colours (solid / tile bg / tile border):
-- Energy & Power `#9A5B00` / `#F6E9D2` / `#E8D3AE`
-- Water & Sanitation `#1B5E91` / `#DCE9F4` / `#BCD3E8`
-- Telecom `#5A3F8F` / `#E7E0F2` / `#D0C4E6`
-- Roads & Drainage `#6A4A2E` / `#EDE3D8` / `#D9C8B5`
+Category colours (solid / tile bg / tile border / ink, the tile heading text):
+- Energy & Power `#9A5B00` / `#F6E9D2` / `#E8D3AE` / `#5C3600`
+- Water & Sanitation `#1B5E91` / `#DCE9F4` / `#BCD3E8` / `#0F3D61`
+- Telecom `#5A3F8F` / `#E7E0F2` / `#D0C4E6` / `#3A2663`
+- Roads & Drainage `#6A4A2E` / `#EDE3D8` / `#D9C8B5` / `#45301C`
 
 Confidence colours: high → success, medium → warning, low → danger. Every AI attribute shows its source and confidence ("AI · high", "GIS", "User").
 

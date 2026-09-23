@@ -15,7 +15,10 @@ const mockPassword = {
   reset: jest.fn(),
 };
 
+const mockRouter = { push: jest.fn() };
+
 jest.mock("@/hooks/useSsoSignIn", () => ({ useSsoSignIn: () => mockSso }));
+jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 jest.mock("@/hooks/usePasswordSignIn", () => ({
   usePasswordSignIn: () => mockPassword,
 }));
@@ -103,6 +106,24 @@ describe("SignInView", () => {
     );
   });
 
+  it("tells a pending account to wait for approval", async () => {
+    mockPassword.error = "account_pending";
+    await render(<SignInView />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/waiting for approval/);
+  });
+
+  it("opens the register screen from Create an account", async () => {
+    await render(<SignInView />);
+    await fireEvent.press(
+      screen.getByRole("link", { name: "Create an account" }),
+    );
+
+    expect(mockRouter.push).toHaveBeenCalledWith({
+      pathname: "/(auth)/register",
+    });
+  });
+
   it("marks the options that are not built yet as coming soon", async () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
     await render(<SignInView />);
@@ -110,15 +131,11 @@ describe("SignInView", () => {
     await fireEvent.press(
       screen.getByRole("button", { name: /Continue with Google/ }),
     );
-    for (const name of [
-      "Forgot password?",
-      "Create an account",
-      "Change server",
-    ]) {
+    for (const name of ["Forgot password?", "Change server"]) {
       await fireEvent.press(screen.getByRole("link", { name }));
     }
 
-    expect(alert).toHaveBeenCalledTimes(4);
+    expect(alert).toHaveBeenCalledTimes(3);
     expect(alert).toHaveBeenCalledWith(
       "Coming soon",
       "This option isn't available yet.",

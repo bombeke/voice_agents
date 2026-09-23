@@ -1,3 +1,4 @@
+import type { Registration } from "@/helpers/registration";
 import type { AuthMethod, Claims, Session } from "@/types/Auth";
 import NetInfo from "@react-native-community/netinfo";
 import { isAxiosError } from "axios";
@@ -7,7 +8,11 @@ import { axiosClient } from "../Api";
 import { clearSession, loadSession, saveSession } from "./AuthStorage";
 
 export type AuthErrorCode =
-  "invalid_credentials" | "offline" | "sso_failed" | "server_unreachable";
+  | "invalid_credentials"
+  | "account_pending"
+  | "offline"
+  | "sso_failed"
+  | "server_unreachable";
 
 export class AuthError extends Error {
   constructor(readonly code: AuthErrorCode) {
@@ -23,11 +28,26 @@ type TokenResponse = {
   claims?: Claims;
 };
 
-/** Turn a backend token response into a session with an absolute expiry. */
+/** The code of an `AuthError`, or `fallback` for anything else. */
 export function authErrorCode(err: unknown, fallback: AuthErrorCode) {
   return err instanceof AuthError ? err.code : fallback;
 }
 
+export type RegisterErrorCode =
+  "offline" | "email_taken" | "invalid" | "server_unreachable";
+
+export class RegisterError extends Error {
+  constructor(readonly code: RegisterErrorCode) {
+    super(code);
+    this.name = "RegisterError";
+  }
+}
+
+export function registerErrorCode(err: unknown): RegisterErrorCode {
+  return err instanceof RegisterError ? err.code : "server_unreachable";
+}
+
+/** Turn a backend token response into a session with an absolute expiry. */
 function toSession(
   data: TokenResponse | undefined,
   method: AuthMethod,
@@ -93,9 +113,12 @@ export async function passwordSignIn(
     });
     data = res.data;
   } catch (err) {
-    const status = isAxiosError(err) ? err.response?.status : undefined;
+    const res = isAxiosError(err) ? err.response : undefined;
+    if (res?.status === 403 && res.data?.code === "account_pending") {
+      throw new AuthError("account_pending");
+    }
     throw new AuthError(
-      status === 400 || status === 401 || status === 403
+      res?.status === 400 || res?.status === 401 || res?.status === 403
         ? "invalid_credentials"
         : "server_unreachable",
     );
@@ -103,6 +126,29 @@ export async function passwordSignIn(
   const session = toSession(data, "password", persist);
   if (!session) throw new AuthError("server_unreachable");
   return session;
+}
+
+/**
+ * Self-service sign-up. The account starts pending: the user confirms their
+ * email, then an administrator approves the role and project area, so this
+ * never returns a session. Needs a connection; the password is never queued.
+ */
+export async function register(registration: Registration): Promise<void> {
+  const net = await NetInfo.fetch();
+  if (!net.isConnected) throw new RegisterError("offline");
+
+  try {
+    await axiosClient.post("/auth/register", registration);
+  } catch (err) {
+    const status = isAxiosError(err) ? err.response?.status : undefined;
+    throw new RegisterError(
+      status === 409
+        ? "email_taken"
+        : status === 400 || status === 422
+          ? "invalid"
+          : "server_unreachable",
+    );
+  }
 }
 
 /**

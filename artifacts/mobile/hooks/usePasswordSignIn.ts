@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 
 type Credentials = { identifier: string; password: string; persist: boolean };
 
-/** Username/password sign-in against the local user store. */
+/** Username/password sign-in; the backend checks the credentials. */
 export function usePasswordSignIn() {
   const { signIn } = useAuth();
   const mutation = useMutation({

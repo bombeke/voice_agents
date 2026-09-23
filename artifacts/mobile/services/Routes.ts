@@ -25,12 +25,21 @@ export const Routes = {
   // Public
   ROOT: "/" as const,
   LOGIN: { pathname: "/(auth)/login" } as const,
+  REGISTER: { pathname: "/(auth)/register" } as const,
   SETTINGS: "/(tabs)/settings" as const,
 
   // App tabs
   TABS: "/(tabs)" as const,
   HOME: "/(tabs)" as const,
+  MAP: "/(tabs)/map" as const,
+  RECORDS: "/(tabs)/records" as const,
+  REVIEW: "/(tabs)/review" as const,
+  /** The Profile tab is the settings screen. */
+  PROFILE: "/(tabs)/settings" as const,
   AGENTS: "/(tabs)/agents" as const,
+
+  // Full-screen capture stack; takes `?category=energy|water|telecom|roads|auto`.
+  CAPTURE: "/capture" as const,
 
   // Admin
   ADMIN: {
@@ -45,9 +54,12 @@ export const Routes = {
 
 // Helper types for typed navigation
 export type PublicRouteKey = keyof typeof Routes;
-export type AdminRouteKey = keyof typeof Routes["ADMIN"];
+export type AdminRouteKey = keyof (typeof Routes)["ADMIN"];
 
-export function navigateTo(route: typeof Routes.ADMIN.DASHBOARD, isAdmin: boolean) {
+export function navigateTo(
+  route: typeof Routes.ADMIN.DASHBOARD,
+  isAdmin: boolean,
+) {
   if (!isAdmin && "__adminOnly" in route) {
     throw new Error("Cannot navigate to admin route without permission");
   }

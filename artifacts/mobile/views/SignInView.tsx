@@ -4,21 +4,22 @@ import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Icon } from "@/components/ui/Icons";
 import { Input } from "@/components/ui/Input";
+import { TextLink } from "@/components/ui/TextLink";
 import { API_URL } from "@/constants/Config";
 import { strings } from "@/constants/Strings";
 import { colors } from "@/constants/theme";
 import { usePasswordSignIn } from "@/hooks/usePasswordSignIn";
 import { useSsoSignIn } from "@/hooks/useSsoSignIn";
 import type { AuthErrorCode } from "@/services/auth/AuthService";
+import { comingSoon, tapFeedback } from "@/services/Feedback";
+import { Routes } from "@/services/Routes";
 import { useNetInfo } from "@react-native-community/netinfo";
-import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -29,6 +30,7 @@ const t = strings.auth;
 
 const ERROR_MESSAGES: Record<AuthErrorCode, string> = {
   invalid_credentials: t.errors.invalidCredentials,
+  account_pending: t.errors.accountPending,
   offline: t.errors.ssoOffline,
   sso_failed: t.errors.ssoFailed,
   server_unreachable: t.errors.serverUnreachable,
@@ -37,39 +39,9 @@ const ERROR_MESSAGES: Record<AuthErrorCode, string> = {
 /** "iip.example.org" from the configured API base URL. */
 const SERVER_HOST = API_URL.replace(/^[a-z]+:\/\//i, "").split("/")[0];
 
-function tapFeedback() {
-  if (Platform.OS !== "web") {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }
-}
-
-function comingSoon() {
-  Alert.alert(t.comingSoonTitle, t.comingSoonMessage);
-}
-
-function TextLink({
-  label,
-  onPress,
-  className = "min-h-11",
-}: {
-  label: string;
-  onPress: () => void;
-  className?: string;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="link"
-      onPress={onPress}
-      hitSlop={6}
-      className={`justify-center ${className}`}
-    >
-      <Text className="type-label text-primary underline">{label}</Text>
-    </Pressable>
-  );
-}
-
 /** Sign in screen (design/screens/Sign in.png). */
 export function SignInView() {
+  const router = useRouter();
   const sso = useSsoSignIn();
   const password = usePasswordSignIn();
   const { isConnected } = useNetInfo();
@@ -218,7 +190,10 @@ export function SignInView() {
             <Text className="type-body-small text-text-muted">
               {t.newToPlatform}
             </Text>
-            <TextLink label={t.createAccount} onPress={comingSoon} />
+            <TextLink
+              label={t.createAccount}
+              onPress={() => router.push(Routes.REGISTER as never)}
+            />
           </View>
         </View>
 

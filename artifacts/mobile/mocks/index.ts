@@ -3,18 +3,20 @@ import type { Claims } from "@/types/Auth";
 import MockAdapter from "axios-mock-adapter";
 import type { AuthSessionResult } from "expo-auth-session";
 import { jwtDecode } from "jwt-decode";
-import {
-  FAKE_SSO_USER,
-  FAKE_USERS,
-  type FakeUser,
-  REJECTED_PASSWORD,
-} from "./fixtures";
+import { setPhotoQualityChecker } from "@/services/capture/PhotoQuality";
+import { setGnssSource } from "@/services/location/GnssSource";
+import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
+import { accountStore } from "./AccountStore";
+import { FAKE_GNSS, fakeCaptures } from "./captures";
+import { fakeGnssSource, fakePhotoQuality } from "./gnss";
+import { FAKE_SSO_USER, type FakeUser, REJECTED_PASSWORD } from "./fixtures";
 import { FAKE_TOKEN_TTL, fakeClaims, fakeToken } from "./token";
 import type { DevMocks } from "./types";
 
 /**
- * Dev-only fake backend for the auth endpoints. The app's real sign-in code
- * runs unchanged; only the server answering it is fake. Metro swaps this module
+ * Dev-only fake backend for the auth endpoints, seed captures for Home, and a
+ * simulated GNSS receiver and photo-quality check for the capture screen. The
+ * app's real code runs unchanged; only what answers it is fake. Metro swaps this module
  * for mocks/stub.ts unless EXPO_PUBLIC_API_MOCKING=enabled.
  *
  * `scripts/check-release-bundle.sh` fails the build if this marker is bundled.
@@ -25,13 +27,6 @@ export const FAKE_SSO_CODE = "dev-sso-code";
 function tokenResponse(user: FakeUser) {
   const claims = fakeClaims(user);
   return { access_token: fakeToken(claims), expires_in: FAKE_TOKEN_TTL };
-}
-
-function findUser(identifier: unknown): FakeUser | undefined {
-  const id = String(identifier ?? "")
-    .trim()
-    .toLowerCase();
-  return FAKE_USERS.find((u) => u.username === id || u.email === id);
 }
 
 function body(data: unknown): Record<string, unknown> {
@@ -48,6 +43,14 @@ export const devMocks: DevMocks = {
     if (adapter) return;
     console.warn(`${DEV_MOCKS_MARKER} Fake API enabled for auth endpoints.`);
 
+    // Home screen data. Only fills an empty store so real captures survive.
+    if (captures$.get().length === 0) captures$.set(fakeCaptures());
+    if (!gnssStatus$.get()) gnssStatus$.set(FAKE_GNSS);
+
+    // Capture screen: converging GPS fixes and passing quality checks.
+    setGnssSource(fakeGnssSource);
+    setPhotoQualityChecker(fakePhotoQuality);
+
     adapter = new MockAdapter(axiosClient, {
       delayResponse: 400,
       onNoMatch: "passthrough",
@@ -55,11 +58,33 @@ export const devMocks: DevMocks = {
 
     adapter.onPost("/auth/login/password").reply((config) => {
       const { username, password } = body(config.data);
-      const user = findUser(username);
+      const user = accountStore.find(username);
       if (!user || !password || password === REJECTED_PASSWORD) {
         return [401, { detail: "Invalid username or password" }];
       }
+      if (user.status !== "active") {
+        return [
+          403,
+          { code: "account_pending", detail: "Account awaiting approval" },
+        ];
+      }
       return [200, tokenResponse(user)];
+    });
+
+    adapter.onPost("/auth/register").reply((config) => {
+      const { name, email, phone, password } = body(config.data);
+      if (![name, email, password].every((v) => typeof v === "string" && v)) {
+        return [400, { detail: "Name, email and password are required" }];
+      }
+      if (accountStore.find(email)) {
+        return [409, { detail: "An account with this email already exists" }];
+      }
+      accountStore.add({
+        name: String(name),
+        email: String(email),
+        phone: typeof phone === "string" ? phone : undefined,
+      });
+      return [201, { status: "pending_verification" }];
     });
 
     adapter
@@ -73,8 +98,8 @@ export const devMocks: DevMocks = {
     adapter.onPost("/auth/refresh").reply((config) => {
       try {
         const { sub } = jwtDecode<Claims>(String(body(config.data).token));
-        const user = findUser(sub);
-        if (user) return [200, tokenResponse(user)];
+        const user = accountStore.find(sub);
+        if (user?.status === "active") return [200, tokenResponse(user)];
       } catch {
         // Fall through: not one of our tokens.
       }

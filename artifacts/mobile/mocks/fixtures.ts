@@ -1,7 +1,9 @@
 /**
  * Test identities for the fake server. There are no passwords: any non-empty
  * password signs a listed user in, and "wrong" is rejected to show the error
- * state. These accounts exist nowhere but this file.
+ * state. These accounts exist nowhere but this file. Registering one of these
+ * emails shows the "already exists" error; new sign-ups stay pending
+ * (see AccountStore.ts).
  */
 export interface FakeUser {
   username: string;

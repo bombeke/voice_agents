@@ -1,4 +1,5 @@
-import { TrackedDetection } from "@/hooks/Types";
+import type { AssetCategory } from "@/constants/Colors";
+import type { CaptureFlag, CapturedDetection } from "@/types/Capture";
 import { batch, observable } from "@legendapp/state";
 import { configureSynced, syncObservable } from "@legendapp/state/sync";
 import { syncedQuery } from "@legendapp/state/sync-plugins/tanstack-query";
@@ -6,6 +7,7 @@ import { randomUUID } from "expo-crypto";
 import { Platform } from "react-native";
 import { AuthType, axiosClient, queryClient } from "../Api";
 import type { OpKind, Operation } from "../sync/Types";
+import { CAPTURES_STORAGE_KEY, captures$ } from "./CaptureStore";
 import type { LocalEventRecord } from "./EventStore";
 import {
   deleteCaptureImage,
@@ -71,6 +73,14 @@ export interface UtilityPole {
   tag?: string;
   /** Free-text note the surveyor added alongside the tag. */
   comment?: string;
+  category?: AssetCategory;
+  /** Horizontal accuracy (m) of the averaged fix stamped on the record. */
+  accuracy?: number;
+  /** Degrees from true north at the shutter. */
+  heading?: number;
+  /** Detector that produced the detection (design-doc §6.4). */
+  modelVersion?: string;
+  flags?: CaptureFlag[];
   synced: boolean;
   dhis2Id?: string;
   vc: VectorClock;
@@ -90,7 +100,9 @@ export interface CRDTPole extends UtilityPole {
   deleted?: boolean;
 }
 
-export type SyncedUtilityPole = CRDTPole & SyncedPole & TrackedDetection;
+export type SyncedUtilityPole = CRDTPole &
+  SyncedPole &
+  Partial<CapturedDetection>;
 
 /** Shape of a pole as stored locally; records from older app versions or the server may be partial. */
 export type LocalPole = Partial<SyncedUtilityPole>;
@@ -184,6 +196,15 @@ export function initPersistence() {
         mmkv: {
           id: "polevision_tracks_db",
         },
+      },
+    }),
+  );
+
+  syncObservable(
+    captures$,
+    syncPlugin({
+      persist: {
+        name: CAPTURES_STORAGE_KEY,
       },
     }),
   );

@@ -1,8 +1,5 @@
-import type { AssetCategory } from "@/constants/Colors";
-import { FontAwesome } from "@expo/vector-icons";
-import { ComponentProps } from "react";
-
-export type FontAwesomeName = ComponentProps<typeof FontAwesome>["name"];
+import type { IconName } from "@/components/ui/Icons";
+import { strings } from "@/constants/Strings";
 
 export type MenuItem = {
   key: string;
@@ -13,66 +10,46 @@ export type MenuItem = {
    * a file/directory under `app/(tabs)`.
    */
   tab?: string;
-  /** Href used for navigation (dashboard cards, links). Must be a real route. */
+  /** Href used for navigation. Must be a real route. */
   href: string;
-  icon: FontAwesomeName;
+  icon: IconName;
   permission?: string;
   requireAdmin?: boolean;
   offlineVisible?: boolean;
   children?: MenuItem[];
-  desc?: string;
-  /** Tints the dashboard card icon tile. */
-  category?: AssetCategory;
 };
 
+/** Bottom tabs from design-doc §4: Capture, Map, Records, Review, Profile. */
 export const MENU_CONFIG: MenuItem[] = [
   {
     key: "index",
-    title: "Home",
+    title: strings.tabs.capture,
     tab: "index",
     href: "/(tabs)",
-    icon: "home",
+    icon: "capture",
   },
-
   {
-    key: "agents",
-    title: "Agents",
-    tab: "agents",
-    href: "/agents",
-    icon: "user",
-    permission: "agents:view",
-    desc: "Deploy disease surveillance agents",
-    category: "telecom",
+    key: "map",
+    title: strings.tabs.map,
+    tab: "map",
+    href: "/(tabs)/map",
+    icon: "map",
   },
-
   {
-    key: "poles",
-    title: "Poles",
-    tab: "poles",
-    href: "/poles",
-    icon: "camera",
-    desc: "AI-powered pole defect detection",
-    category: "energy",
+    key: "records",
+    title: strings.tabs.records,
+    tab: "records",
+    href: "/(tabs)/records",
+    icon: "records",
   },
-
   {
-    key: "sanitation",
-    title: "Sanitation",
-    tab: "sanitation",
-    href: "/sanitation",
-    icon: "recycle",
-    desc: "Monitor sanitation conditions",
-    category: "water",
-  },
-
-  {
-    key: "roads",
-    title: "Roads",
-    tab: "roads",
-    href: "/roads",
-    icon: "road",
-    desc: "Road condition analytics",
-    category: "roads",
+    key: "review",
+    title: strings.tabs.review,
+    tab: "review",
+    href: "/(tabs)/review",
+    icon: "review",
+    // Supervisors (and admins) only.
+    permission: "records:review",
   },
 
   // TODO: `app/(admin)` currently contains only `_layout.tsx` files and no
@@ -91,14 +68,14 @@ export const MENU_CONFIG: MenuItem[] = [
   //       key: "users",
   //       title: "Users",
   //       href: "/(admin)/users",
-  //       icon: "users",
+  //       icon: "user",
   //       permission: "admin:users:read",
   //     },
   //     {
   //       key: "policies",
   //       title: "Policies",
   //       href: "/(admin)/policies",
-  //       icon: "file-text",
+  //       icon: "records",
   //       permission: "admin:policies:read",
   //     },
   //   ],
@@ -106,9 +83,9 @@ export const MENU_CONFIG: MenuItem[] = [
 
   {
     key: "settings",
-    title: "Settings",
+    title: strings.tabs.profile,
     tab: "settings",
-    href: "/settings",
-    icon: "cog",
+    href: "/(tabs)/settings",
+    icon: "user",
   },
 ];

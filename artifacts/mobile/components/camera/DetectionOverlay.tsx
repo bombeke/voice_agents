@@ -1,193 +1,126 @@
+import { strings } from "@/constants/Strings";
 import {
-  Canvas as SkiaCanvas,
-  Group,
-  matchFont,
-  Rect,
-  Text,
-} from "@shopify/react-native-skia";
-import { memo, useMemo } from "react";
-import { Dimensions, Platform } from "react-native";
-import { useDerivedValue } from "react-native-reanimated";
+  toScreenRect,
+  type Size,
+  type ViewportTransform,
+} from "@/helpers/detectionGeometry";
+import type { Track } from "@/helpers/detectionTracker";
+import { fill } from "@/helpers/format";
+import type { TrackLabel } from "@/hooks/useLiveDetection";
+import { Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
 import { withUniwind } from "uniwind";
 
-const Canvas = withUniwind(SkiaCanvas);
+const AnimatedView = withUniwind(Animated.View);
 
-interface BoxProps {
-  index: number;
-  detections: any;
+/** Boxes glide between inferences instead of jumping. */
+const GLIDE = { duration: 80 };
+/** Put the label inside the box when there's no room above it. */
+const LABEL_ROOM = 24;
+
+interface DetectionOverlayProps {
+  tracks: SharedValue<Track[]>;
+  labels: TrackLabel[];
+  transform: ViewportTransform;
+  viewport: Size;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
-type Props = {
-  detections?: any;
-};
-
-export const DetectionOverlay1 = memo(({ detections }: Props) => {
-  const isPortrait = screenHeight > screenWidth;
-  console.log("detections0:", detections.value);
-  const font = useMemo(() => {
-    return matchFont({
-      fontFamily: Platform.OS === "ios" ? "Helvetica" : "serif",
-      fontSize: 14,
-      fontStyle: "italic",
-      fontWeight: "bold",
-    } as any);
-  }, []);
-  console.log("detections1:", detections.value);
-  const dets = detections.value?.detections ?? [];
-
-  if (dets.length === 0) return null;
-
+/**
+ * Tracked detections drawn over the preview (after the executorch gallery's
+ * DetectionOverlay). React renders one box per track id and only when the set
+ * of tracks changes; positions follow the shared value on the UI thread.
+ */
+export function DetectionOverlay({
+  tracks,
+  labels,
+  transform,
+  viewport,
+}: DetectionOverlayProps) {
+  const summary = labels.length
+    ? fill(strings.capture.detected, { count: labels.length })
+    : strings.capture.detectionsNone;
   return (
-    <Canvas className="absolute w-screen h-screen pointer-events-none">
-      <Rect
-        x={100}
-        y={100}
-        width={200}
-        height={200}
-        color="lime"
-        style="stroke"
-        strokeWidth={4}
-      />
-      {dets.map((_: any, i: number) => {
-        /**
-         * Each box is reactive
-         */
-        console.log("detected0");
-        const x = useDerivedValue(() => {
-          console.log("detected1");
-          const d = detections.value?.detections?.[i];
-          const fw = detections.value?.frameWidth;
-          const fh = detections.value?.frameHeight;
-
-          if (!d || !fw || !fh) return 0;
-
-          let scale, offsetX;
-
-          if (isPortrait) {
-            scale = Math.max(screenWidth / fh, screenHeight / fw);
-            offsetX = (screenWidth - fh * scale) / 2;
-          } else {
-            scale = Math.max(screenWidth / fw, screenHeight / fh);
-            offsetX = (screenWidth - fw * scale) / 2;
-          }
-
-          if (Platform.OS === "android" && isPortrait) {
-            return (fh - d.y2) * scale + offsetX;
-          }
-
-          return d.x1 * scale + offsetX;
-        });
-        console.log("detected2");
-
-        const y = useDerivedValue(() => {
-          const d = detections.value?.detections?.[i];
-          const fw = detections.value?.frameWidth;
-          const fh = detections.value?.frameHeight;
-
-          if (!d || !fw || !fh) return 0;
-
-          let scale, offsetY;
-
-          if (isPortrait) {
-            scale = Math.max(screenWidth / fh, screenHeight / fw);
-            offsetY = (screenHeight - fw * scale) / 2;
-          } else {
-            scale = Math.max(screenWidth / fw, screenHeight / fh);
-            offsetY = (screenHeight - fh * scale) / 2;
-          }
-
-          if (Platform.OS === "android" && isPortrait) {
-            return d.x1 * scale + offsetY;
-          }
-
-          return d.y1 * scale + offsetY;
-        });
-
-        const width = useDerivedValue(() => {
-          const d = detections.value?.detections?.[i];
-          const fw = detections.value?.frameWidth;
-          const fh = detections.value?.frameHeight;
-
-          if (!d || !fw || !fh) return 0;
-
-          const scale = isPortrait
-            ? Math.max(screenWidth / fh, screenHeight / fw)
-            : Math.max(screenWidth / fw, screenHeight / fh);
-
-          return Platform.OS === "android" && isPortrait
-            ? (d.y2 - d.y1) * scale
-            : (d.x2 - d.x1) * scale;
-        });
-
-        const height = useDerivedValue(() => {
-          const d = detections.value?.detections?.[i];
-          const fw = detections.value?.frameWidth;
-          const fh = detections.value?.frameHeight;
-
-          if (!d || !fw || !fh) return 0;
-
-          const scale = isPortrait
-            ? Math.max(screenWidth / fh, screenHeight / fw)
-            : Math.max(screenWidth / fw, screenHeight / fh);
-
-          return Platform.OS === "android" && isPortrait
-            ? (d.x2 - d.x1) * scale
-            : (d.y2 - d.y1) * scale;
-        });
-
-        const color = useDerivedValue(() => {
-          const d = detections.value?.detections?.[i];
-          if (!d) return "transparent";
-
-          return d.score > 0.8 ? "lime" : d.score > 0.5 ? "yellow" : "red";
-        });
-
-        const label = useDerivedValue(() => {
-          const d = detections.value?.detections?.[i];
-          if (!d) return "";
-
-          return `${d.name ?? "object"} ${Math.round(d.score * 100)}%`;
-        });
-
-        return (
-          <Group key={i}>
-            <Rect
-              x={x}
-              y={y}
-              width={width}
-              height={height}
-              color={color}
-              style="stroke"
-              strokeWidth={3}
-            />
-            {font && <Text x={x} y={y} text={label} color="red" font={font} />}
-          </Group>
-        );
-      })}
-    </Canvas>
-  );
-});
-
-export const DetectionOverlay = ({ detections }: Props) => {
-  console.log("detections:", detections);
-  if (!detections) return null;
-
-  return (
-    <Canvas className="absolute inset-0 z-[1000]">
-      {detections.detections.map((d: any, i: number) => (
-        <Rect
-          key={i}
-          x={d.x1}
-          y={d.y1}
-          width={d.width}
-          height={d.height}
-          color="red"
-          style="stroke"
-          strokeWidth={3}
+    <View
+      className="absolute inset-0"
+      pointerEvents="none"
+      accessible
+      accessibilityLabel={summary}
+    >
+      {labels.map((t) => (
+        <TrackBox
+          key={t.trackId}
+          track={t}
+          tracks={tracks}
+          transform={transform}
+          viewport={viewport}
         />
       ))}
-    </Canvas>
+    </View>
   );
-};
+}
+
+interface TrackBoxProps {
+  track: TrackLabel;
+  tracks: SharedValue<Track[]>;
+  transform: ViewportTransform;
+  viewport: Size;
+}
+
+function TrackBox({ track, tracks, transform, viewport }: TrackBoxProps) {
+  const { trackId, label, suggested } = track;
+  // The first frame places the box; later ones glide.
+  const placed = useSharedValue(false);
+
+  const boxStyle = useAnimatedStyle(() => {
+    const current = tracks.value.find((t) => t.trackId === trackId);
+    if (!current) return { opacity: withTiming(0, GLIDE) };
+    const rect = toScreenRect(current.box, transform, viewport);
+    if (!placed.value) {
+      placed.value = true;
+      return { opacity: 1, ...rect };
+    }
+    return {
+      opacity: 1,
+      left: withTiming(rect.left, GLIDE),
+      top: withTiming(rect.top, GLIDE),
+      width: withTiming(rect.width, GLIDE),
+      height: withTiming(rect.height, GLIDE),
+    };
+  });
+
+  const chipStyle = useAnimatedStyle(() => {
+    const current = tracks.value.find((t) => t.trackId === trackId);
+    const top = current
+      ? toScreenRect(current.box, transform, viewport).top
+      : 0;
+    return { top: top < LABEL_ROOM ? 2 : -LABEL_ROOM };
+  });
+
+  const band = suggested
+    ? strings.capture.suggested
+    : strings.capture.confidenceHigh;
+
+  return (
+    <AnimatedView
+      className={`absolute rounded border-2 border-accent ${suggested ? "border-dashed bg-accent/5" : "bg-accent/10"}`}
+      style={boxStyle}
+    >
+      <AnimatedView
+        className={`absolute left-0 px-1.5 py-0.5 rounded ${suggested ? "bg-camera/80" : "bg-accent"}`}
+        style={chipStyle}
+      >
+        <Text
+          numberOfLines={1}
+          className={`type-chip text-[11px] ${suggested ? "text-accent" : "text-on-accent"}`}
+        >
+          {`${label} · ${band}`}
+        </Text>
+      </AnimatedView>
+    </AnimatedView>
+  );
+}

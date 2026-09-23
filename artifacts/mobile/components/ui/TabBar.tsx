@@ -2,14 +2,12 @@ import { colors, sizes } from "@/constants/theme";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { Icon, IconName } from "./Icons";
 
 /**
  * Bottom tab bar from the Home/Main mockup: white bar, top border, active tab
  * gets a 56×30 soft-teal pill behind its icon.
  *
- * Usage: <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
- * and give each screen `tabBarIcon: tabIcon('capture')`.
+ * Usage: <Tabs tabBar={(props) => <TabBar {...props} />}>; see AppTabs.
  */
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   return (
@@ -82,13 +80,4 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       })}
     </View>
   );
-}
-
-/** `tabBarIcon` factory using the design's tab glyphs. */
-export function tabIcon(
-  name: Extract<IconName, "capture" | "map" | "records" | "review">,
-) {
-  return function TabIcon({ color, size }: { color: string; size: number }) {
-    return <Icon name={name} color={color} size={size} />;
-  };
 }

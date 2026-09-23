@@ -36,13 +36,44 @@ export const palette = {
   danger: "#A3261B",
   dangerSoft: "#F8DCD8",
   onDangerSoft: "#7A1C13",
+  /** Informational notes (Register "we'll email a verification link"). */
+  infoSoft: "#DCE9F4",
+  onInfoSoft: "#0F3D61",
+
+  /** Camera screen overlays (see design/ui-screens.html, screen 4). */
+  camera: "#0D0F0E",
+  onCameraMuted: "#D8D4C8",
+  gpsLocked: "#5FD08A",
+  gpsConfirming: "#F5C04A",
+  gpsAcquiring: "#F2A65A",
 } as const;
 
+/** `ink` is the darker shade used for headings on the tile background. */
 export const CategoryColors = {
-  energy: { solid: "#9A5B00", tile: "#F6E9D2", border: "#E8D3AE" },
-  water: { solid: "#1B5E91", tile: "#DCE9F4", border: "#BCD3E8" },
-  telecom: { solid: "#5A3F8F", tile: "#E7E0F2", border: "#D0C4E6" },
-  roads: { solid: "#6A4A2E", tile: "#EDE3D8", border: "#D9C8B5" },
+  energy: {
+    solid: "#9A5B00",
+    tile: "#F6E9D2",
+    border: "#E8D3AE",
+    ink: "#5C3600",
+  },
+  water: {
+    solid: "#1B5E91",
+    tile: "#DCE9F4",
+    border: "#BCD3E8",
+    ink: "#0F3D61",
+  },
+  telecom: {
+    solid: "#5A3F8F",
+    tile: "#E7E0F2",
+    border: "#D0C4E6",
+    ink: "#3A2663",
+  },
+  roads: {
+    solid: "#6A4A2E",
+    tile: "#EDE3D8",
+    border: "#D9C8B5",
+    ink: "#45301C",
+  },
 } as const;
 
 export type AssetCategory = keyof typeof CategoryColors;

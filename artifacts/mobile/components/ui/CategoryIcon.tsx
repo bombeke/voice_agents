@@ -1,3 +1,4 @@
+import { strings } from "@/constants/Strings";
 import { AssetCategory, CategoryColors, colors } from "@/constants/theme";
 import { View } from "react-native";
 import { Icon } from "./Icons";
@@ -26,13 +27,6 @@ const FILL: Record<AssetCategory, { solid: string; tile: string }> = {
   roads: { solid: "bg-roads", tile: "bg-roads-tile" },
 };
 
-export const CATEGORY_LABELS: Record<AssetCategory, string> = {
-  energy: "Energy & Power",
-  water: "Water & Sanitation",
-  telecom: "Telecom",
-  roads: "Roads & Drainage",
-};
-
 interface CategoryIconProps {
   category: AssetCategory;
   size?: CategoryIconSize;
@@ -45,7 +39,7 @@ export function CategoryIcon({ category, size = "lg" }: CategoryIconProps) {
     <View
       accessible
       accessibilityRole="image"
-      accessibilityLabel={CATEGORY_LABELS[category]}
+      accessibilityLabel={strings.categories[category].label}
       className={`items-center justify-center ${s.box} ${s.solid ? fill.solid : fill.tile}`}
     >
       <Icon

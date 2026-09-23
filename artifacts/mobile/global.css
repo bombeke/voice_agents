@@ -32,19 +32,32 @@
   --color-danger: #a3261b;
   --color-danger-soft: #f8dcd8;
   --color-on-danger-soft: #7a1c13;
+  --color-info-soft: #dce9f4;
+  --color-on-info-soft: #0f3d61;
 
   --color-energy: #9a5b00;
   --color-energy-tile: #f6e9d2;
+  --color-energy-ink: #5c3600;
   --color-energy-border: #e8d3ae;
   --color-water: #1b5e91;
   --color-water-tile: #dce9f4;
+  --color-water-ink: #0f3d61;
   --color-water-border: #bcd3e8;
   --color-telecom: #5a3f8f;
   --color-telecom-tile: #e7e0f2;
+  --color-telecom-ink: #3a2663;
   --color-telecom-border: #d0c4e6;
   --color-roads: #6a4a2e;
   --color-roads-tile: #ede3d8;
+  --color-roads-ink: #45301c;
   --color-roads-border: #d9c8b5;
+
+  /* Camera screen (dark overlays on the live preview). */
+  --color-camera: #0d0f0e;
+  --color-on-camera-muted: #d8d4c8;
+  --color-gps-locked: #5fd08a;
+  --color-gps-confirming: #f5c04a;
+  --color-gps-acquiring: #f2a65a;
 
   /* One family per weight; never combine with font-bold etc. */
   --font-display: Archivo_800ExtraBold;

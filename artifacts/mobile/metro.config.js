@@ -25,11 +25,8 @@ config.resolver.assetExts.push("tflite", "bin", "onnx", "ncnn", "pte");
 
 const WEB_STUBS = {
   "react-native-vision-camera": path.resolve(projectRoot, "web-stubs/react-native-vision-camera.js"),
-  "react-native-vision-camera-executorch": path.resolve(projectRoot, "web-stubs/react-native-vision-camera-executorch.js"),
-  "react-native-vision-camera-location": path.resolve(projectRoot, "web-stubs/react-native-vision-camera-location.js"),
-  "react-native-worklets-core": path.resolve(projectRoot, "web-stubs/react-native-worklets-core.js"),
+  "react-native-vision-camera-resizer": path.resolve(projectRoot, "web-stubs/react-native-vision-camera-resizer.js"),
   "react-native-worklets": path.resolve(projectRoot, "web-stubs/react-native-worklets.js"),
-  "vision-camera-resize-plugin": path.resolve(projectRoot, "web-stubs/vision-camera-resize-plugin.js"),
   "react-native-reanimated": path.resolve(projectRoot, "web-stubs/react-native-reanimated.js"),
   "react-native-mmkv": path.resolve(projectRoot, "web-stubs/react-native-mmkv.js"),
   //"react-native-webrtc": path.resolve(projectRoot, "web-stubs/react-native-webrtc.js"),
@@ -44,7 +41,6 @@ const WEB_STUBS = {
   "@signalwire/react-native": path.resolve(projectRoot, "web-stubs/signalwire-react-native.js"),
   "expo-secure-store": path.resolve(projectRoot, "web-stubs/expo-secure-store.js"),
   "react-native-executorch": path.resolve(projectRoot, "web-stubs/react-native-executorch.js"),
-  "react-native-executorch-expo-resource-fetcher": path.resolve(projectRoot, "web-stubs/react-native-executorch-expo-resource-fetcher.js"),
 };
 
 // The dev-only fake API (mocks/) is bundled only when explicitly requested,

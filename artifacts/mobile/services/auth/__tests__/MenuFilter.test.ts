@@ -1,11 +1,11 @@
-import type { MenuItem } from "../MenuConfig";
+import { MENU_CONFIG, type MenuItem } from "../MenuConfig";
 import { filterMenu } from "../MenuFilter";
 
 const item = (key: string, extra: Partial<MenuItem> = {}): MenuItem => ({
   key,
   title: key,
   href: `/${key}`,
-  icon: "home",
+  icon: "capture",
   ...extra,
 });
 
@@ -65,5 +65,25 @@ describe("filterMenu", () => {
     const snapshot = JSON.stringify(menu);
     filterMenu(menu, operator);
     expect(JSON.stringify(menu)).toBe(snapshot);
+  });
+
+  it("shows the Review tab to supervisors only", () => {
+    const tabs = (permissions: string[]) =>
+      keys(
+        filterMenu(MENU_CONFIG, { isAdmin: false, claims: { permissions } }),
+      );
+    expect(tabs(["agents:view"])).toEqual([
+      "index",
+      "map",
+      "records",
+      "settings",
+    ]);
+    expect(tabs(["agents:view", "records:review"])).toEqual([
+      "index",
+      "map",
+      "records",
+      "review",
+      "settings",
+    ]);
   });
 });

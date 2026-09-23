@@ -1,11 +1,10 @@
-import { AppReadyProvider } from "@/components/AppReadyContext";
 import { MMKVProvider } from "@/components/MmkvContext";
 import { fontAssets } from "@/constants/theme";
 import { devMocks } from "@/mocks";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { DetectorModelProvider } from "@/providers/DetectorModelProvider";
 import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
 import { queryClient } from "@/services/Api";
-import { prepareAndInitializeModel } from "@/services/PrepareModel";
 import { BackendSyncObserver } from "@/services/storage/BackendSyncObserver";
 import { initPersistence } from "@/services/storage/LegendState";
 import { OpQueueReplayObserver } from "@/services/storage/OpQueueReplayObserver";
@@ -14,7 +13,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { GestureHandlerRootView as RNGestureHandlerRootView } from "react-native-gesture-handler";
 import {
   SafeAreaListener,
@@ -23,28 +22,19 @@ import {
 import { Uniwind, withUniwind } from "uniwind";
 import "../global.css";
 
-import { initExecutorch } from "react-native-executorch";
-import { ExpoResourceFetcher } from "react-native-executorch-expo-resource-fetcher";
-
 const GestureHandlerRootView = withUniwind(RNGestureHandlerRootView);
 
 SplashScreen.preventAutoHideAsync();
 
-interface RootLayoutNavProps {
-  ready: boolean;
-}
-
-export function RootLayoutNav({ ready }: RootLayoutNavProps) {
-  //const deviceId =  useValue(poleVisionDBDeviceId$)
-
+export function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
-        name="(tabs)"
-        options={{ headerShown: false }}
-        initialParams={{ ready }}
+        name="capture"
+        options={{ headerShown: false, presentation: "fullScreenModal" }}
       />
       <Stack.Screen name="+not-found" />
     </Stack>
@@ -57,25 +47,17 @@ initPersistence();
 // Dev-only fake API; `devMocks` is null in release bundles (metro.config.js).
 devMocks?.install();
 
-initExecutorch({
-  resourceFetcher: ExpoResourceFetcher,
-});
-
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...fontAssets,
   });
+  // Only fonts hold the splash; the detector downloads in DetectorModelProvider.
   useEffect(() => {
-    (async () => {
-      const path = await prepareAndInitializeModel();
-      setReady(true);
-      await SplashScreen.hideAsync();
-    })();
-  }, []);
+    if (loaded) SplashScreen.hideAsync();
+  }, [loaded]);
 
-  if (!loaded || !ready) {
+  if (!loaded) {
     return null;
   }
 
@@ -85,20 +67,18 @@ export default function RootLayout() {
         <MMKVProvider storage={storage}>
           <AuthProvider>
             <UtilityStoreProvider>
-              {/*<CachedModelBootstrap>*/}
-              <SafeAreaProvider>
-                {/* Feeds insets to uniwind's `*-safe` utilities. */}
-                <SafeAreaListener
-                  onChange={({ insets }) => Uniwind.updateInsets(insets)}
-                >
-                  <BackendSyncObserver />
-                  <OpQueueReplayObserver />
-                  <AppReadyProvider ready={ready}>
-                    <RootLayoutNav ready={ready} />
-                  </AppReadyProvider>
-                </SafeAreaListener>
-              </SafeAreaProvider>
-              {/*</CachedModelBootstrap>*/}
+              <DetectorModelProvider>
+                <SafeAreaProvider>
+                  {/* Feeds insets to uniwind's `*-safe` utilities. */}
+                  <SafeAreaListener
+                    onChange={({ insets }) => Uniwind.updateInsets(insets)}
+                  >
+                    <BackendSyncObserver />
+                    <OpQueueReplayObserver />
+                    <RootLayoutNav />
+                  </SafeAreaListener>
+                </SafeAreaProvider>
+              </DetectorModelProvider>
             </UtilityStoreProvider>
           </AuthProvider>
         </MMKVProvider>

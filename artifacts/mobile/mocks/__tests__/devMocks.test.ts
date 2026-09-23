@@ -1,6 +1,9 @@
 import type { Claims } from "@/types/Auth";
 import { jwtDecode } from "jwt-decode";
 import { DEV_MOCKS_MARKER, devMocks, FAKE_SSO_CODE } from "..";
+import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
+import { accountStore } from "../AccountStore";
+import { fakeCaptures } from "../captures";
 import { devMocks as stub } from "../stub";
 
 jest.mock("@/services/Api", () => ({
@@ -13,6 +16,14 @@ beforeAll(() => {
   jest.spyOn(console, "warn").mockImplementation(() => {});
   devMocks.install();
 });
+beforeEach(() => accountStore.clear());
+
+const SIGN_UP = {
+  name: "Grace Nakato",
+  email: "grace@uedcl.example.org",
+  phone: "+256700123456",
+  password: "fieldwork2026",
+};
 
 async function post(url: string, data: object) {
   try {
@@ -26,6 +37,18 @@ async function post(url: string, data: object) {
 describe("dev mocks", () => {
   it("is null in the stub that release bundles get", () => {
     expect(stub).toBeNull();
+  });
+
+  it("seeds the Home screen's captures and GNSS state", () => {
+    expect(captures$.get()).toHaveLength(14);
+    expect(gnssStatus$.get()).toEqual({ bands: "L1+L5", ok: true });
+  });
+
+  it("keeps real captures instead of reseeding", () => {
+    const own = fakeCaptures().slice(0, 1);
+    captures$.set(own);
+    devMocks.install();
+    expect(captures$.get()).toBe(own);
   });
 
   it("announces itself with the marker the release check looks for", () => {
@@ -55,6 +78,47 @@ describe("dev mocks", () => {
     ]) {
       expect((await post("/auth/login/password", body)).status).toBe(401);
     }
+  });
+
+  it("registers a new account as pending", async () => {
+    const res = await post("/auth/register", SIGN_UP);
+    expect(res).toEqual({
+      status: 201,
+      data: { status: "pending_verification" },
+    });
+    expect(accountStore.find("Grace@UEDCL.example.org")).toMatchObject({
+      name: "Grace Nakato",
+      phone: "+256700123456",
+      roles: [],
+      status: "pending_verification",
+    });
+    expect(accountStore.find("grace@uedcl.example.org")).not.toHaveProperty(
+      "password",
+    );
+  });
+
+  it("refuses duplicate emails, including the fixture users", async () => {
+    await post("/auth/register", SIGN_UP);
+    for (const email of [SIGN_UP.email, "field@iip.example.org"]) {
+      expect((await post("/auth/register", { ...SIGN_UP, email })).status).toBe(
+        409,
+      );
+    }
+  });
+
+  it("rejects a registration with missing fields", async () => {
+    const res = await post("/auth/register", { ...SIGN_UP, name: "" });
+    expect(res.status).toBe(400);
+  });
+
+  it("keeps pending accounts out until they are approved", async () => {
+    await post("/auth/register", SIGN_UP);
+    const res = await post("/auth/login/password", {
+      username: SIGN_UP.email,
+      password: "anything",
+    });
+    expect(res.status).toBe(403);
+    expect(res.data.code).toBe("account_pending");
   });
 
   it("completes the fake SSO round-trip", async () => {

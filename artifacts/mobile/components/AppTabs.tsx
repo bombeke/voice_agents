@@ -1,11 +1,11 @@
+import { Icon } from "@/components/ui/Icons";
+import { TabBar } from "@/components/ui/TabBar";
+import { useCaptureSummary } from "@/hooks/useCaptureSummary";
 import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG, MenuItem } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
-import { FontAwesome } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useMemo } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HapticTab } from "./HapticTab";
 
 /**
  * Every route that exists under `app/(tabs)`.
@@ -17,16 +17,24 @@ import { HapticTab } from "./HapticTab";
  */
 const TAB_ROUTES = [
   "index",
+  "map",
+  "records",
+  "review",
+  "settings",
+  // Legacy module stacks: still reachable by URL, never shown in the bar.
   "agents",
   "poles",
   "sanitation",
   "roads",
-  "settings",
 ] as const;
+
+const renderTabBar = (props: Parameters<typeof TabBar>[0]) => (
+  <TabBar {...props} />
+);
 
 export default function AppTabs() {
   const { isAdmin, claims, adminMode } = useAuth();
-  const insets = useSafeAreaInsets();
+  const { stats } = useCaptureSummary();
 
   const visible = useMemo(() => {
     const menu = filterMenu(MENU_CONFIG, { isAdmin, claims, adminMode });
@@ -36,34 +44,7 @@ export default function AppTabs() {
   }, [isAdmin, claims, adminMode]);
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarActiveTintColor: "#2563EB",
-        tabBarInactiveTintColor: "#9CA3AF",
-        tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: 0,
-          elevation: 0,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          // Android is edge-to-edge from SDK 54 on, so the bar is drawn behind
-          // the system navigation bar. Without the inset the buttons sit under
-          // it and taps never reach the app.
-          height: 56 + insets.bottom,
-          paddingBottom: insets.bottom + 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
-          marginTop: 2,
-        },
-      }}
-    >
+    <Tabs tabBar={renderTabBar} screenOptions={{ headerShown: false }}>
       {TAB_ROUTES.map((name) => {
         const item = visible.get(name);
 
@@ -75,9 +56,14 @@ export default function AppTabs() {
               item
                 ? {
                     title: item.title,
-                    tabBarIcon: ({ color }: { color: string }) => (
-                      <FontAwesome name={item.icon} size={18} color={color} />
+                    tabBarIcon: ({ color, size }) => (
+                      <Icon name={item.icon} color={color} size={size} />
                     ),
+                    // The pending-sync badge stays visible from every tab.
+                    tabBarBadge:
+                      name === "records" && stats.pending > 0
+                        ? stats.pending
+                        : undefined,
                   }
                 : { href: null }
             }
