@@ -40,6 +40,7 @@ const ICONS = {
   ],
   check: [{ d: "m5 12.5 4.5 4.5L19 7.5" }],
   "chevron-left": [{ d: "m15 5-7 7 7 7" }],
+  "chevron-down": [{ d: "m5 9 7 7 7-7" }],
   info: [{ cx: 12, cy: 12, r: 9 }, { d: "M12 11v5M12 8v.5" }],
   "chevron-right": [{ d: "m9 5 7 7-7 7" }],
   sync: [
@@ -54,6 +55,11 @@ const ICONS = {
     { d: "M3 3l18 18" },
   ],
   lock: [{ d: "M5 11h14v10H5z" }, { d: "M8 11V8a4 4 0 0 1 8 0v3" }],
+  mic: [
+    { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" },
+    { d: "M5 11a7 7 0 0 0 14 0M12 18v3" },
+  ],
+  warning: [{ d: "M12 3 2 20h20z" }, { d: "M12 10v4M12 17v.5" }],
   crosshair: [
     { d: "M12 3v3M12 18v3M3 12h3M18 12h3" },
     { cx: 12, cy: 12, r: 5 },

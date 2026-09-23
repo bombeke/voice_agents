@@ -79,4 +79,108 @@ export interface CapturedPhoto {
 }
 
 /** Quality flags from design-doc §5.4 that the capture screen can raise. */
-export type CaptureFlag = "gps_unverified" | "mock_location";
+export type CaptureFlag =
+  | "gps_unverified"
+  | "mock_location"
+  /** Saved as a new asset although one of its class is within 5 m. */
+  | "duplicate_nearby";
+
+/** Where the shots were located: the gate's averaged fix, or a draft's raw one. */
+export interface CaptureLocation {
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  /** Metres above the WGS84 ellipsoid; null when not reported. */
+  altitude: number | null;
+  /** Satellites in the fix; null when the receiver doesn't report them. */
+  satellites: number | null;
+  flags: CaptureFlag[];
+}
+
+/** Attributes the detection review shows per asset (design-doc §6.2). */
+export type AttributeKey =
+  | "material"
+  | "inclination"
+  | "estimatedAge"
+  | "estimatedSize"
+  | "vegetationCover"
+  | "countInFrame"
+  | "distanceFromRoad";
+
+/** Who set an attribute: the model, a GIS computation, or the surveyor. */
+export type AttributeSource = "ai" | "gis" | "user";
+
+export type ConfidenceBand = "high" | "medium" | "low";
+
+export interface DetectionAttribute {
+  key: AttributeKey;
+  /** Option code (see constants/Attributes.ts); null until it is estimated. */
+  value: string | null;
+  source: AttributeSource;
+  /** Only AI values carry a band. */
+  confidence: ConfidenceBand | null;
+}
+
+/**
+ * §6.3: pre-accepted (≥ 0.70), suggested (0.40–0.70, needs a tap), or
+ * rejected by the surveyor as "not an asset".
+ */
+export type ReviewDecision = "accepted" | "suggested" | "rejected";
+
+/** One merged detection on the review screen (capture step 2 of 3). */
+export interface ReviewDetection extends CapturedDetection {
+  /** The photo its most confident sighting came from. */
+  imageUri: string;
+  decision: ReviewDecision;
+  attributes: DetectionAttribute[];
+}
+
+/** Condition chips on the tagging form (see constants/Statuses.ts). */
+export type AssetStatus =
+  | "good"
+  | "inclined"
+  | "vegetation"
+  | "cracked"
+  | "rust"
+  | "sagging_lines"
+  | "under_construction"
+  | "leaking"
+  | "blocked"
+  | "eroded"
+  | "potholes"
+  | "vandalised";
+
+/** §2.5: the AI can't judge this from a photo, so it starts as "unknown". */
+export type Functional = "yes" | "no" | "unknown";
+
+/** An asset already recorded, checked against a new capture for duplicates. */
+export interface NearbyAsset {
+  /** Asset code, e.g. "EP-00412". */
+  id: string;
+  category: AssetCategory;
+  /** Detector class, e.g. "pole"; null when the record has none. */
+  label: string | null;
+  latitude: number;
+  longitude: number;
+  /** Epoch ms. */
+  capturedAt: number;
+}
+
+export interface DuplicateCandidate extends NearbyAsset {
+  distanceM: number;
+}
+
+/** Update the nearby asset, or record this one as a new asset. */
+export type DuplicateChoice = "update" | "new";
+
+/** The tagging form (capture step 3 of 3). */
+export interface TagForm {
+  category: AssetCategory | null;
+  statuses: AssetStatus[];
+  /** What the AI pre-selected, so the record knows which statuses were the user's. */
+  suggested: AssetStatus[];
+  functional: Functional;
+  comment: string;
+  duplicate: DuplicateCandidate | null;
+  duplicateChoice: DuplicateChoice | null;
+}

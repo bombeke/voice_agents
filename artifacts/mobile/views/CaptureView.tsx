@@ -1,6 +1,5 @@
 import { AccuracyCard } from "@/components/camera/AccuracyCard";
 import { CameraViewport } from "@/components/camera/CameraViewport";
-import { CaptureTagForm } from "@/components/camera/CaptureTagForm";
 import { CaptureTopBar } from "@/components/camera/CaptureTopBar";
 import { CaptureTray } from "@/components/camera/CaptureTray";
 import { PermissionsPage } from "@/components/camera/PermissionsPage";
@@ -8,23 +7,24 @@ import { InfoNote } from "@/components/ui/InfoNote";
 import { DRAFT_OFFER_AFTER_MS } from "@/constants/Capture";
 import { strings } from "@/constants/Strings";
 import { fill } from "@/helpers/format";
+import { locationFrom } from "@/helpers/captureSession";
 import { useCaptureAccuracyGate } from "@/hooks/useCaptureAccuracyGate";
-import {
-  locationFrom,
-  mergeDetections,
-  useCaptureSession,
-  type SaveArgs,
-} from "@/hooks/useCaptureSession";
+import { useCaptureSession } from "@/hooks/useCaptureSession";
 import { useIsForeground } from "@/hooks/useIsForeground";
 import {
   useLiveDetection,
   type DetectorStatus,
 } from "@/hooks/useLiveDetection";
 import { Routes } from "@/services/Routes";
+import {
+  beginReview,
+  resetSession,
+  startSession,
+} from "@/services/storage/CaptureSessionStore";
 import type { CaptureCategory } from "@/types/Capture";
 import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import {
   useCameraDevice,
@@ -33,9 +33,9 @@ import {
 } from "react-native-vision-camera";
 
 /**
- * Full-screen capture (design screen 4): live preview with tracked detections,
- * the < 4 m GPS gate, up to three photos, then the tagging form. Nothing is
- * stored until that form is saved.
+ * Full-screen capture, step 1 of 3 (design screen 4): live preview with
+ * tracked detections, the < 4 m GPS gate and up to three photos. Continue
+ * opens the detection review; nothing is stored until tagging is saved.
  */
 export function CaptureView({ category }: { category: CaptureCategory }) {
   const router = useRouter();
@@ -47,12 +47,12 @@ export function CaptureView({ category }: { category: CaptureCategory }) {
 
   const gate = useCaptureAccuracyGate(hasPermission);
   const session = useCaptureSession();
-  const [formOpen, setFormOpen] = useState(false);
   const [flash, setFlash] = useState(false);
   const [draft, setDraft] = useState(false);
   const offerDraft = useDraftOffer(gate.isReady, gate.startedAt);
 
-  const cameraActive = isForeground && isFocused && !formOpen;
+  // Paused while the review screen is on top.
+  const cameraActive = isForeground && isFocused;
   const detection = useLiveDetection(category, cameraActive);
   const canCapture = gate.isReady || draft;
 
@@ -60,9 +60,20 @@ export function CaptureView({ category }: { category: CaptureCategory }) {
     if (!hasPermission) requestPermission();
   }, [hasPermission, requestPermission]);
 
+  // Each opening of the camera starts an empty session.
+  useEffect(() => {
+    startSession(category);
+  }, [category]);
+
   const close = useCallback(() => {
+    resetSession();
     if (router.canGoBack()) router.back();
     else router.replace(Routes.HOME);
+  }, [router]);
+
+  const review = useCallback(() => {
+    beginReview();
+    router.push(Routes.CAPTURE_REVIEW);
   }, [router]);
 
   const capture = useCallback(() => {
@@ -78,21 +89,6 @@ export function CaptureView({ category }: { category: CaptureCategory }) {
       detections: detection.snapshot(),
     });
   }, [session, gate, photoOutput, flash, detection]);
-
-  const submit = useCallback(
-    async (values: SaveArgs) => {
-      if (await session.save(values)) {
-        setFormOpen(false);
-        close();
-      }
-    },
-    [session, close],
-  );
-
-  const detectedCount = useMemo(
-    () => mergeDetections(session.photos).length,
-    [session.photos],
-  );
 
   if (!hasPermission) return <PermissionsPage onAllow={requestPermission} />;
 
@@ -144,21 +140,10 @@ export function CaptureView({ category }: { category: CaptureCategory }) {
           offerDraft={offerDraft}
           onCapture={capture}
           onRetake={session.removePhoto}
-          onContinue={() => setFormOpen(true)}
+          onContinue={review}
           onSaveDraft={() => setDraft(true)}
         />
       </View>
-
-      <CaptureTagForm
-        visible={formOpen}
-        photos={session.photos}
-        location={session.location}
-        category={category}
-        detectedCount={detectedCount}
-        isSaving={session.isSaving}
-        onSubmit={submit}
-        onBack={() => setFormOpen(false)}
-      />
     </View>
   );
 }

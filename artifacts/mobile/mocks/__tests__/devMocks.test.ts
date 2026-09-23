@@ -1,6 +1,8 @@
 import type { Claims } from "@/types/Auth";
 import { jwtDecode } from "jwt-decode";
 import { DEV_MOCKS_MARKER, devMocks, FAKE_SSO_CODE } from "..";
+import { nearbyAssets } from "@/services/capture/NearbyAssets";
+import { speechToText } from "@/services/capture/SpeechToText";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
 import { accountStore } from "../AccountStore";
 import { fakeCaptures } from "../captures";
@@ -42,6 +44,13 @@ describe("dev mocks", () => {
   it("seeds the Home screen's captures and GNSS state", () => {
     expect(captures$.get()).toHaveLength(14);
     expect(gnssStatus$.get()).toEqual({ bands: "L1+L5", ok: true });
+  });
+
+  it("fakes a nearby duplicate and voice input for the tagging form", () => {
+    expect(nearbyAssets({ latitude: 0, longitude: 0 }, [])).toEqual([
+      expect.objectContaining({ id: "EP-00412" }),
+    ]);
+    expect(speechToText().isAvailable()).toBe(true);
   });
 
   it("keeps real captures instead of reseeding", () => {

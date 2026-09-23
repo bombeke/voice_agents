@@ -80,3 +80,15 @@ jest.mock("react-native-executorch", () => ({
     detectObjectsWorklet: undefined,
   })),
 }));
+
+// Speech recognition is native; tests swap the recogniser with setSpeechToText.
+jest.mock("expo-speech-recognition", () => ({
+  ExpoSpeechRecognitionModule: {
+    isRecognitionAvailable: jest.fn(() => false),
+    requestPermissionsAsync: jest.fn(async () => ({ granted: false })),
+    addListener: jest.fn(() => ({ remove: jest.fn() })),
+    start: jest.fn(),
+    stop: jest.fn(),
+    abort: jest.fn(),
+  },
+}));

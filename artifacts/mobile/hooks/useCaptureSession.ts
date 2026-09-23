@@ -1,74 +1,31 @@
 import { MAX_PHOTOS } from "@/constants/Capture";
-import type { AssetCategory } from "@/constants/Colors";
 import { DETECTOR_MODEL_VERSION } from "@/constants/DetectorModel";
 import { strings } from "@/constants/Strings";
-import type { AveragedFix } from "@/helpers/accuracyGate";
+import { buildRecords, buildSummary } from "@/helpers/captureRecord";
+import { assetFromPole } from "@/helpers/duplicateCheck";
+import { tagFormProblem } from "@/helpers/tagForm";
 import { requestSavePermission } from "@/hooks/Helpers";
 import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
 import { checkPhotoQuality } from "@/services/capture/PhotoQuality";
 import { addCapture } from "@/services/storage/CaptureStore";
-import type { SyncedUtilityPole } from "@/services/storage/LegendState";
+import {
+  addPhoto,
+  beginTagging,
+  captureSession$,
+  removePhoto,
+  resetSession,
+} from "@/services/storage/CaptureSessionStore";
 import type {
-  CaptureFlag,
+  CaptureLocation,
   CapturedDetection,
-  CapturedPhoto,
-  GnssFix,
+  NearbyAsset,
 } from "@/types/Capture";
+import { useSelector } from "@legendapp/state/react";
 import { randomUUID } from "expo-crypto";
 import { createAssetAsync } from "expo-media-library";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { Alert } from "react-native";
 import type { CameraPhotoOutput } from "react-native-vision-camera";
-
-/** Where and how the shots were located: the gate's averaged fix, or a draft's raw one. */
-export interface CaptureLocation {
-  latitude: number;
-  longitude: number;
-  accuracy: number | null;
-  flags: CaptureFlag[];
-}
-
-export function locationFrom(
-  averaged: AveragedFix | null,
-  latest: GnssFix | null,
-  draft: boolean,
-): CaptureLocation | null {
-  const flags: CaptureFlag[] = [];
-  if (latest?.mocked) flags.push("mock_location");
-  if (averaged && !draft) {
-    const { latitude, longitude, accuracy } = averaged;
-    return { latitude, longitude, accuracy, flags };
-  }
-  if (!latest) return null;
-  return {
-    latitude: latest.latitude,
-    longitude: latest.longitude,
-    accuracy: latest.accuracy,
-    flags: [...flags, "gps_unverified"],
-  };
-}
-
-/**
- * The same asset seen in several photos keeps one track id; keep its most
- * confident sighting so each asset becomes one record (§3 "detections are merged").
- */
-export function mergeDetections(
-  photos: readonly CapturedPhoto[],
-): { detection: CapturedDetection; photo: CapturedPhoto }[] {
-  const best = new Map<
-    number,
-    { detection: CapturedDetection; photo: CapturedPhoto }
-  >();
-  for (const photo of photos) {
-    for (const detection of photo.detections) {
-      const seen = best.get(detection.trackId);
-      if (!seen || detection.confidence > seen.detection.confidence) {
-        best.set(detection.trackId, { detection, photo });
-      }
-    }
-  }
-  return [...best.values()];
-}
 
 interface TakePhotoArgs {
   photoOutput: CameraPhotoOutput;
@@ -78,126 +35,101 @@ interface TakePhotoArgs {
   detections: CapturedDetection[];
 }
 
-export interface SaveArgs {
-  category: AssetCategory;
-  tag: string;
-  comment: string;
+async function takePhoto({
+  photoOutput,
+  flash,
+  location,
+  heading,
+  detections,
+}: TakePhotoArgs) {
+  // Read the store synchronously so a double tap can't take two shots.
+  const { isCapturing, photos } = captureSession$.peek();
+  if (isCapturing || photos.length >= MAX_PHOTOS) return;
+  captureSession$.isCapturing.set(true);
+  try {
+    const photo = await photoOutput.capturePhoto(
+      { flashMode: flash ? "on" : "off" },
+      {},
+    );
+    const path = await photo.saveToTemporaryFileAsync();
+    // Also kept in the device gallery for reviewing boxes against the photo.
+    if (await requestSavePermission()) {
+      await createAssetAsync(`file://${path}`, "photo").catch(() => {});
+    }
+    const quality = await checkPhotoQuality(path);
+    addPhoto(
+      {
+        imageUri: path,
+        capturedAt: Date.now(),
+        heading,
+        detections,
+        quality,
+      },
+      location,
+    );
+  } catch (e) {
+    console.error("Photo capture failed:", e);
+    Alert.alert(
+      strings.capture.errors.captureTitle,
+      strings.capture.errors.captureMessage,
+    );
+  } finally {
+    captureSession$.isCapturing.set(false);
+  }
 }
 
 /**
- * Up to three shots of one asset, held in memory until the tag form is saved.
- * The first shot stamps the location, so later ones can't drift it. Saving
- * writes one pole record per merged detection to the offline op queue and a
- * summary row for Home; nothing is stored before that.
+ * Up to three shots of one asset, reviewed and then tagged. The session lives
+ * in CaptureSessionStore so the camera, review and tagging routes share it.
+ * Saving writes one record per accepted detection to the offline op queue and
+ * a summary row for Home; nothing is stored before that.
  */
 export function useCaptureSession() {
-  const { addPole } = useUtilityStorePoles();
-  const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
-  const [location, setLocation] = useState<CaptureLocation | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { addPole, poles } = useUtilityStorePoles();
+  const photos = useSelector(captureSession$.photos);
+  const location = useSelector(captureSession$.location);
+  const isCapturing = useSelector(captureSession$.isCapturing);
+  const isSaving = useSelector(captureSession$.isSaving);
 
-  const takePhoto = useCallback(
-    async ({
-      photoOutput,
-      flash,
-      location: at,
-      heading,
-      detections,
-    }: TakePhotoArgs) => {
-      if (isCapturing || photos.length >= MAX_PHOTOS) return;
-      setIsCapturing(true);
-      try {
-        const photo = await photoOutput.capturePhoto(
-          { flashMode: flash ? "on" : "off" },
-          {},
-        );
-        const path = await photo.saveToTemporaryFileAsync();
-        // Also kept in the device gallery for reviewing boxes against the photo.
-        if (await requestSavePermission()) {
-          await createAssetAsync(`file://${path}`, "photo").catch(() => {});
-        }
-        const quality = await checkPhotoQuality(path);
-        setLocation((prev) => prev ?? at);
-        setPhotos((prev) => [
-          ...prev,
-          {
-            imageUri: path,
-            capturedAt: Date.now(),
-            heading,
-            detections,
-            quality,
-          },
-        ]);
-      } catch (e) {
-        console.error("Photo capture failed:", e);
-        Alert.alert(
-          strings.capture.errors.captureTitle,
-          strings.capture.errors.captureMessage,
-        );
-      } finally {
-        setIsCapturing(false);
-      }
-    },
-    [isCapturing, photos.length],
-  );
+  /** Opens the tagging form, checking the stored records for duplicates. */
+  const startTagging = useCallback(() => {
+    beginTagging(
+      (poles ?? [])
+        .map(assetFromPole)
+        .filter((a): a is NearbyAsset => a !== null),
+    );
+  }, [poles]);
 
-  const removePhoto = useCallback(
-    (index: number) => {
-      const next = photos.filter((_, i) => i !== index);
-      setPhotos(next);
-      // With every shot retaken, the next one stamps a fresh location.
-      if (next.length === 0) setLocation(null);
-    },
-    [photos],
-  );
-
+  /**
+   * Saves the tagging form: a finished record, or a draft that only needs a
+   * category and goes to a supervisor. False when nothing was saved.
+   */
   const save = useCallback(
-    async ({ category, tag, comment }: SaveArgs): Promise<boolean> => {
-      if (!location || photos.length === 0) return false;
-      setIsSaving(true);
+    async ({ draft }: { draft: boolean }): Promise<boolean> => {
+      const {
+        photos: shots,
+        location: at,
+        detections,
+        tagging: form,
+        isSaving: busy,
+      } = captureSession$.peek();
+      if (busy || !at || shots.length === 0) return false;
+      if (!form?.category || tagFormProblem(form, draft)) return false;
+      captureSession$.isSaving.set(true);
       try {
-        const first = photos[0];
-        const base = {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy ?? undefined,
-          flags: location.flags,
-          timestamp: first.capturedAt,
-          heading: first.heading ?? undefined,
+        const input = {
+          photos: shots,
+          location: at,
+          detections,
+          form: { ...form, category: form.category },
+          draft,
           modelVersion: DETECTOR_MODEL_VERSION,
-          category,
-          tag,
-          comment,
-          synced: false,
+          newId: randomUUID,
         };
-        const merged = mergeDetections(photos);
-        // A shot with nothing detected is still a deliberate report.
-        const records = (
-          merged.length
-            ? merged.map(({ detection, photo }) => ({
-                ...base,
-                ...detection,
-                imageUri: photo.imageUri,
-                detectionConfidence: detection.confidence,
-                pid: randomUUID(),
-              }))
-            : [{ ...base, imageUri: first.imageUri, pid: randomUUID() }]
-        ) as SyncedUtilityPole[];
-
+        const records = buildRecords(input);
         await addPole(records);
-        addCapture({
-          id: records[0].pid!,
-          category,
-          title:
-            merged[0]?.detection.label ?? strings.categories[category].label,
-          capturedAt: new Date(first.capturedAt).toISOString(),
-          accuracyM: location.accuracy ?? 0,
-          syncStatus: "pending",
-          flagged: location.flags.length > 0,
-        });
-        setPhotos([]);
-        setLocation(null);
+        addCapture(buildSummary(records, input));
+        resetSession();
         return true;
       } catch (e) {
         console.error("Saving capture failed:", e);
@@ -207,10 +139,10 @@ export function useCaptureSession() {
         );
         return false;
       } finally {
-        setIsSaving(false);
+        captureSession$.isSaving.set(false);
       }
     },
-    [addPole, location, photos],
+    [addPole],
   );
 
   return {
@@ -221,6 +153,7 @@ export function useCaptureSession() {
     isFull: photos.length >= MAX_PHOTOS,
     takePhoto,
     removePhoto,
+    startTagging,
     save,
   };
 }

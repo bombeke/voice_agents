@@ -3,21 +3,28 @@ import type { Claims } from "@/types/Auth";
 import MockAdapter from "axios-mock-adapter";
 import type { AuthSessionResult } from "expo-auth-session";
 import { jwtDecode } from "jwt-decode";
+import { setDetectionEstimator } from "@/services/capture/AttributeEstimator";
+import { setNearbyAssetSource } from "@/services/capture/NearbyAssets";
 import { setPhotoQualityChecker } from "@/services/capture/PhotoQuality";
+import { setSpeechToText } from "@/services/capture/SpeechToText";
 import { setGnssSource } from "@/services/location/GnssSource";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
 import { accountStore } from "./AccountStore";
 import { FAKE_GNSS, fakeCaptures } from "./captures";
+import { fakeDetectionEstimator } from "./detections";
 import { fakeGnssSource, fakePhotoQuality } from "./gnss";
+import { fakeNearbyAssetSource, fakeSpeechToText } from "./tagging";
 import { FAKE_SSO_USER, type FakeUser, REJECTED_PASSWORD } from "./fixtures";
 import { FAKE_TOKEN_TTL, fakeClaims, fakeToken } from "./token";
 import type { DevMocks } from "./types";
 
 /**
- * Dev-only fake backend for the auth endpoints, seed captures for Home, and a
- * simulated GNSS receiver and photo-quality check for the capture screen. The
- * app's real code runs unchanged; only what answers it is fake. Metro swaps this module
- * for mocks/stub.ts unless EXPO_PUBLIC_API_MOCKING=enabled.
+ * Dev-only fake backend for the auth endpoints, seed captures for Home, a
+ * simulated GNSS receiver and photo-quality check for the capture screen,
+ * fake attribute estimates for the detection review, and a nearby duplicate
+ * and voice input for the tagging form. The app's real code runs
+ * unchanged; only what answers it is fake. Metro swaps this module for
+ * mocks/stub.ts unless EXPO_PUBLIC_API_MOCKING=enabled.
  *
  * `scripts/check-release-bundle.sh` fails the build if this marker is bundled.
  */
@@ -50,6 +57,13 @@ export const devMocks: DevMocks = {
     // Capture screen: converging GPS fixes and passing quality checks.
     setGnssSource(fakeGnssSource);
     setPhotoQualityChecker(fakePhotoQuality);
+    // Review screen: attribute estimates, and the mockup's detections when
+    // the emulator camera finds none.
+    setDetectionEstimator(fakeDetectionEstimator);
+    // Tagging form: the mockup's possible duplicate, and dictation that works
+    // without a microphone.
+    setNearbyAssetSource(fakeNearbyAssetSource);
+    setSpeechToText(fakeSpeechToText);
 
     adapter = new MockAdapter(axiosClient, {
       delayResponse: 400,

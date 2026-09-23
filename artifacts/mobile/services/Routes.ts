@@ -40,6 +40,10 @@ export const Routes = {
 
   // Full-screen capture stack; takes `?category=energy|water|telecom|roads|auto`.
   CAPTURE: "/capture" as const,
+  /** Capture step 2 of 3: review the AI detections before tagging. */
+  CAPTURE_REVIEW: "/capture/review" as const,
+  /** Capture step 3 of 3: tag the asset and save the record. */
+  CAPTURE_TAG: "/capture/tag" as const,
 
   // Admin
   ADMIN: {

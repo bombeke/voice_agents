@@ -4,7 +4,7 @@ import {
   setGnssSource,
   type GnssListener,
 } from "@/services/location/GnssSource";
-import { clearCaptures } from "@/services/storage/CaptureStore";
+import { captureSession$ } from "@/services/storage/CaptureSessionStore";
 import type { GnssFix } from "@/types/Capture";
 import {
   act,
@@ -17,15 +17,15 @@ import { CaptureView } from "../CaptureView";
 
 const mockRouter = {
   back: jest.fn(),
+  push: jest.fn(),
   replace: jest.fn(),
   canGoBack: () => true,
 };
 jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 
-const mockAddPole = jest.fn(async () => undefined);
 jest.mock("@/providers/UtilityStoreProvider", () => ({
-  useUtilityStorePoles: () => ({ addPole: mockAddPole }),
+  useUtilityStorePoles: () => ({ addPole: jest.fn() }),
 }));
 jest.mock("@/hooks/Helpers", () => ({
   requestSavePermission: async () => true,
@@ -33,7 +33,6 @@ jest.mock("@/hooks/Helpers", () => ({
 jest.mock("expo-media-library", () => ({
   createAssetAsync: jest.fn(async () => ({})),
 }));
-jest.mock("expo-crypto", () => ({ randomUUID: () => "uuid-1" }));
 
 const mockCamera = {
   hasPermission: true,
@@ -61,6 +60,7 @@ jest.mock("react-native-vision-camera", () => {
 const mockDetection = {
   status: "ready" as "ready" | "loading" | "unavailable",
   downloadProgress: 100,
+  snapshot: [] as unknown[],
 };
 jest.mock("@/hooks/useLiveDetection", () => ({
   useLiveDetection: () => ({
@@ -70,27 +70,9 @@ jest.mock("@/hooks/useLiveDetection", () => ({
     frameSize: null,
     status: mockDetection.status,
     downloadProgress: mockDetection.downloadProgress,
-    snapshot: () => [],
+    snapshot: () => mockDetection.snapshot,
   }),
 }));
-
-jest.mock("@react-native-picker/picker", () => {
-  const { Text, View } = jest.requireActual("react-native");
-  function Picker({ onValueChange, children }: any) {
-    return (
-      <View>
-        {children}
-        <Text accessibilityRole="button" onPress={() => onValueChange("good")}>
-          pick good
-        </Text>
-      </View>
-    );
-  }
-  Picker.Item = function PickerItem({ label }: { label: string }) {
-    return <Text>{label}</Text>;
-  };
-  return { Picker };
-});
 
 const fix = (accuracy: number): GnssFix => ({
   latitude: 0.3476,
@@ -108,11 +90,11 @@ const fix = (accuracy: number): GnssFix => ({
 let listener: GnssListener | undefined;
 beforeEach(() => {
   jest.clearAllMocks();
-  clearCaptures();
   listener = undefined;
   mockCamera.hasPermission = true;
   mockCamera.device = { id: "back", position: "back" };
   mockDetection.status = "ready";
+  mockDetection.snapshot = [];
   setGnssSource({
     start: async (l) => {
       listener = l;
@@ -158,7 +140,15 @@ describe("CaptureView", () => {
     expect(screen.getByRole("button", { name: "Take photo" })).toBeEnabled();
   });
 
-  it("captures, tags and saves, then closes", async () => {
+  it("captures, then continues to the detection review", async () => {
+    mockDetection.snapshot = [
+      {
+        trackId: 1,
+        label: "pole",
+        confidence: 0.91,
+        box: { xmin: 0.3, ymin: 0, xmax: 0.6, ymax: 1 },
+      },
+    ];
     await render(<CaptureView category="energy" />);
     await lockGps();
 
@@ -172,17 +162,24 @@ describe("CaptureView", () => {
     );
 
     await fireEvent.press(screen.getByRole("button", { name: "Continue" }));
-    await fireEvent.press(screen.getByRole("button", { name: "pick good" }));
-    await fireEvent.press(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
-    expect(mockAddPole).toHaveBeenCalledWith([
+    expect(mockRouter.push).toHaveBeenCalledWith("/capture/review");
+    expect(captureSession$.detections.peek()).toEqual([
       expect.objectContaining({
-        category: "energy",
-        tag: "good",
+        trackId: 1,
+        decision: "accepted",
         imageUri: "/tmp/1.jpg",
       }),
     ]);
+  });
+
+  it("starts an empty session and discards it on close", async () => {
+    await render(<CaptureView category="water" />);
+    expect(captureSession$.category.peek()).toBe("water");
+    await lockGps();
+    await fireEvent.press(screen.getByRole("button", { name: "Take photo" }));
+    await waitFor(() => expect(captureSession$.photos.peek()).toHaveLength(1));
+    await fireEvent.press(screen.getByRole("button", { name: "Close camera" }));
+    expect(captureSession$.photos.peek()).toEqual([]);
   });
 
   it("closes from the top bar", async () => {

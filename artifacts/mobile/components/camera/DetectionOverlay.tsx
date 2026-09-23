@@ -10,6 +10,7 @@ import type { TrackLabel } from "@/hooks/useLiveDetection";
 import { Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withTiming,
   type SharedValue,
@@ -76,28 +77,30 @@ function TrackBox({ track, tracks, transform, viewport }: TrackBoxProps) {
   // The first frame places the box; later ones glide.
   const placed = useSharedValue(false);
 
-  const boxStyle = useAnimatedStyle(() => {
+  // One lookup per frame, shared by the box and its label.
+  const rect = useDerivedValue(() => {
     const current = tracks.value.find((t) => t.trackId === trackId);
-    if (!current) return { opacity: withTiming(0, GLIDE) };
-    const rect = toScreenRect(current.box, transform, viewport);
+    return current ? toScreenRect(current.box, transform, viewport) : null;
+  });
+
+  const boxStyle = useAnimatedStyle(() => {
+    const r = rect.value;
+    if (!r) return { opacity: withTiming(0, GLIDE) };
     if (!placed.value) {
       placed.value = true;
-      return { opacity: 1, ...rect };
+      return { opacity: 1, ...r };
     }
     return {
       opacity: 1,
-      left: withTiming(rect.left, GLIDE),
-      top: withTiming(rect.top, GLIDE),
-      width: withTiming(rect.width, GLIDE),
-      height: withTiming(rect.height, GLIDE),
+      left: withTiming(r.left, GLIDE),
+      top: withTiming(r.top, GLIDE),
+      width: withTiming(r.width, GLIDE),
+      height: withTiming(r.height, GLIDE),
     };
   });
 
   const chipStyle = useAnimatedStyle(() => {
-    const current = tracks.value.find((t) => t.trackId === trackId);
-    const top = current
-      ? toScreenRect(current.box, transform, viewport).top
-      : 0;
+    const top = rect.value?.top ?? 0;
     return { top: top < LABEL_ROOM ? 2 : -LABEL_ROOM };
   });
 

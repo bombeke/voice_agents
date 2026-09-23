@@ -1,5 +1,10 @@
 import type { AssetCategory } from "@/constants/Colors";
-import type { CaptureFlag, CapturedDetection } from "@/types/Capture";
+import type {
+  AssetStatus,
+  CaptureFlag,
+  CapturedDetection,
+  Functional,
+} from "@/types/Capture";
 import { batch, observable } from "@legendapp/state";
 import { configureSynced, syncObservable } from "@legendapp/state/sync";
 import { syncedQuery } from "@legendapp/state/sync-plugins/tanstack-query";
@@ -69,13 +74,24 @@ export interface UtilityPole {
   timestamp: number;
   imageUri?: string;
   detectionConfidence?: number;
-  /** Fault category chosen by the surveyor after the shot, e.g. "leaning". */
+  /** Single fault tag from app versions before the multi-select status list. */
   tag?: string;
-  /** Free-text note the surveyor added alongside the tag. */
+  /** Condition statuses from the tagging form. */
+  statuses?: AssetStatus[];
+  /** The statuses the AI pre-selected; the rest were the surveyor's. */
+  suggestedStatuses?: AssetStatus[];
+  functional?: Functional;
+  /** Free-text note from the tagging form (typed or dictated). */
   comment?: string;
+  /** The existing asset this capture updates (§4.2 duplicate check). */
+  linkedAssetId?: string;
+  /** Saved with "Save draft": incomplete, routed to a supervisor. */
+  draft?: boolean;
   category?: AssetCategory;
   /** Horizontal accuracy (m) of the averaged fix stamped on the record. */
   accuracy?: number;
+  /** Metres above the WGS84 ellipsoid. */
+  altitude?: number;
   /** Degrees from true north at the shutter. */
   heading?: number;
   /** Detector that produced the detection (design-doc §6.4). */
