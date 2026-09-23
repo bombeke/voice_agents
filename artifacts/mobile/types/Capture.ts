@@ -9,8 +9,12 @@ export type CaptureCategory = AssetCategory | "auto";
 export interface CaptureSummary {
   id: string;
   category: AssetCategory;
-  /** Asset class plus the headline attribute, e.g. "Concrete pole · inclined 7°". */
+  /** Asset name, e.g. "Concrete pole" or "Borehole · hand pump". */
   title: string;
+  /** Short tail for the meta line, e.g. "2 detections" or "partly blocked". */
+  detail?: string;
+  /** Code of the asset this capture updates (see MapAsset.id), once known. */
+  assetId?: string;
   /** ISO 8601 with timezone. */
   capturedAt: string;
   /** Horizontal accuracy of the averaged fix, in metres. */

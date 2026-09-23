@@ -4,6 +4,7 @@ import {
   captures$,
   clearCaptures,
   replaceCaptures,
+  setCaptureStatus,
 } from "../CaptureStore";
 
 const capture = (id: string, title = "Borehole"): CaptureSummary => ({
@@ -19,13 +20,23 @@ const capture = (id: string, title = "Borehole"): CaptureSummary => ({
 beforeEach(() => clearCaptures());
 
 describe("CaptureStore", () => {
-  it("adds captures and replaces one saved again under the same id", () => {
+  it("adds captures and replaces one saved again under the same id in place", () => {
     addCapture(capture("a"));
     addCapture(capture("b"));
     addCapture(capture("a", "Borehole · repaired"));
     expect(captures$.get().map((c) => [c.id, c.title])).toEqual([
-      ["b", "Borehole"],
       ["a", "Borehole · repaired"],
+      ["b", "Borehole"],
+    ]);
+  });
+
+  it("moves only the given records to a new sync state", () => {
+    replaceCaptures([capture("a"), capture("b"), capture("c")]);
+    setCaptureStatus(["a", "c", "missing"], "uploading");
+    expect(captures$.get().map((c) => c.syncStatus)).toEqual([
+      "uploading",
+      "pending",
+      "uploading",
     ]);
   });
 

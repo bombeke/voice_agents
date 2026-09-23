@@ -1,5 +1,6 @@
 import type { AssetCategory } from "@/constants/Colors";
 import { strings } from "@/constants/Strings";
+import { fill } from "@/helpers/format";
 import {
   acceptedDetections,
   formatLabel,
@@ -77,8 +78,23 @@ export function buildRecords(input: RecordInput): SyncedUtilityPole[] {
   return records as SyncedUtilityPole[];
 }
 
+/** "3 detections", else the first problem status, else whether it works. */
+function summaryDetail(
+  detections: number,
+  form: Pick<TagForm, "statuses" | "functional">,
+): string | undefined {
+  if (detections > 1) {
+    return fill(strings.records.detections, { count: detections });
+  }
+  const problem = form.statuses.find((status) => status !== "good");
+  if (problem) return strings.capture.statuses[problem];
+  return form.functional === "unknown"
+    ? undefined
+    : strings.records.functional[form.functional];
+}
+
 /**
- * The Home row for a saved capture. Drafts, duplicates kept as new assets and
+ * The Home and Records row for a saved capture. Drafts, duplicates kept as new assets and
  * the review step's flags (§3 step 10) go to a supervisor.
  */
 export function buildSummary(
@@ -89,13 +105,20 @@ export function buildSummary(
   >,
 ): CaptureSummary {
   const { photos, location, detections, form, draft } = input;
-  const primary = acceptedDetections(detections)[0];
+  const accepted = acceptedDetections(detections);
+  const primary = accepted[0];
+  const assetId =
+    form.duplicate && form.duplicateChoice === "update"
+      ? form.duplicate.id
+      : undefined;
   return {
     id: records[0].pid!,
     category: form.category,
     title: primary
       ? formatLabel(primary.label)
       : strings.categories[form.category].label,
+    detail: summaryDetail(accepted.length, form),
+    ...(assetId ? { assetId } : {}),
     capturedAt: new Date(photos[0].capturedAt).toISOString(),
     accuracyM: location.accuracy ?? 0,
     syncStatus: "pending",

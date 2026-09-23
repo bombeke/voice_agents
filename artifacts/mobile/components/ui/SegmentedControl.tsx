@@ -9,6 +9,8 @@ interface SegmentedControlProps<T extends string> {
   /** Accessible name of the group. */
   label: string;
   disabled?: boolean;
+  /** `tablist` when the choice switches what the screen below shows. */
+  role?: "radiogroup" | "tablist";
 }
 
 /** Single choice from a few options: a muted track with a raised white segment. */
@@ -19,10 +21,12 @@ export function SegmentedControl<T extends string>({
   labels,
   label,
   disabled,
+  role = "radiogroup",
 }: SegmentedControlProps<T>) {
+  const tabs = role === "tablist";
   return (
     <View
-      accessibilityRole="radiogroup"
+      accessibilityRole={role}
       accessibilityLabel={label}
       className="flex-row p-1 gap-1 rounded-button bg-surface-muted"
     >
@@ -31,8 +35,12 @@ export function SegmentedControl<T extends string>({
         return (
           <Pressable
             key={option}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: selected, disabled: !!disabled }}
+            accessibilityRole={tabs ? "tab" : "radio"}
+            accessibilityState={
+              tabs
+                ? { selected, disabled: !!disabled }
+                : { checked: selected, disabled: !!disabled }
+            }
             disabled={disabled}
             onPress={() => onChange(option)}
             className={`flex-1 min-h-11 items-center justify-center rounded-lg disabled:opacity-40 ${

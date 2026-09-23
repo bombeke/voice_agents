@@ -95,16 +95,30 @@ describe("HomeView", () => {
     });
   });
 
-  it("opens records from the sync pill and profile from the avatar", async () => {
+  it("opens pending records from the sync pill and profile from the avatar", async () => {
     await render(<HomeView />);
     await fireEvent.press(
       screen.getByRole("button", { name: /records waiting to sync/ }),
     );
-    expect(mockRouter.navigate).toHaveBeenCalledWith("/(tabs)/records");
+    expect(mockRouter.navigate).toHaveBeenCalledWith({
+      pathname: "/(tabs)/records",
+      params: { filter: "pending" },
+    });
     await fireEvent.press(
       screen.getByRole("button", { name: "Profile and settings" }),
     );
     expect(mockRouter.navigate).toHaveBeenCalledWith("/(tabs)/settings");
+  });
+
+  it("opens the last capture in Records", async () => {
+    await render(<HomeView />);
+    await fireEvent.press(
+      screen.getByRole("button", { name: /Concrete pole · inclined 7°/ }),
+    );
+    expect(mockRouter.navigate).toHaveBeenCalledWith({
+      pathname: "/(tabs)/records",
+      params: { id: "a" },
+    });
   });
 
   it("shows an empty state before the first capture", async () => {

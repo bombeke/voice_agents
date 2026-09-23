@@ -64,6 +64,12 @@ const ICONS = {
     { d: "M12 3v3M12 18v3M3 12h3M18 12h3" },
     { cx: 12, cy: 12, r: 5 },
   ],
+  search: [{ cx: 11, cy: 11, r: 7 }, { d: "m20 20-4-4" }],
+  layers: [{ d: "m12 3 9 5-9 5-9-5z" }, { d: "m3 13 9 5 9-5" }],
+  locate: [{ cx: 12, cy: 12, r: 4 }, { d: "M12 2v3M12 19v3M2 12h3M19 12h3" }],
+  "wifi-off": [
+    { d: "M3 3l18 18M8.5 8.5A6 6 0 0 0 6 13M2 9a15 15 0 0 1 4-2.7M12 18h.01" },
+  ],
 } satisfies Record<string, Shape[]>;
 
 export type IconName = keyof typeof ICONS;

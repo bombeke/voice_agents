@@ -16,3 +16,15 @@ export function formatHeading(degrees: number): string {
   const point = COMPASS_POINTS[Math.round(normalised / 45) % 8];
   return `${normalised}° ${point}`;
 }
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** "09:05" (local time, 24 h). */
+export function formatClock(at: Date): string {
+  return `${pad(at.getHours())}:${pad(at.getMinutes())}`;
+}
+
+export const isSameLocalDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();

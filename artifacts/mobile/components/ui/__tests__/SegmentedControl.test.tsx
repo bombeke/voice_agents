@@ -35,4 +35,23 @@ describe("SegmentedControl", () => {
     );
     expect(screen.getByRole("radio", { name: "No" })).toBeDisabled();
   });
+
+  it("acts as tabs when it switches the content below", async () => {
+    const onChange = jest.fn();
+    await render(
+      <SegmentedControl
+        role="tablist"
+        label="Filter records"
+        options={["yes", "no"] as const}
+        labels={LABELS}
+        value="yes"
+        onChange={onChange}
+      />,
+    );
+    expect(
+      screen.getByRole("tab", { name: "Yes", selected: true }),
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByRole("tab", { name: "No" }));
+    expect(onChange).toHaveBeenCalledWith("no");
+  });
 });

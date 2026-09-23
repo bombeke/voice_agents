@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/Button";
 import { Routes } from "@/services/Routes";
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
-import DashboardMaps from "./maps";
 
 export default function PolesIndex() {
   return (
@@ -15,11 +14,10 @@ export default function PolesIndex() {
         >
           <Button>Scan Tags</Button>
         </Link>
-        <Link href="/poles/maps" asChild>
-          <Button>Dashboard</Button>
+        <Link href={Routes.MAP} asChild>
+          <Button>Map</Button>
         </Link>
       </View>
-      <DashboardMaps />
     </View>
   );
 }

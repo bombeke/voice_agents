@@ -1,4 +1,4 @@
-import { fill, formatHeading } from "../format";
+import { fill, formatClock, formatHeading, isSameLocalDay } from "../format";
 
 describe("fill", () => {
   it("replaces known placeholders and leaves unknown ones", () => {
@@ -12,5 +12,21 @@ describe("formatHeading", () => {
     expect(formatHeading(0)).toBe("0° N");
     expect(formatHeading(359.6)).toBe("0° N");
     expect(formatHeading(-90)).toBe("270° W");
+  });
+});
+
+describe("formatClock", () => {
+  it("pads local hours and minutes", () => {
+    expect(formatClock(new Date(2026, 8, 23, 9, 5))).toBe("09:05");
+    expect(formatClock(new Date(2026, 8, 23, 23, 59))).toBe("23:59");
+  });
+});
+
+describe("isSameLocalDay", () => {
+  it("compares local calendar days", () => {
+    const day = new Date(2026, 8, 23, 0, 0);
+    expect(isSameLocalDay(day, new Date(2026, 8, 23, 23, 59))).toBe(true);
+    expect(isSameLocalDay(day, new Date(2026, 8, 22, 23, 59))).toBe(false);
+    expect(isSameLocalDay(day, new Date(2025, 8, 23, 12))).toBe(false);
   });
 });

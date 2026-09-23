@@ -8,9 +8,12 @@ import { setNearbyAssetSource } from "@/services/capture/NearbyAssets";
 import { setPhotoQualityChecker } from "@/services/capture/PhotoQuality";
 import { setSpeechToText } from "@/services/capture/SpeechToText";
 import { setGnssSource } from "@/services/location/GnssSource";
+import { mapAssets$ } from "@/services/storage/AssetStore";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
+import { setCaptureUploader } from "@/services/sync/CaptureSync";
 import { accountStore } from "./AccountStore";
-import { FAKE_GNSS, fakeCaptures } from "./captures";
+import { fakeMapAssets } from "./assets";
+import { FAKE_GNSS, fakeCaptureUploader, fakeCaptures } from "./captures";
 import { fakeDetectionEstimator } from "./detections";
 import { fakeGnssSource, fakePhotoQuality } from "./gnss";
 import { fakeNearbyAssetSource, fakeSpeechToText } from "./tagging";
@@ -19,8 +22,9 @@ import { FAKE_TOKEN_TTL, fakeClaims, fakeToken } from "./token";
 import type { DevMocks } from "./types";
 
 /**
- * Dev-only fake backend for the auth endpoints, seed captures for Home, a
- * simulated GNSS receiver and photo-quality check for the capture screen,
+ * Dev-only fake backend for the auth endpoints, seed captures for Home and
+ * Records with a fake uploader behind "Sync now", assets for the Map tab, a simulated GNSS receiver and photo-quality check
+ * for the capture screen,
  * fake attribute estimates for the detection review, and a nearby duplicate
  * and voice input for the tagging form. The app's real code runs
  * unchanged; only what answers it is fake. Metro swaps this module for
@@ -53,6 +57,10 @@ export const devMocks: DevMocks = {
     // Home screen data. Only fills an empty store so real captures survive.
     if (captures$.get().length === 0) captures$.set(fakeCaptures());
     if (!gnssStatus$.get()) gnssStatus$.set(FAKE_GNSS);
+    // Map tab pins and asset profiles, likewise only into an empty store.
+    if (mapAssets$.get().length === 0) mapAssets$.set(fakeMapAssets());
+    // Records tab: "Sync now" uploads to nowhere.
+    setCaptureUploader(fakeCaptureUploader);
 
     // Capture screen: converging GPS fixes and passing quality checks.
     setGnssSource(fakeGnssSource);

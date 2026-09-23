@@ -12,6 +12,12 @@ import { randomUUID } from "expo-crypto";
 import { Platform } from "react-native";
 import { AuthType, axiosClient, queryClient } from "../Api";
 import type { OpKind, Operation } from "../sync/Types";
+import {
+  ASSETS_STORAGE_KEY,
+  MAP_PREFS_STORAGE_KEY,
+  mapAssets$,
+  mapPreferences$,
+} from "./AssetStore";
 import { CAPTURES_STORAGE_KEY, captures$ } from "./CaptureStore";
 import type { LocalEventRecord } from "./EventStore";
 import {
@@ -221,6 +227,24 @@ export function initPersistence() {
     syncPlugin({
       persist: {
         name: CAPTURES_STORAGE_KEY,
+      },
+    }),
+  );
+
+  syncObservable(
+    mapAssets$,
+    syncPlugin({
+      persist: {
+        name: ASSETS_STORAGE_KEY,
+      },
+    }),
+  );
+
+  syncObservable(
+    mapPreferences$,
+    syncPlugin({
+      persist: {
+        name: MAP_PREFS_STORAGE_KEY,
       },
     }),
   );

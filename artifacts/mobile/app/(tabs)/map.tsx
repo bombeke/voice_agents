@@ -1,1 +1,5 @@
-export { default } from "./poles/maps";
+import { AssetMapView } from "@/views/AssetMapView";
+
+export default function MapScreen() {
+  return <AssetMapView />;
+}

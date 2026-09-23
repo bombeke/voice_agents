@@ -1,4 +1,5 @@
 import { strings } from "@/constants/Strings";
+import { formatClock, isSameLocalDay } from "@/helpers/format";
 import type { CaptureSummary, CaptureSyncStatus } from "@/types/Capture";
 
 export interface TodayStats {
@@ -8,11 +9,6 @@ export interface TodayStats {
   /** Every unsynced record on the device, not only today's. */
   pending: number;
 }
-
-const isSameLocalDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
 
 export function summariseToday(
   captures: readonly CaptureSummary[],
@@ -53,14 +49,17 @@ const SYNC_LABEL: Record<CaptureSyncStatus, string> = {
   failed: strings.syncStatus.failed,
 };
 
-const pad = (n: number) => String(n).padStart(2, "0");
-
-/** "10:14 · ±2.8 m · waiting to sync" (local time, 24 h). */
-export function formatCaptureMeta(capture: CaptureSummary): string {
-  const at = new Date(capture.capturedAt);
+/** "10:14" and "±2.8 m": the start of every capture's meta line (local time, 24 h). */
+export function captureMetaParts(capture: CaptureSummary): [string, string] {
   return [
-    `${pad(at.getHours())}:${pad(at.getMinutes())}`,
+    formatClock(new Date(capture.capturedAt)),
     `±${capture.accuracyM.toFixed(1)} m`,
-    SYNC_LABEL[capture.syncStatus],
-  ].join(" · ");
+  ];
+}
+
+/** "10:14 · ±2.8 m · waiting to sync". */
+export function formatCaptureMeta(capture: CaptureSummary): string {
+  return [...captureMetaParts(capture), SYNC_LABEL[capture.syncStatus]].join(
+    " · ",
+  );
 }

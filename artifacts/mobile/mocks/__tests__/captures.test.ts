@@ -1,5 +1,7 @@
 import { summariseToday } from "@/helpers/captureStats";
-import { fakeCaptures } from "../captures";
+import { countRecords } from "@/helpers/records";
+import { isOnline$ } from "@/services/storage/LegendState";
+import { fakeCaptureUploader, fakeCaptures } from "../captures";
 
 describe("fakeCaptures", () => {
   it.each([
@@ -13,6 +15,41 @@ describe("fakeCaptures", () => {
       flagged: 1,
       pending: 3,
     });
-    expect(captures[0].title).toBe("Concrete pole · inclined 7°");
+    expect(countRecords(captures)).toMatchObject({
+      all: 14,
+      pending: 3,
+      flagged: 1,
+    });
+    expect(captures[0]).toMatchObject({
+      title: "Concrete pole",
+      detail: "2 detections",
+      assetId: "EP-00412",
+    });
+  });
+});
+
+describe("fakeCaptureUploader", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => {
+    jest.useRealTimers();
+    isOnline$.set(true);
+  });
+
+  async function upload() {
+    const result = fakeCaptureUploader(fakeCaptures().slice(0, 2));
+    await jest.runAllTimersAsync();
+    return result;
+  }
+
+  it("uploads everything while online", async () => {
+    expect(await upload()).toEqual({
+      synced: ["fake-capture-1", "fake-capture-2"],
+      failed: [],
+    });
+  });
+
+  it("settles nothing while offline", async () => {
+    isOnline$.set(false);
+    expect(await upload()).toEqual({ synced: [], failed: [] });
   });
 });

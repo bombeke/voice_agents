@@ -118,11 +118,45 @@ describe("buildSummary", () => {
       id: "id-1",
       category: "energy",
       title: "Pole",
+      detail: "Inclined",
       capturedAt: "2026-09-23T09:20:00.000Z",
       accuracyM: 0,
       syncStatus: "pending",
       flagged: false,
     });
     expect(buildSummary(records, { ...base, draft: true }).flagged).toBe(true);
+  });
+
+  it("counts several kept detections in the detail", () => {
+    const base = input({
+      detections: [detection(), detection({ trackId: 2 })],
+    });
+    expect(buildSummary(buildRecords(base), base).detail).toBe("2 detections");
+  });
+
+  it("falls back to whether the asset works, then to nothing", () => {
+    const base = input();
+    const good = { ...base.form, statuses: ["good" as const] };
+    const summary = (form: RecordInput["form"]) =>
+      buildSummary(buildRecords({ ...base, form }), { ...base, form });
+    expect(summary({ ...good, functional: "yes" }).detail).toBe("functional");
+    expect(summary({ ...good, functional: "unknown" }).detail).toBeUndefined();
+  });
+
+  it("links an update to the existing asset's code", () => {
+    const base = input();
+    const form = {
+      ...base.form,
+      duplicate: DUPLICATE,
+      duplicateChoice: "update" as const,
+    };
+    const summary = buildSummary(buildRecords({ ...base, form }), {
+      ...base,
+      form,
+    });
+    expect(summary.assetId).toBe("EP-00412");
+    expect(buildSummary(buildRecords(base), base)).not.toHaveProperty(
+      "assetId",
+    );
   });
 });

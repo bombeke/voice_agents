@@ -3,13 +3,17 @@ import { jwtDecode } from "jwt-decode";
 import { DEV_MOCKS_MARKER, devMocks, FAKE_SSO_CODE } from "..";
 import { nearbyAssets } from "@/services/capture/NearbyAssets";
 import { speechToText } from "@/services/capture/SpeechToText";
+import { mapAssets$ } from "@/services/storage/AssetStore";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
+import { syncPendingCaptures } from "@/services/sync/CaptureSync";
 import { accountStore } from "../AccountStore";
 import { fakeCaptures } from "../captures";
 import { devMocks as stub } from "../stub";
 
 jest.mock("@/services/Api", () => ({
   axiosClient: require("axios").create({ baseURL: "https://api.test" }),
+  // The op queue behind "Sync now" builds a query on import.
+  queryClient: new (require("@tanstack/react-query").QueryClient)(),
 }));
 
 const { axiosClient } = jest.requireMock("@/services/Api");
@@ -44,6 +48,35 @@ describe("dev mocks", () => {
   it("seeds the Home screen's captures and GNSS state", () => {
     expect(captures$.get()).toHaveLength(14);
     expect(gnssStatus$.get()).toEqual({ bands: "L1+L5", ok: true });
+  });
+
+  it("links seeded records to the Map's assets", () => {
+    const assetIds = new Set(mapAssets$.get().map((a) => a.id));
+    const linked = captures$.get().filter((c) => c.assetId);
+    expect(linked.length).toBeGreaterThan(0);
+    for (const c of linked) expect(assetIds).toContain(c.assetId);
+  });
+
+  it("fakes the uploader behind Sync now", async () => {
+    jest.useFakeTimers();
+    try {
+      captures$.set(fakeCaptures());
+      const done = syncPendingCaptures();
+      await jest.runAllTimersAsync();
+      await done;
+      expect(captures$.get().every((c) => c.syncStatus === "synced")).toBe(
+        true,
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("seeds the Map tab's assets", () => {
+    expect(mapAssets$.get()).toHaveLength(25);
+    expect(mapAssets$.get()).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "EP-00412" })]),
+    );
   });
 
   it("fakes a nearby duplicate and voice input for the tagging form", () => {

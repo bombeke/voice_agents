@@ -1,5 +1,6 @@
 import { MMKVProvider } from "@/components/MmkvContext";
 import { fontAssets } from "@/constants/theme";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { devMocks } from "@/mocks";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { DetectorModelProvider } from "@/providers/DetectorModelProvider";
@@ -48,6 +49,7 @@ initPersistence();
 devMocks?.install();
 
 export default function RootLayout() {
+  useNetworkStatus();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...fontAssets,

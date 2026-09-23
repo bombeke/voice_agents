@@ -9,7 +9,7 @@ import { colors } from "@/constants/theme";
 import { useCaptureSummary } from "@/hooks/useCaptureSummary";
 import { useAuth } from "@/providers/AuthProvider";
 import { Routes } from "@/services/Routes";
-import type { CaptureCategory } from "@/types/Capture";
+import type { CaptureCategory, CaptureSummary } from "@/types/Capture";
 import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 
@@ -21,7 +21,13 @@ export function HomeView() {
 
   const startCapture = (category: CaptureCategory) =>
     router.push({ pathname: Routes.CAPTURE, params: { category } });
-  const openRecords = () => router.navigate(Routes.RECORDS);
+  const openPending = () =>
+    router.navigate({
+      pathname: Routes.RECORDS,
+      params: { filter: "pending" },
+    });
+  const openRecord = ({ id }: CaptureSummary) =>
+    router.navigate({ pathname: Routes.RECORDS, params: { id } });
 
   return (
     <ScrollView
@@ -32,7 +38,7 @@ export function HomeView() {
       <HomeHeader
         org={org}
         pendingCount={stats.pending}
-        onPendingPress={openRecords}
+        onPendingPress={openPending}
         onProfilePress={() => router.navigate(Routes.PROFILE)}
       />
 
@@ -64,7 +70,7 @@ export function HomeView() {
       </Card>
 
       <View className="mt-2">
-        <LastCapturedCard capture={latest} onPress={openRecords} />
+        <LastCapturedCard capture={latest} onPress={openRecord} />
       </View>
     </ScrollView>
   );
