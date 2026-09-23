@@ -6,6 +6,7 @@ import {
   Map,
   GeoJSONSource,
 } from "@maplibre/maplibre-react-native";
+import { colors } from "@/constants/theme";
 import {
   Accuracy,
   getCurrentPositionAsync,
@@ -13,6 +14,9 @@ import {
 } from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Text, View } from "react-native";
+import { withUniwind } from "uniwind";
+
+const StyledMap = withUniwind(Map);
 
 const DEFAULT_CENTER: [number, number] = [29.2297, -1.6712];
 
@@ -57,15 +61,8 @@ export default function DashboardMaps() {
 
   if (Platform.OS === "web") {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#EFF6FF",
-        }}
-      >
-        <Text style={{ color: "#64748B", fontSize: 15 }}>
+      <View className="flex-1 items-center justify-center bg-surface-muted">
+        <Text className="type-body text-text-muted">
           Map is only available on mobile devices.
         </Text>
       </View>
@@ -76,8 +73,8 @@ export default function DashboardMaps() {
     Array.isArray(memoGeoJSON?.features) && memoGeoJSON.features.length > 0;
 
   return (
-    <Map
-      style={{ flex: 1 }}
+    <StyledMap
+      className="flex-1"
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
     >
       <Camera
@@ -95,9 +92,9 @@ export default function DashboardMaps() {
             type="circle"
             paint={{
               "circle-radius": 6,
-              "circle-color": "rgba(177, 99, 54, 0.9)",
+              "circle-color": colors.primary,
               "circle-stroke-width": 2,
-              "circle-stroke-color": "#fff",
+              "circle-stroke-color": colors.surface,
             }}
           />
           <Layer
@@ -106,13 +103,13 @@ export default function DashboardMaps() {
             layout={{
               "text-field": ["get", "id"],
               "text-size": 10,
-              "text-color": "#111",
+              "text-color": colors.text,
               "text-anchor": "top",
               "text-offset": [0, 1],
             }}
           />
         </GeoJSONSource>
       )}
-    </Map>
+    </StyledMap>
   );
 }

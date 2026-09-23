@@ -47,8 +47,18 @@ const WEB_STUBS = {
   "react-native-executorch-expo-resource-fetcher": path.resolve(projectRoot, "web-stubs/react-native-executorch-expo-resource-fetcher.js"),
 };
 
+// The dev-only fake API (mocks/) is bundled only when explicitly requested,
+// and never for the production profile; every other build gets the null stub.
+const API_MOCKING =
+  process.env.EXPO_PUBLIC_API_MOCKING === "enabled" &&
+  process.env.APP_VARIANT !== "production";
+const MOCKS_STUB = path.resolve(projectRoot, "mocks/stub.ts");
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === "@/mocks" && !API_MOCKING) {
+    return { filePath: MOCKS_STUB, type: "sourceFile" };
+  }
   if (platform === "web" && WEB_STUBS[moduleName]) {
     return { filePath: WEB_STUBS[moduleName], type: "sourceFile" };
   }

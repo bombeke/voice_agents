@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "lint": "pnpm -r lint",
+    "test": "pnpm --filter mobile test",
     "typecheck:all": "pnpm -r typecheck",
     "build:all": "pnpm -r build",
     "android": "pnpm --filter mobile android",

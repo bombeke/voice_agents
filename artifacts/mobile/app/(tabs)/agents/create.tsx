@@ -1,15 +1,16 @@
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { useMMKVValue } from "@/hooks/useMMKVVlaue";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { View } from "react-native";
-import { Button, Input } from "tamagui";
 
 export default function CreateAgent() {
   const router = useRouter();
-  const [_, setData] = useMMKVValue('data','');
+  const [_, setData] = useMMKVValue("data", "");
   const { control, handleSubmit } = useForm({
-    defaultValues: { name: "", description: "", phonenumber: ""},
+    defaultValues: { name: "", description: "", phonenumber: "" },
   });
 
   const onSubmit = async (data: any) => {
@@ -23,7 +24,7 @@ export default function CreateAgent() {
   };
 
   return (
-    <View style={{ padding: 16 }} className="gap-4">
+    <View className="flex-1 gap-4 p-4 bg-background">
       <Controller
         control={control}
         name="name"

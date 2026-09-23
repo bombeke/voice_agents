@@ -1,5 +1,5 @@
 // PoleVisionMockup.tsx
-import { Picker } from "@react-native-picker/picker"; // RN replacement for <select>
+import { Picker as RNPicker } from "@react-native-picker/picker"; // RN replacement for <select>
 import { useState } from "react";
 import {
   FlatList,
@@ -11,6 +11,9 @@ import {
   Text,
   View,
 } from "react-native";
+import { withUniwind } from "uniwind";
+
+const Picker = Object.assign(withUniwind(RNPicker), { Item: RNPicker.Item });
 
 // ---------------------------
 // KPI Card
@@ -54,8 +57,8 @@ const Row = ({ item, onSelect }: any) => (
         item.risk === "High"
           ? "text-rose-600"
           : item.risk === "Med"
-          ? "text-amber-600"
-          : "text-emerald-600"
+            ? "text-amber-600"
+            : "text-emerald-600"
       }`}
     >
       {item.risk}
@@ -79,7 +82,9 @@ const DataTable = ({ rows, onSelect }: any) => (
       <Text className="w-24 text-xs font-medium text-slate-500">Owner</Text>
       <Text className="w-20 text-xs font-medium text-slate-500">Condition</Text>
       <Text className="w-14 text-xs font-medium text-slate-500">Risk</Text>
-      <Text className="flex-1 text-xs font-medium text-slate-500">Location</Text>
+      <Text className="flex-1 text-xs font-medium text-slate-500">
+        Location
+      </Text>
     </View>
 
     <FlatList
@@ -122,10 +127,12 @@ const PoleDetailModal = ({ pole, onClose }: any) => {
                   uri: "https://images.unsplash.com/photo-1563306408-0e5b96a4f9fb?auto=format&fit=crop&w=800&q=60",
                 }}
                 className="h-48 rounded-lg"
-                imageStyle={{ borderRadius: 12 }}
+                imageClassName="rounded-xl"
               />
 
-              <Text className="mt-3 text-sm text-slate-500">AI Annotations</Text>
+              <Text className="mt-3 text-sm text-slate-500">
+                AI Annotations
+              </Text>
               <Text className="text-sm text-slate-600 mt-2">
                 • Lean Angle: {pole.analysis.lean}°
               </Text>
@@ -141,11 +148,14 @@ const PoleDetailModal = ({ pole, onClose }: any) => {
             </View>
 
             <View>
-              <Text className="text-sm text-slate-500">Recommended Actions</Text>
+              <Text className="text-sm text-slate-500">
+                Recommended Actions
+              </Text>
 
-              <View className="mt-3 space-y-2">
+              <View className="mt-3 gap-2">
                 <Text className="p-3 bg-amber-50 rounded-lg">
-                  Schedule Inspection — Priority: <Text className="font-bold">{pole.risk}</Text>
+                  Schedule Inspection — Priority:{" "}
+                  <Text className="font-bold">{pole.risk}</Text>
                 </Text>
 
                 <Text className="p-3 bg-rose-50 rounded-lg">
@@ -221,10 +231,30 @@ export default function PoleVisionMockup() {
   ];
 
   const kpis = [
-    { title: "Total Poles", value: "2,435,991", delta: "+2.1% MoM", note: "All registered infrastructure" },
-    { title: "High-Risk Poles", value: "139,442", delta: "-1.3% MoM", note: "Flagged for immediate action" },
-    { title: "Telecom Clutter Zones", value: "1,933", delta: "+7% MoM", note: "High redundancy areas" },
-    { title: "Wildlife-sensitive Zones", value: "388", delta: "—", note: "Environmental overlays" },
+    {
+      title: "Total Poles",
+      value: "2,435,991",
+      delta: "+2.1% MoM",
+      note: "All registered infrastructure",
+    },
+    {
+      title: "High-Risk Poles",
+      value: "139,442",
+      delta: "-1.3% MoM",
+      note: "Flagged for immediate action",
+    },
+    {
+      title: "Telecom Clutter Zones",
+      value: "1,933",
+      delta: "+7% MoM",
+      note: "High redundancy areas",
+    },
+    {
+      title: "Wildlife-sensitive Zones",
+      value: "388",
+      delta: "—",
+      note: "Environmental overlays",
+    },
   ];
 
   return (
@@ -253,7 +283,7 @@ export default function PoleVisionMockup() {
       </View>
 
       {/* KPIs */}
-      <View className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <View className="gap-4">
         {kpis.map((k) => (
           <KPI key={k.title} title={k.title} value={k.value} delta={k.delta}>
             {k.note}
@@ -269,8 +299,8 @@ export default function PoleVisionMockup() {
           <View className="flex-row gap-2 items-center">
             <Picker
               selectedValue={city}
-              onValueChange={setCity}
-              style={{ width: 140, height: 38 }}
+              onValueChange={(value) => setCity(String(value))}
+              className="w-[140px] h-[38px]"
             >
               <Picker.Item label="Kampala" value="Kampala" />
               <Picker.Item label="Nairobi" value="Nairobi" />
@@ -285,7 +315,7 @@ export default function PoleVisionMockup() {
 
         <MapPlaceholder />
 
-        <View className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <View className="mt-4 gap-3">
           <Text className="p-3 bg-sky-50 rounded-lg">
             Hotspots: Jinja Rd, Ntinda, Bukoto
           </Text>
@@ -302,7 +332,9 @@ export default function PoleVisionMockup() {
       <View className="bg-white p-4 rounded-2xl shadow mt-6">
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-lg font-semibold">Pole Registry</Text>
-          <Text className="text-sm text-slate-500">Tap a row to open detail</Text>
+          <Text className="text-sm text-slate-500">
+            Tap a row to open detail
+          </Text>
         </View>
 
         <DataTable rows={rows} onSelect={setSelected} />
@@ -313,9 +345,7 @@ export default function PoleVisionMockup() {
 
       {/* Footer */}
       <View className="mt-10 items-center">
-        <Text className="text-xs text-slate-400">
-          PoleVision™
-        </Text>
+        <Text className="text-xs text-slate-400">PoleVision™</Text>
       </View>
     </ScrollView>
   );

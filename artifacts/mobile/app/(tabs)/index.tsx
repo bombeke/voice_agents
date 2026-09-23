@@ -9,13 +9,22 @@ import {
   Text,
   View,
 } from "react-native";
+import { withUniwind } from "uniwind";
 
-const NATIVE_DRIVER = Platform.OS !== "web";
-
+import { AssetCategory, CategoryColors, colors } from "@/constants/theme";
 import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG, MenuItem } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
 
+const NATIVE_DRIVER = Platform.OS !== "web";
+const AnimatedView = withUniwind(Animated.View);
+
+const TILE_BG: Record<AssetCategory, string> = {
+  energy: "bg-energy-tile",
+  water: "bg-water-tile",
+  telecom: "bg-telecom-tile",
+  roads: "bg-roads-tile",
+};
 
 function ModuleCard({ item }: { item: MenuItem }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -38,98 +47,64 @@ function ModuleCard({ item }: { item: MenuItem }) {
     }).start();
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <AnimatedView style={{ transform: [{ scale }] }}>
       <Pressable
         onPress={() => router.push(item.href as any)}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
-        style={{
-          backgroundColor: "#FFFFFF",
-          borderRadius: 18,
-          padding: 20,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 16,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 10,
-          elevation: 2,
-          marginBottom: 12,
-        }}
+        className="bg-surface border border-border rounded-2xl p-4 mb-2.5 flex-row items-center gap-4"
       >
         <View
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            backgroundColor: item.bg,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          className={`w-[52px] h-[52px] rounded-button items-center justify-center ${
+            item.category ? TILE_BG[item.category] : "bg-primary-soft"
+          }`}
         >
-          <FontAwesome name={item.icon} size={22} color={item.color} />
+          <FontAwesome
+            name={item.icon}
+            size={22}
+            color={
+              item.category
+                ? CategoryColors[item.category].solid
+                : colors.primary
+            }
+          />
         </View>
 
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{ fontSize: 15, fontWeight: "700", color: "#111827", marginBottom: 3 }}
-          >
-            {item.title}
-          </Text>
-          <Text style={{ fontSize: 12, color: "#6B7280", lineHeight: 17 }}>
-            {item.desc}
-          </Text>
+        <View className="flex-1 gap-0.5">
+          <Text className="type-title text-text">{item.title}</Text>
+          <Text className="type-caption text-text-muted">{item.desc}</Text>
         </View>
 
-        <FontAwesome name="chevron-right" size={12} color="#D1D5DB" />
+        <FontAwesome
+          name="chevron-right"
+          size={12}
+          color={colors.borderStrong}
+        />
       </Pressable>
-    </Animated.View>
+    </AnimatedView>
   );
 }
 
 export default function HomeScreen() {
-const { isAdmin, claims, adminMode } = useAuth();
-const menu = useMemo(
-  () => filterMenu(MENU_CONFIG, { isAdmin, claims, adminMode }),
-  [isAdmin, claims, adminMode],
-);
+  const { isAdmin, claims, adminMode } = useAuth();
+  const menu = useMemo(
+    () => filterMenu(MENU_CONFIG, { isAdmin, claims, adminMode }),
+    [isAdmin, claims, adminMode],
+  );
   return (
     <ScrollView
-      contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-      style={{ backgroundColor: "#F8FAFC" }}
+      contentContainerClassName="p-5 pb-10"
+      className="bg-background"
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <View style={{ marginBottom: 28 }}>
-        <Text
-          style={{
-            fontSize: 12,
-            color: "#9CA3AF",
-            textTransform: "uppercase",
-            letterSpacing: 1.2,
-            fontWeight: "600",
-          }}
-        >
-          BYOD Environment
-        </Text>
-        <Text
-          style={{
-            fontSize: 28,
-            fontWeight: "800",
-            color: "#111827",
-            marginTop: 4,
-            letterSpacing: -0.5,
-          }}
-        >
-          AI Toolkit
-        </Text>
+      <View className="mb-7">
+        <Text className="type-overline text-text-muted">BYOD Environment</Text>
+        <Text className="type-display text-text mt-1">AI Toolkit</Text>
         {claims?.sub ? (
-          <Text style={{ color: "#6B7280", fontSize: 13, marginTop: 6 }}>
+          <Text className="type-body-small text-text-muted mt-1.5">
             Welcome back,{" "}
-            <Text style={{ fontWeight: "600", color: "#374151" }}>
-              {claims.sub}
-            </Text>
+            <Text className="font-body-semi text-text">{claims.sub}</Text>
             {isAdmin && " · Admin"}
           </Text>
         ) : null}

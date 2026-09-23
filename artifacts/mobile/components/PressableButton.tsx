@@ -7,8 +7,10 @@ import {
   PressableProps,
   ViewStyle,
 } from "react-native";
+import { withUniwind } from "uniwind";
 
 const NATIVE_DRIVER = Platform.OS !== "web";
+const AnimatedView = withUniwind(Animated.View);
 
 export interface IPressableButton extends PressableProps {
   /**
@@ -31,11 +33,14 @@ export interface IPressableButton extends PressableProps {
    * @default true
    */
   haptic?: boolean;
+  /** Classes for the animated wrapper (position, size). */
+  className?: string;
   children: ReactNode;
 }
 
 export const PressableButton = ({
   style,
+  className,
   disabled = false,
   disabledOpacity = 0.35,
   activeOpacity = 0.85,
@@ -78,7 +83,8 @@ export const PressableButton = ({
   );
 
   return (
-    <Animated.View
+    <AnimatedView
+      className={className}
       style={[
         style as ViewStyle,
         {
@@ -96,6 +102,6 @@ export const PressableButton = ({
       >
         {children}
       </Pressable>
-    </Animated.View>
+    </AnimatedView>
   );
 };

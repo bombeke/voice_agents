@@ -1,6 +1,7 @@
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Controller, useForm } from "react-hook-form";
 import { Text, View } from "react-native";
-import { Button, Input } from "tamagui";
 
 export default function SanitationIndex() {
   const { control, handleSubmit } = useForm({
@@ -9,8 +10,8 @@ export default function SanitationIndex() {
   const onSubmit = (v: any) => alert(JSON.stringify(v));
 
   return (
-    <View style={{ padding: 16 }} className="gap-4">
-      <Text className="text-2xl">AI Sanitation</Text>
+    <View className="flex-1 gap-4 p-4 bg-background">
+      <Text className="type-h1 text-text">AI Sanitation</Text>
 
       <Controller
         control={control}

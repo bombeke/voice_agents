@@ -33,15 +33,20 @@ const child = spawn(
     "exec",
     "expo",
     "start",
-    "--dev-client",   // serve dev-client compatible bundles
-    "--web",          // also serve web (renders in Preview)
-    "--port", PORT,
-    "--host", "lan",  // bind 0.0.0.0 so Replit can expose it
+    "--dev-client", // serve dev-client compatible bundles
+    "--web", // also serve web (renders in Preview)
+    "--port",
+    PORT,
+    "--host",
+    "lan", // bind 0.0.0.0 so Replit can expose it
   ],
-  { stdio: "inherit", env }
+  { stdio: "inherit", env },
 );
 
-const stop = () => { child.kill(); process.exit(0); };
+const stop = () => {
+  child.kill();
+  process.exit(0);
+};
 process.on("SIGINT", stop);
 process.on("SIGTERM", stop);
 process.on("SIGHUP", stop);

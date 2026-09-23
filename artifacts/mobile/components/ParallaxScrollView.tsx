@@ -1,50 +1,26 @@
-import type { PropsWithChildren, ReactElement } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ThemedView } from '../components/ThemedView';
-import { useBottomTabOverflow } from '../components/ui/TabBarBackground';
-import { useColorScheme } from '../hooks/useColorScheme';
-
-const HEADER_HEIGHT = 250;
+import type { PropsWithChildren, ReactElement } from "react";
+import { View } from "react-native";
+import { ThemedView } from "../components/ThemedView";
 
 type Props = PropsWithChildren<{
   headerImage?: ReactElement | null;
-  headerBackgroundColor?: { dark: string; light: string };
+  /** Tailwind background class for the header, e.g. `bg-primary-soft`. */
+  headerClassName?: string;
 }>;
 
 export default function ParallaxScrollView({
   children,
   headerImage,
-  headerBackgroundColor,
+  headerClassName = "",
 }: Props) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const bottom = useBottomTabOverflow();
-
   return (
-    <ThemedView style={styles.container}>
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: headerBackgroundColor?.[colorScheme] },
-          ]}>
-          {headerImage}
-        </View>
-        <ThemedView style={styles.content}>{children}</ThemedView>
+    <ThemedView className="flex-1">
+      <View className={`h-[250px] overflow-hidden ${headerClassName}`}>
+        {headerImage}
+      </View>
+      <ThemedView className="flex-1 p-8 gap-4 overflow-hidden">
+        {children}
+      </ThemedView>
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    height: HEADER_HEIGHT,
-    overflow: 'hidden',
-  },
-  content: {
-    flex: 1,
-    padding: 32,
-    gap: 16,
-    overflow: 'hidden',
-  },
-});

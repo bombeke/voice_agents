@@ -1,8 +1,8 @@
+import { Button } from "@/components/ui/Button";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
-import { Button } from "tamagui";
 
 export default function AgentDetail() {
   const { id } = useLocalSearchParams();
@@ -17,12 +17,13 @@ export default function AgentDetail() {
     })();
   }, [id]);
 
-  if (!agent) return <Text>Loading...</Text>;
+  if (!agent)
+    return <Text className="p-4 type-body text-text-muted">Loading...</Text>;
 
   return (
-    <View style={{ padding: 16 }} className="gap-4">
-      <Text className="text-2xl font-bold">{agent.name}</Text>
-      <Text>{agent.description}</Text>
+    <View className="flex-1 gap-4 p-4 bg-background">
+      <Text className="type-h1 text-text">{agent.name}</Text>
+      <Text className="type-body text-text">{agent.description}</Text>
       <Button onPress={() => alert("Demo: trigger agent run")}>
         Run Agent
       </Button>

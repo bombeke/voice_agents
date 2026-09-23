@@ -18,6 +18,10 @@ env:
   PROJECT_ID: ${{ secrets.PROJECT_ID }}
   API_TOKEN: ${{ secrets.API_TOKEN }}
   CI: true
+  # Release builds never include the dev-only fake API (artifacts/mobile/mocks):
+  # metro.config.js bundles mocks/stub.ts instead for this variant.
+  APP_VARIANT: production
+  EXPO_PUBLIC_API_MOCKING: disabled
   JAVA_OPTS: "-Xmx6g"
   _JAVA_OPTIONS: "-Xmx6g"
   JAVA_TOOL_OPTIONS: "-Xmx6g"
@@ -135,6 +139,10 @@ jobs:
         working-directory: artifacts/mobile/android
         run: |
           ./gradlew clean assembleRelease --stacktrace --no-daemon --info
+
+      - name: Verify release APK excludes dev mocks
+        working-directory: artifacts/mobile
+        run: sh scripts/check-release-bundle.sh android/app/build/outputs/apk/release/app-release.apk
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4

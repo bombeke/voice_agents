@@ -13,6 +13,7 @@ export const API_PASSWORD = env?.API_PASSWORD;
 export const API_ACCESS_TOKEN = env?.API_ACCESS_TOKEN;
 
 export const APP_SECURE_AUTH_STATE_KEY = 'PoleVisionAuthToken';
+export const AUTH_REDIRECT_SCHEME = "mobile";
 export const DEVICE_KEY_NAME = "device_keypair_v1";
 
 export const ROTATION_KEY = "device_key_rotation_ts";

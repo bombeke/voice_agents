@@ -2,19 +2,139 @@
 @import 'uniwind';
 
 /*
-@layer theme {
-  :root {
-    @variant light {
-      --color-primary: #00a8ff;
-      --color-gray: #f0f0f0;
-      --color-typography: #000;
-    }
+ * Design tokens from design/ui-screens.html (see CLAUDE.md).
+ * Keep in sync with constants/Colors.ts, which holds the same values for
+ * props that can't take a className (icon `color`, Skia, MapLibre layers).
+ */
+@theme {
+  --color-background: #f4f2ec;
+  --color-surface: #ffffff;
+  --color-surface-muted: #ece9e0;
+  --color-text: #1a1d1b;
+  --color-text-muted: #55594f;
+  --color-border: #dad6ca;
+  --color-border-strong: #c9c4b6;
 
-    @variant dark {
-      --color-primary: #273c75;
-      --color-gray: #353b48;
-      --color-typography: #fff;
-    }
-  }
+  --color-primary: #0f5e51;
+  --color-primary-pressed: #0a4439;
+  --color-primary-soft: #ddebe6;
+  --color-on-primary: #ffffff;
+  --color-accent: #f5c04a;
+  --color-on-accent: #1a1d1b;
+  --color-logo-rail: #5fa895;
+
+  --color-success: #1e6b3a;
+  --color-success-soft: #ddeee2;
+  --color-on-success-soft: #143f24;
+  --color-warning: #8a4205;
+  --color-warning-soft: #fbebd6;
+  --color-on-warning-soft: #5a2b03;
+  --color-danger: #a3261b;
+  --color-danger-soft: #f8dcd8;
+  --color-on-danger-soft: #7a1c13;
+
+  --color-energy: #9a5b00;
+  --color-energy-tile: #f6e9d2;
+  --color-energy-border: #e8d3ae;
+  --color-water: #1b5e91;
+  --color-water-tile: #dce9f4;
+  --color-water-border: #bcd3e8;
+  --color-telecom: #5a3f8f;
+  --color-telecom-tile: #e7e0f2;
+  --color-telecom-border: #d0c4e6;
+  --color-roads: #6a4a2e;
+  --color-roads-tile: #ede3d8;
+  --color-roads-border: #d9c8b5;
+
+  /* One family per weight; never combine with font-bold etc. */
+  --font-display: Archivo_800ExtraBold;
+  --font-heading: Archivo_700Bold;
+  --font-heading-semi: Archivo_600SemiBold;
+  --font-body: IBMPlexSans_400Regular;
+  --font-body-medium: IBMPlexSans_500Medium;
+  --font-body-semi: IBMPlexSans_600SemiBold;
+  --font-body-bold: IBMPlexSans_700Bold;
+  --font-mono: IBMPlexMono_400Regular;
+  --font-mono-medium: IBMPlexMono_500Medium;
+
+  --radius-tile: 10px;
+  --radius-button: 14px;
+  --radius-pill-button: 22px;
 }
-  */
+
+/* Type roles (CLAUDE.md "Type" table). */
+@utility type-display {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 34px;
+  letter-spacing: -0.64px;
+}
+@utility type-h1 {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  line-height: 32px;
+  letter-spacing: -0.28px;
+}
+@utility type-h2 {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  line-height: 28px;
+  letter-spacing: -0.24px;
+}
+@utility type-stat {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  line-height: 26px;
+}
+@utility type-title {
+  font-family: var(--font-body-semi);
+  font-size: 17px;
+  line-height: 22px;
+}
+@utility type-body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 22px;
+}
+@utility type-body-strong {
+  font-family: var(--font-body-semi);
+  font-size: 15px;
+  line-height: 22px;
+}
+@utility type-body-small {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 20px;
+}
+@utility type-label {
+  font-family: var(--font-body-semi);
+  font-size: 14px;
+  line-height: 18px;
+}
+@utility type-caption {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 17px;
+}
+@utility type-chip {
+  font-family: var(--font-body-semi);
+  font-size: 12.5px;
+  line-height: 16px;
+}
+@utility type-tab {
+  font-family: var(--font-body-semi);
+  font-size: 12px;
+  line-height: 16px;
+}
+@utility type-overline {
+  font-family: var(--font-body-semi);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.96px;
+  text-transform: uppercase;
+}
+@utility type-mono {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 20px;
+}

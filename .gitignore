@@ -108,3 +108,9 @@ pnpm-debug.log*
 # ========================================
 *.orig.*
 localhost*
+
+# Design Docs
+design/
+
+# coverage report
+coverage/**/*

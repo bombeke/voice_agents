@@ -1,3 +1,4 @@
+import type { AssetCategory } from "@/constants/Colors";
 import { FontAwesome } from "@expo/vector-icons";
 import { ComponentProps } from "react";
 
@@ -20,8 +21,8 @@ export type MenuItem = {
   offlineVisible?: boolean;
   children?: MenuItem[];
   desc?: string;
-  color?: string;
-  bg?: string;
+  /** Tints the dashboard card icon tile. */
+  category?: AssetCategory;
 };
 
 export const MENU_CONFIG: MenuItem[] = [
@@ -41,8 +42,7 @@ export const MENU_CONFIG: MenuItem[] = [
     icon: "user",
     permission: "agents:view",
     desc: "Deploy disease surveillance agents",
-    color: "#7C3AED",
-    bg: "#F5F3FF",
+    category: "telecom",
   },
 
   {
@@ -52,8 +52,7 @@ export const MENU_CONFIG: MenuItem[] = [
     href: "/poles",
     icon: "camera",
     desc: "AI-powered pole defect detection",
-    color: "#2563EB",
-    bg: "#EFF6FF",
+    category: "energy",
   },
 
   {
@@ -63,8 +62,7 @@ export const MENU_CONFIG: MenuItem[] = [
     href: "/sanitation",
     icon: "recycle",
     desc: "Monitor sanitation conditions",
-    color: "#059669",
-    bg: "#ECFDF5",
+    category: "water",
   },
 
   {
@@ -74,8 +72,7 @@ export const MENU_CONFIG: MenuItem[] = [
     href: "/roads",
     icon: "road",
     desc: "Road condition analytics",
-    color: "#D97706",
-    bg: "#FFFBEB",
+    category: "roads",
   },
 
   // TODO: `app/(admin)` currently contains only `_layout.tsx` files and no

@@ -1,5 +1,5 @@
-import { FlatList, Text } from "react-native";
-import { Button, View } from "tamagui";
+import { Button } from "@/components/ui/Button";
+import { FlatList, Text, View } from "react-native";
 
 const demoRoads = [
   { id: "r1", name: "Main St", traffic: "Moderate" },
@@ -8,19 +8,19 @@ const demoRoads = [
 
 export default function RoadsIndex() {
   return (
-    <View style={{ padding: 16 }} className="gap-4">
-      <Text className="text-2xl">AI Roads & Traffic</Text>
+    <View className="flex-1 gap-4 p-4 bg-background">
+      <Text className="type-h1 text-text">AI Roads & Traffic</Text>
 
       <FlatList
         data={demoRoads}
         keyExtractor={(r) => r.id}
         renderItem={({ item }) => (
-          <View className="p-3 border rounded-md mb-2">
-            <Text className="font-bold">{item.name}</Text>
-            <Text>{item.traffic}</Text>
-            <Button variant="outlined">
-              Details
-            </Button>
+          <View className="p-4 mb-2.5 gap-2.5 bg-surface border border-border rounded-2xl">
+            <Text className="type-title text-text">{item.name}</Text>
+            <Text className="type-body-small text-text-muted">
+              {item.traffic}
+            </Text>
+            <Button variant="secondary">Details</Button>
           </View>
         )}
       />

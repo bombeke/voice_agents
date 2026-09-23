@@ -1,89 +1,140 @@
-import { IClaims } from "@/providers/AuthProvider";
+import type { AuthMethod, Claims, Session } from "@/types/Auth";
 import NetInfo from "@react-native-community/netinfo";
-import * as Linking from "expo-linking";
+import { isAxiosError } from "axios";
+import type { AuthSessionResult } from "expo-auth-session";
 import { jwtDecode } from "jwt-decode";
 import { axiosClient } from "../Api";
-import {
-  clearAuth,
-  getExpiry,
-  getToken,
-  saveExpiry,
-  saveToken
-} from "./AuthStorage";
+import { clearSession, loadSession, saveSession } from "./AuthStorage";
 
-import { AuthSessionResult } from "expo-auth-session";
+export type AuthErrorCode =
+  "invalid_credentials" | "offline" | "sso_failed" | "server_unreachable";
 
-/**
- * Refresh the current session token using Casdoor refresh token or code
- * Returns true if session successfully refreshed
- * Returns false if token could not be refreshed
- */
-export async function refreshSession(): Promise<boolean> {
-  try {
-    const net = await NetInfo.fetch();
-    if (!net.isConnected || !net.isInternetReachable) {
-      console.warn("Offline, cannot refresh session");
-      return false;
-    }
-
-    const token = await getToken();
-    const expiry = await getExpiry();
-
-    if (!token || !expiry) {
-      return false;
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-
-    if (expiry > now + 120) {
-      return true;
-    }
-
-    const res = await axiosClient.post("/auth/refresh", { token });
-
-    const newToken = res.data?.token ?? res.data?.access_token;
-    if (!newToken) {
-      await clearAuth();
-      return false;
-    }
-    let decoded = res.data?.claims;
-    try {
-      decoded = jwtDecode<IClaims>(newToken);
-    }
-    catch (error: any) {
-      console.log("Refresh Decoding: ", error.message);
-    }
-    console.log("Refresh Token Decoded:", decoded);
-    const newExpiry = decoded.exp;
-    await saveToken(newToken);
-    await saveExpiry(newExpiry);
-    //saveClaims(decoded);
-
-    return true;
-  } 
-  catch (err: any) {
-    console.error("Failed to refresh session:", err);
-    await clearAuth();
-    return false;
+export class AuthError extends Error {
+  constructor(readonly code: AuthErrorCode) {
+    super(code);
+    this.name = "AuthError";
   }
 }
 
-export function validateCasdoorRedirect(
-  redirectUri: string,
-  returnedUrl: string,
-) {
-  const expected = Linking.parse(redirectUri);
-  const actual = Linking.parse(returnedUrl);
+type TokenResponse = {
+  token?: string;
+  access_token?: string;
+  expires_in?: number;
+  claims?: Claims;
+};
 
-  if (expected.scheme !== actual.scheme) {
-    throw new Error("Invalid redirect scheme");
+/** Turn a backend token response into a session with an absolute expiry. */
+export function authErrorCode(err: unknown, fallback: AuthErrorCode) {
+  return err instanceof AuthError ? err.code : fallback;
+}
+
+function toSession(
+  data: TokenResponse | undefined,
+  method: AuthMethod,
+  persist: boolean,
+): Session | null {
+  const token = data?.token ?? data?.access_token;
+  if (!token) return null;
+
+  let claims = data?.claims ?? null;
+  try {
+    claims = jwtDecode<Claims>(token);
+  } catch {
+    // Opaque token: rely on the claims the backend sent alongside it.
   }
+  if (!claims) return null;
 
-  if (expected.hostname !== actual.hostname) {
-    throw new Error("Invalid redirect host");
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = data?.expires_in ? now + data.expires_in : claims.exp;
+  if (!expiresAt) return null;
+
+  return { token, expiresAt, claims, method, persist };
+}
+
+export async function exchangeSsoCode(params: {
+  code: string;
+  state: string;
+  codeVerifier?: string;
+  redirectUri: string;
+  persist: boolean;
+}): Promise<Session> {
+  const { persist, ...body } = params;
+  let data: TokenResponse | undefined;
+  try {
+    const res = await axiosClient.post<TokenResponse>("/auth/callback", {
+      code: body.code,
+      state: body.state,
+      code_verifier: body.codeVerifier,
+      redirect_uri: body.redirectUri,
+    });
+    data = res.data;
+  } catch {
+    throw new AuthError("server_unreachable");
   }
+  const session = toSession(data, "sso", persist);
+  if (!session) throw new AuthError("sso_failed");
+  return session;
+}
 
-  return true;
+/**
+ * Username/password sign-in. The backend checks the credentials with Casdoor
+ * server-side and answers like `/auth/callback`; the app never sees a secret.
+ */
+export async function passwordSignIn(
+  identifier: string,
+  password: string,
+  persist: boolean,
+): Promise<Session> {
+  let data: TokenResponse | undefined;
+  try {
+    const res = await axiosClient.post<TokenResponse>("/auth/login/password", {
+      username: identifier.trim(),
+      password,
+    });
+    data = res.data;
+  } catch (err) {
+    const status = isAxiosError(err) ? err.response?.status : undefined;
+    throw new AuthError(
+      status === 400 || status === 401 || status === 403
+        ? "invalid_credentials"
+        : "server_unreachable",
+    );
+  }
+  const session = toSession(data, "password", persist);
+  if (!session) throw new AuthError("server_unreachable");
+  return session;
+}
+
+/**
+ * Refresh the stored session if it expires within two minutes.
+ * Returns true if a usable session is stored afterwards.
+ */
+export async function refreshSession(): Promise<boolean> {
+  const session = await loadSession();
+  if (!session) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (session.expiresAt > now + 120) return true;
+
+  const net = await NetInfo.fetch();
+  if (!net.isConnected || net.isInternetReachable === false) return false;
+
+  try {
+    const res = await axiosClient.post<TokenResponse>("/auth/refresh", {
+      token: session.token,
+    });
+    const next = toSession(res.data, session.method, session.persist);
+    if (!next) {
+      await clearSession();
+      return false;
+    }
+    await saveSession(next);
+    return true;
+  } catch (err) {
+    console.error("Failed to refresh session:", err);
+    await clearSession();
+    return false;
+  }
 }
 
 export function validateCasdoorAuthResponse(
@@ -110,12 +161,4 @@ export function validateCasdoorAuthResponse(
   if (expectedState && state !== expectedState) {
     throw new Error("Invalid OAuth state (possible CSRF)");
   }
-  /*const usedStates = new Set<string>();
-
-  if (usedStates.has(state)) {
-    throw new Error("Replay attack detected");
-  }
-
-  usedStates.add(state);
-  */
 }

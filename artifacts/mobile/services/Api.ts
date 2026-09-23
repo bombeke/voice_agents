@@ -99,7 +99,9 @@ export async function refreshOAuthToken() {
 axiosClient.interceptors.response.use(
   (r) => r,
   async (error) => {
-    if (error.response?.status === 401) {
+    // Auth endpoints answer 401 for bad credentials; refreshing can't help.
+    const isAuthCall = String(error.config?.url ?? "").startsWith("/auth/");
+    if (error.response?.status === 401 && !isAuthCall) {
       const ok = await refreshSession();
       if (ok) return axiosClient(error.config);
     }

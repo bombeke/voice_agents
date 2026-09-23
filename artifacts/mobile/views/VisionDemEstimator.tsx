@@ -1,6 +1,9 @@
 // visionDemEstimator.tsx
 import MapLibreGL from "@maplibre/maplibre-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { withUniwind } from "uniwind";
+
+const MapView = withUniwind(MapLibreGL.MapView);
 
 /**
  * Types
@@ -18,7 +21,13 @@ export type VisionFrameMeta = {
   imageWidthPx: number;
   imageHeightPx: number;
   principalPoint?: { cx: number; cy: number }; // pixels
-  distortion?: { k1?: number; k2?: number; k3?: number; p1?: number; p2?: number }; // Brown-Conrady
+  distortion?: {
+    k1?: number;
+    k2?: number;
+    k3?: number;
+    p1?: number;
+    p2?: number;
+  }; // Brown-Conrady
   // optionally provide device altitude separately
 };
 
@@ -69,7 +78,12 @@ function metersPerDeg(latDeg: number) {
   return { mPerDegLat, mPerDegLon };
 }
 
-function metersToLatLon(lat0: number, lon0: number, east: number, north: number) {
+function metersToLatLon(
+  lat0: number,
+  lon0: number,
+  east: number,
+  north: number,
+) {
   const { mPerDegLat, mPerDegLon } = metersPerDeg(lat0);
   const dLat = north / mPerDegLat;
   const dLon = east / mPerDegLon;
@@ -106,21 +120,36 @@ export class DemMosaic {
     return null;
   }
 
-  private tileKey(minLat: number, minLon: number, maxLat: number, maxLon: number) {
+  private tileKey(
+    minLat: number,
+    minLon: number,
+    maxLat: number,
+    maxLon: number,
+  ) {
     return `${minLat}:${minLon}:${maxLat}:${maxLon}`;
   }
 
   public async getTileFor(lat: number, lon: number): Promise<DemTile | null> {
     // first try to find a cached tile containing the point
     for (const [, t] of this.tileCache) {
-      if (lat >= t.minLat && lat <= t.maxLat && lon >= t.minLon && lon <= t.maxLon) {
+      if (
+        lat >= t.minLat &&
+        lat <= t.maxLat &&
+        lon >= t.minLon &&
+        lon <= t.maxLon
+      ) {
         return t;
       }
     }
     // else load
     const tile = await this.loadTileFor(lat, lon);
     if (!tile) return null;
-    const key = this.tileKey(tile.minLat, tile.minLon, tile.maxLat, tile.maxLon);
+    const key = this.tileKey(
+      tile.minLat,
+      tile.minLon,
+      tile.maxLat,
+      tile.maxLon,
+    );
     this.tileCache.set(key, tile);
     return tile;
   }
@@ -139,7 +168,11 @@ export class DemMosaic {
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
-function demGetElevation(tile: DemTile, lat: number, lon: number): number | null {
+function demGetElevation(
+  tile: DemTile,
+  lat: number,
+  lon: number,
+): number | null {
   const { width, height, minLat, maxLat, minLon, maxLon, elevations } = tile;
   if (lat < minLat || lat > maxLat || lon < minLon || lon > maxLon) return null;
   const latFrac = (maxLat - lat) / (maxLat - minLat);
@@ -185,7 +218,7 @@ function undistortPixel(
   u: number,
   v: number,
   intrinsics: { fPx: number; cx: number; cy: number },
-  dist?: { k1?: number; k2?: number; k3?: number; p1?: number; p2?: number }
+  dist?: { k1?: number; k2?: number; k3?: number; p1?: number; p2?: number },
 ): { x: number; y: number } {
   if (!dist) {
     return { x: u, y: v };
@@ -269,7 +302,10 @@ function Rx(t: number) {
     [0, s, c],
   ];
 }
-function matVecMul(M: number[][], v: [number, number, number]): [number, number, number] {
+function matVecMul(
+  M: number[][],
+  v: [number, number, number],
+): [number, number, number] {
   return [
     M[0][0] * v[0] + M[0][1] * v[1] + M[0][2] * v[2],
     M[1][0] * v[0] + M[1][1] * v[1] + M[1][2] * v[2],
@@ -301,7 +337,7 @@ function buildCamToWorldMatrix(orientation: Orientation) {
  */
 export async function estimatePointFromFrame(
   frameMeta: VisionFrameMeta,
-  options: EstimateOptions
+  options: EstimateOptions,
 ): Promise<EstimateResult | null> {
   const {
     pixel,
@@ -330,8 +366,14 @@ export async function estimatePointFromFrame(
   let focalPx = frameMeta.focalLengthPx ?? null;
   if (!focalPx) {
     // compute from mm if we have sensor size and focalLengthMm
-    if (frameMeta.focalLengthMm && frameMeta.sensorWidthMm && frameMeta.imageWidthPx) {
-      focalPx = (frameMeta.focalLengthMm / frameMeta.sensorWidthMm) * frameMeta.imageWidthPx;
+    if (
+      frameMeta.focalLengthMm &&
+      frameMeta.sensorWidthMm &&
+      frameMeta.imageWidthPx
+    ) {
+      focalPx =
+        (frameMeta.focalLengthMm / frameMeta.sensorWidthMm) *
+        frameMeta.imageWidthPx;
     } else {
       throw new Error("no focal length available in px or mm+sensorWidth");
     }
@@ -351,7 +393,8 @@ export async function estimatePointFromFrame(
   const rCam = normalize([x, y, focalPx] as [number, number, number]);
 
   // 5) rotate to world ENU coords
-  if (!frameMeta.orientation) throw new Error("frame metadata missing orientation");
+  if (!frameMeta.orientation)
+    throw new Error("frame metadata missing orientation");
   const R = buildCamToWorldMatrix(frameMeta.orientation);
   const rWorldRaw = matVecMul(R, rCam);
   const rWorld = normalize(rWorldRaw);
@@ -363,7 +406,12 @@ export async function estimatePointFromFrame(
   function evalAtT(t: number) {
     const east = t * rWorld[0];
     const north = t * rWorld[1];
-    const { lat: latT, lon: lonT } = metersToLatLon(camLat, camLon, east, north);
+    const { lat: latT, lon: lonT } = metersToLatLon(
+      camLat,
+      camLon,
+      east,
+      north,
+    );
     return { east, north, lat: latT, lon: lonT, zRay: camAlt + t * rWorld[2] };
   }
 
@@ -461,7 +509,9 @@ export async function estimatePointFromFrame(
     if (Math.abs(fMid) <= toleranceMeters) {
       const p = evalAtT(tMid);
       const elev = (await demMosaic.getElevation(p.lat, p.lon)) as number;
-      const slant = Math.sqrt(p.east * p.east + p.north * p.north + Math.pow(p.zRay - camAlt, 2));
+      const slant = Math.sqrt(
+        p.east * p.east + p.north * p.north + Math.pow(p.zRay - camAlt, 2),
+      );
       return {
         lat: p.lat,
         lon: p.lon,
@@ -501,7 +551,9 @@ export async function estimatePointFromFrame(
   const pf = evalAtT(tMid);
   const elevF = await demMosaic.getElevation(pf.lat, pf.lon);
   if (elevF === null) return null;
-  const slantF = Math.sqrt(pf.east * pf.east + pf.north * pf.north + Math.pow(pf.zRay - camAlt, 2));
+  const slantF = Math.sqrt(
+    pf.east * pf.east + pf.north * pf.north + Math.pow(pf.zRay - camAlt, 2),
+  );
   return {
     lat: pf.lat,
     lon: pf.lon,
@@ -537,93 +589,70 @@ export function DemEstimateVisualizer({
 }: {
   camera: LatLonAlt;
   estimate?: EstimateResult | null;
-  markers?: Array<{ id: string; lat: number; lon: number }>;
+  markers?: { id: string; lat: number; lon: number }[];
 }) {
   // MapLibre requires a style; user should set MAPBOX_STYLE or a local style.
   // For demo you might use a simple open-style URL or a local style asset.
-  const center = estimate ? [estimate.lon, estimate.lat] : [camera.lon, camera.lat];
+  const center = estimate
+    ? [estimate.lon, estimate.lat]
+    : [camera.lon, camera.lat];
 
   return (
-    <View style={{ flex: 1 }}>
-      <MapLibreGL.MapView style={{ flex: 1 }}>
+    <View className="flex-1">
+      <MapView className="flex-1">
         <MapLibreGL.Camera centerCoordinate={center} zoomLevel={15} />
 
         {/* Camera marker */}
-        <MapLibreGL.PointAnnotation id="camera" coordinate={[camera.lon, camera.lat]}>
-          <View style={styles.camMarker} />
+        <MapLibreGL.PointAnnotation
+          id="camera"
+          coordinate={[camera.lon, camera.lat]}
+        >
+          <View className="w-3 h-3 rounded-full bg-primary border-2 border-white" />
           <MapLibreGL.Callout title={"Camera"} />
         </MapLibreGL.PointAnnotation>
 
         {/* Estimated point */}
         {estimate && (
-          <MapLibreGL.PointAnnotation id="est" coordinate={[estimate.lon, estimate.lat]}>
-            <View style={styles.estMarker} />
-            <MapLibreGL.Callout title={`Est: ${estimate.lat.toFixed(6)}, ${estimate.lon.toFixed(6)}`} />
+          <MapLibreGL.PointAnnotation
+            id="est"
+            coordinate={[estimate.lon, estimate.lat]}
+          >
+            <View className="w-3.5 h-3.5 rounded-full bg-accent border-2 border-white" />
+            <MapLibreGL.Callout
+              title={`Est: ${estimate.lat.toFixed(6)}, ${estimate.lon.toFixed(6)}`}
+            />
           </MapLibreGL.PointAnnotation>
         )}
 
         {/* extra markers */}
         {markers?.map((m) => (
-          <MapLibreGL.PointAnnotation id={m.id} key={m.id} coordinate={[m.lon, m.lat]}>
-            <View style={styles.markerSmall} />
+          <MapLibreGL.PointAnnotation
+            id={m.id}
+            key={m.id}
+            coordinate={[m.lon, m.lat]}
+          >
+            <View className="w-2 h-2 rounded-full bg-text border border-white" />
           </MapLibreGL.PointAnnotation>
         ))}
-      </MapLibreGL.MapView>
+      </MapView>
 
       {/* small info overlay */}
-      <View style={styles.infoBox}>
-        <Text style={{ fontWeight: "600" }}>Camera</Text>
-        <Text>{`${camera.lat.toFixed(6)}, ${camera.lon.toFixed(6)} @ ${camera.alt?.toFixed?.(1) ?? "n/a"} m`}</Text>
+      <View className="absolute left-3 top-3 p-2.5 bg-surface/90 rounded-lg min-w-[200px]">
+        <Text className="type-label text-text">Camera</Text>
+        <Text className="type-mono text-xs text-text">{`${camera.lat.toFixed(6)}, ${camera.lon.toFixed(6)} @ ${camera.alt?.toFixed?.(1) ?? "n/a"} m`}</Text>
         {estimate ? (
           <>
-            <Text style={{ marginTop: 6, fontWeight: "600" }}>Estimate</Text>
-            <Text>{`${estimate.lat.toFixed(6)}, ${estimate.lon.toFixed(6)} (${estimate.elevation.toFixed(2)} m)`}</Text>
-            <Text>{`E:${estimate.eastMeters.toFixed(2)} m N:${estimate.northMeters.toFixed(2)} m`}</Text>
-            <Text>{`Slant: ${estimate.slantDistanceMeters.toFixed(2)} m`}</Text>
+            <Text className="type-label text-text mt-1.5">Estimate</Text>
+            <Text className="type-mono text-xs text-text">{`${estimate.lat.toFixed(6)}, ${estimate.lon.toFixed(6)} (${estimate.elevation.toFixed(2)} m)`}</Text>
+            <Text className="type-mono text-xs text-text">{`E:${estimate.eastMeters.toFixed(2)} m N:${estimate.northMeters.toFixed(2)} m`}</Text>
+            <Text className="type-mono text-xs text-text">{`Slant: ${estimate.slantDistanceMeters.toFixed(2)} m`}</Text>
           </>
         ) : (
-          <Text style={{ marginTop: 6 }}>No estimate yet</Text>
+          <Text className="type-body-small text-text-muted mt-1.5">
+            No estimate yet
+          </Text>
         )}
       </View>
     </View>
   );
 }
-
-/* ----------------------------
-   Styles
-   ---------------------------- */
-const styles = StyleSheet.create({
-  camMarker: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#007AFF",
-    borderColor: "white",
-    borderWidth: 2,
-  },
-  estMarker: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#ff3b30",
-    borderColor: "white",
-    borderWidth: 2,
-  },
-  markerSmall: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#333",
-    borderColor: "white",
-    borderWidth: 1,
-  },
-  infoBox: {
-    position: "absolute",
-    left: 12,
-    top: 12,
-    padding: 10,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 8,
-    minWidth: 200,
-  },
-});

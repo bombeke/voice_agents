@@ -1,4 +1,4 @@
-import { IClaims } from "@/providers/AuthProvider";
+import type { Claims } from "@/types/Auth";
 
 export function isTokenExpired(expiresAt?: number | null) {
   if (!expiresAt) return true;
@@ -6,6 +6,6 @@ export function isTokenExpired(expiresAt?: number | null) {
   return now >= expiresAt - 30; // 30s grace window
 }
 
-export function hasPerm(claims: IClaims | null, perm: string): boolean {
-  return claims?.permissions?.includes(perm)?? false;
+export function hasPerm(claims: Claims | null, perm: string): boolean {
+  return claims?.permissions?.includes(perm) ?? false;
 }

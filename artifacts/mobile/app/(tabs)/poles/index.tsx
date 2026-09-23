@@ -1,13 +1,13 @@
+import { Button } from "@/components/ui/Button";
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
-import { Button } from "tamagui";
 import DashboardMaps from "./maps";
 
 export default function PolesIndex() {
   return (
-    <View style={{ padding: 16 }} className="gap-4  bg-white">
-      <Text className="text-2xl font-semibold">PoleVision™ Dashboard</Text>
-      <View className="flex w-full gap-3">
+    <View className="flex-1 gap-4 p-4 bg-background">
+      <Text className="type-h1 text-text">PoleVision™ Dashboard</Text>
+      <View className="w-full gap-3">
         <Link href="/poles/capture" asChild>
           <Button>Scan Tags</Button>
         </Link>

@@ -1,5 +1,7 @@
 import { AppReadyProvider } from "@/components/AppReadyContext";
 import { MMKVProvider } from "@/components/MmkvContext";
+import { fontAssets } from "@/constants/theme";
+import { devMocks } from "@/mocks";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
 import { queryClient } from "@/services/Api";
@@ -13,16 +15,18 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { TamaguiProvider } from "tamagui";
+import { GestureHandlerRootView as RNGestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  SafeAreaListener,
+  SafeAreaProvider,
+} from "react-native-safe-area-context";
+import { Uniwind, withUniwind } from "uniwind";
 import "../global.css";
-import { config } from "../tamagui.config";
 
-import { initExecutorch } from 'react-native-executorch';
-import { ExpoResourceFetcher } from 'react-native-executorch-expo-resource-fetcher';
+import { initExecutorch } from "react-native-executorch";
+import { ExpoResourceFetcher } from "react-native-executorch-expo-resource-fetcher";
 
+const GestureHandlerRootView = withUniwind(RNGestureHandlerRootView);
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,16 +51,11 @@ export function RootLayoutNav({ ready }: RootLayoutNavProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fffff",
-  },
-});
-
 const userId = "mmkv_user_app";
 const storage = createUserStorage(userId);
 initPersistence();
+// Dev-only fake API; `devMocks` is null in release bundles (metro.config.js).
+devMocks?.install();
 
 initExecutorch({
   resourceFetcher: ExpoResourceFetcher,
@@ -66,6 +65,7 @@ export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    ...fontAssets,
   });
   useEffect(() => {
     (async () => {
@@ -81,24 +81,27 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={styles.container}>
-        <TamaguiProvider config={config}>
-          <MMKVProvider storage={storage}>
-            <AuthProvider>
-              <UtilityStoreProvider>
-                {/*<CachedModelBootstrap>*/}
-                <SafeAreaProvider>
+      <GestureHandlerRootView className="flex-1 bg-background">
+        <MMKVProvider storage={storage}>
+          <AuthProvider>
+            <UtilityStoreProvider>
+              {/*<CachedModelBootstrap>*/}
+              <SafeAreaProvider>
+                {/* Feeds insets to uniwind's `*-safe` utilities. */}
+                <SafeAreaListener
+                  onChange={({ insets }) => Uniwind.updateInsets(insets)}
+                >
                   <BackendSyncObserver />
                   <OpQueueReplayObserver />
                   <AppReadyProvider ready={ready}>
                     <RootLayoutNav ready={ready} />
                   </AppReadyProvider>
-                </SafeAreaProvider>
-                {/*</CachedModelBootstrap>*/}
-              </UtilityStoreProvider>
-            </AuthProvider>
-          </MMKVProvider>
-        </TamaguiProvider>
+                </SafeAreaListener>
+              </SafeAreaProvider>
+              {/*</CachedModelBootstrap>*/}
+            </UtilityStoreProvider>
+          </AuthProvider>
+        </MMKVProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
   );

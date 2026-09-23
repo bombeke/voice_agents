@@ -1,6 +1,7 @@
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Controller, useForm } from "react-hook-form";
 import { View } from "react-native";
-import { Button, Input } from "tamagui";
 
 export default function AgentForm({
   onSave = (v: any) => {},

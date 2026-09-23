@@ -1,8 +1,16 @@
-import { Canvas, Group, matchFont, Rect, Text } from "@shopify/react-native-skia";
+import {
+  Canvas as SkiaCanvas,
+  Group,
+  matchFont,
+  Rect,
+  Text,
+} from "@shopify/react-native-skia";
 import { memo, useMemo } from "react";
-import { Dimensions, Platform, StyleSheet } from "react-native";
+import { Dimensions, Platform } from "react-native";
 import { useDerivedValue } from "react-native-reanimated";
+import { withUniwind } from "uniwind";
 
+const Canvas = withUniwind(SkiaCanvas);
 
 interface BoxProps {
   index: number;
@@ -32,22 +40,23 @@ export const DetectionOverlay1 = memo(({ detections }: Props) => {
   if (dets.length === 0) return null;
 
   return (
-    <Canvas
-      style={{
-        position: "absolute",
-        width: screenWidth,
-        height: screenHeight,
-        pointerEvents: "none",
-      }}
-    >
-      <Rect x={100} y={100} width={200} height={200} color="lime" style="stroke" strokeWidth={4} />
+    <Canvas className="absolute w-screen h-screen pointer-events-none">
+      <Rect
+        x={100}
+        y={100}
+        width={200}
+        height={200}
+        color="lime"
+        style="stroke"
+        strokeWidth={4}
+      />
       {dets.map((_: any, i: number) => {
         /**
          * Each box is reactive
          */
-        console.log("detected0")
+        console.log("detected0");
         const x = useDerivedValue(() => {
-          console.log("detected1")
+          console.log("detected1");
           const d = detections.value?.detections?.[i];
           const fw = detections.value?.frameWidth;
           const fh = detections.value?.frameHeight;
@@ -70,7 +79,7 @@ export const DetectionOverlay1 = memo(({ detections }: Props) => {
 
           return d.x1 * scale + offsetX;
         });
-        console.log("detected2")
+        console.log("detected2");
 
         const y = useDerivedValue(() => {
           const d = detections.value?.detections?.[i];
@@ -132,11 +141,7 @@ export const DetectionOverlay1 = memo(({ detections }: Props) => {
           const d = detections.value?.detections?.[i];
           if (!d) return "transparent";
 
-          return d.score > 0.8
-            ? "lime"
-            : d.score > 0.5
-            ? "yellow"
-            : "red";
+          return d.score > 0.8 ? "lime" : d.score > 0.5 ? "yellow" : "red";
         });
 
         const label = useDerivedValue(() => {
@@ -157,15 +162,7 @@ export const DetectionOverlay1 = memo(({ detections }: Props) => {
               style="stroke"
               strokeWidth={3}
             />
-            {font && (
-              <Text
-                x={x}
-                y={y}
-                text={label}
-                color="red"
-                font={font}
-              />
-            )}
+            {font && <Text x={x} y={y} text={label} color="red" font={font} />}
           </Group>
         );
       })}
@@ -173,14 +170,13 @@ export const DetectionOverlay1 = memo(({ detections }: Props) => {
   );
 });
 
-
 export const DetectionOverlay = ({ detections }: Props) => {
-  console.log("detections:",detections)
+  console.log("detections:", detections);
   if (!detections) return null;
 
   return (
-    <Canvas style={[StyleSheet.absoluteFill,{zIndex: 1000}]}>
-      {detections.detections.map((d:any, i:number) => (
+    <Canvas className="absolute inset-0 z-[1000]">
+      {detections.detections.map((d: any, i: number) => (
         <Rect
           key={i}
           x={d.x1}
@@ -195,10 +191,3 @@ export const DetectionOverlay = ({ detections }: Props) => {
     </Canvas>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    zIndex: 1500
-  }
-})

@@ -1,30 +1,23 @@
 import NetInfo from "@react-native-community/netinfo";
-import * as SplashScreen from "expo-splash-screen";
-import { jwtDecode } from "jwt-decode";
 import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
 import { refreshSession } from "@/services/auth/AuthService";
 import {
-  clearAuth,
-  getExpiry,
-  getToken,
-  saveExpiry,
-  saveToken
+  clearSession,
+  loadSession,
+  saveSession,
 } from "@/services/auth/AuthStorage";
+import { isTokenExpired } from "@/services/auth/AuthUtils";
+import type { Claims, Session } from "@/types/Auth";
 
-export interface IClaims {
-  sub: string;
-  roles?: string[];
-  permissions?: string[];
-  org?: string;
-  exp: number;
-}
+export type { Claims };
 
 export type AdminMode = "online" | "offline-readonly" | "disabled";
 
@@ -34,162 +27,115 @@ export type AuthContextType = {
   offlineMode: boolean;
   isAdmin: boolean;
   adminMode: AdminMode;
-  claims?: IClaims | null;
+  claims?: Claims | null;
   permissions: string[];
   org?: string;
 
   redirectAfterLogin?: string;
 
-  login: (token: string, expiresAt: number, claim: IClaims | null ) => Promise<void>;
+  signIn: (session: Session) => Promise<void>;
   logout: () => Promise<void>;
   setRedirectAfterLogin: (path?: string) => void;
 };
 
 const AuthContext = createContext<AuthContextType>(null!);
 
+type BootResult = { claims: Claims | null; offline: boolean };
+
+/** Resolve the stored session at launch: valid, cached offline, refreshed, or none. */
+async function restoreSession(): Promise<BootResult> {
+  const session = await loadSession();
+  if (!session) return { claims: null, offline: false };
+
+  if (!isTokenExpired(session.expiresAt)) {
+    return { claims: session.claims, offline: false };
+  }
+
+  // Expired but offline: keep working on the cached session so field capture
+  // never blocks on connectivity. The API refreshes on the next 401.
+  const net = await NetInfo.fetch();
+  if (!net.isConnected) return { claims: session.claims, offline: true };
+
+  if (await refreshSession()) {
+    const next = await loadSession();
+    if (next) return { claims: next.claims, offline: false };
+  }
+  await clearSession();
+  return { claims: null, offline: false };
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [claims, setClaims] = useState<IClaims | null>(null);
-  const [redirectAfterLogin, setRedirectAfterLogin] = useState<
-    string | undefined
-  >(undefined);
+  const [claims, setClaims] = useState<Claims | null>(null);
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState<string>();
   const [offlineMode, setOfflineMode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-
-    const bootstrap = async () => {
-      try {
-        const net = await NetInfo.fetch();
-        const token = await getToken();
-        const expiry = await getExpiry();
-
-        if (!token || !expiry) {
-          if (!cancelled) {
-            setLoading(false);
-          }
-          return;
-        }
-
-        const now = Math.floor(Date.now() / 1000);
-        const expired = expiry < now;
-
-        if (!expired) {
-          const decoded = jwtDecode<IClaims>(token);
-          if (!cancelled) {
-            setClaims(decoded); 
-            setIsAuthenticated(true);
-            setLoading(false);
-          }
-          return;
-        }
-
-        // Offline & expired
-        if (!net.isConnected) {
-          if (!cancelled) {
-            setOfflineMode(true);
-            setIsAuthenticated(true);
-            setLoading(false);
-          }
-          return;
-        }
-
-        // Online refresh
-        const refreshed = await refreshSession();
-        if (refreshed) {
-          const newToken = await getToken();
-          if (newToken && !cancelled) {
-            setClaims(jwtDecode(newToken));
-            setIsAuthenticated(true);
-          }
-        } else {
-          await clearAuth();
-          if (!cancelled) {
-            setIsAuthenticated(false);
-          }
-        }
-
-        if (!cancelled) {
-          setLoading(false);
-        }
-      } finally {
-        if (!cancelled) {
-          await SplashScreen.hideAsync();
-        }
-      }
-    };
-
-    bootstrap();
-
+    restoreSession()
+      .catch((err) => {
+        console.error("Failed to restore session:", err);
+        return { claims: null, offline: false };
+      })
+      .then(({ claims, offline }) => {
+        if (cancelled) return;
+        setClaims(claims);
+        setOfflineMode(offline);
+        setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const login = useCallback(async (token: string, expiresAt: number,claim: IClaims | null = null) => {
-    let decoded = claim;
-    try {
-      decoded = jwtDecode<IClaims>(token);
-    }
-    catch (error: any) {
-      console.log("Decoding: ", error.message);
-    }
-    await saveToken(token);
-    await saveExpiry(expiresAt);
-    //saveClaims(decoded);
-
-    setClaims(decoded);
-    setIsAuthenticated(true);
-    return;
+  const signIn = useCallback(async (session: Session) => {
+    await saveSession(session);
+    setOfflineMode(false);
+    setClaims(session.claims);
   }, []);
 
   const logout = useCallback(async () => {
-    await clearAuth();
+    await clearSession();
     setClaims(null);
-    setIsAuthenticated(false);
     setOfflineMode(false);
     setRedirectAfterLogin(undefined);
-    return;
   }, []);
 
   const handleSetRedirectAfterLogin = useCallback((path?: string) => {
-    setRedirectAfterLogin((prev) => {
-      if (!path) return undefined;
-      return prev ?? path;
-    });
+    setRedirectAfterLogin((prev) => (path ? (prev ?? path) : undefined));
   }, []);
 
-  const isAdmin = !!claims?.roles?.includes("admin");
+  const value = useMemo<AuthContextType>(() => {
+    const isAuthenticated = claims !== null;
+    const isAdmin = !!claims?.roles?.includes("admin");
+    let adminMode: AdminMode = "disabled";
+    if (isAdmin) adminMode = offlineMode ? "offline-readonly" : "online";
 
-  // Offline admin read-only mode
-  let adminMode: AdminMode = "disabled";
-  if (isAdmin && isAuthenticated) {
-    adminMode = offlineMode ? "offline-readonly" : "online";
-  }
+    return {
+      isAuthenticated,
+      loading,
+      offlineMode,
+      isAdmin,
+      adminMode,
+      claims,
+      permissions: claims?.permissions ?? [],
+      org: claims?.org,
+      redirectAfterLogin,
+      signIn,
+      logout,
+      setRedirectAfterLogin: handleSetRedirectAfterLogin,
+    };
+  }, [
+    claims,
+    loading,
+    offlineMode,
+    redirectAfterLogin,
+    signIn,
+    logout,
+    handleSetRedirectAfterLogin,
+  ]);
 
-  const permissions = claims?.permissions ?? [];
-  const org = claims?.org;
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        loading,
-        offlineMode,
-        isAdmin,
-        adminMode,
-        claims,
-        permissions,
-        org,
-        redirectAfterLogin,
-        login,
-        logout,
-        setRedirectAfterLogin: handleSetRedirectAfterLogin,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

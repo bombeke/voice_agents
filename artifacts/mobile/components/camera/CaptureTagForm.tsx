@@ -10,7 +10,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -69,46 +68,48 @@ export const CaptureTagForm = memo(
         onRequestClose={handleRetake}
       >
         <KeyboardAvoidingView
-          style={styles.backdrop}
+          className="flex-1 justify-end bg-black/55"
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <View style={styles.sheet}>
+          <View className="max-h-[88%] bg-surface rounded-t-3xl">
             <ScrollView
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.sheetContent}
+              contentContainerClassName="px-5 pt-2.5 pb-7"
             >
-              <View style={styles.handle} />
+              <View className="self-center w-10 h-1 rounded-xs bg-border-strong mb-4" />
 
-              <View style={styles.preview}>
+              <View className="flex-row items-center mb-5">
                 {capture ? (
                   <Image
                     source={{ uri: toFileUri(capture.imageUri) }}
-                    style={styles.thumbnail}
+                    className="w-[72px] h-[72px] rounded-xl bg-surface-muted"
                     resizeMode="cover"
                   />
                 ) : null}
-                <View style={styles.previewMeta}>
-                  <Text style={styles.previewTitle}>
+                <View className="flex-1 ml-3">
+                  <Text className="type-body-strong text-text">
                     {detected === 1
                       ? "1 pole detected"
                       : `${detected} poles detected`}
                   </Text>
                   {capture ? (
-                    <Text style={styles.previewDetail}>
+                    <Text className="type-mono text-xs text-text-muted mt-0.5">
                       {capture.latitude.toFixed(5)},{" "}
                       {capture.longitude.toFixed(5)}
                     </Text>
                   ) : null}
                   {capture?.accuracy != null ? (
-                    <Text style={styles.previewDetail}>
+                    <Text className="type-mono text-xs text-text-muted mt-0.5">
                       GPS ±{capture.accuracy.toFixed(1)} m
                     </Text>
                   ) : null}
                 </View>
               </View>
 
-              <Text style={styles.label}>Choose Tag</Text>
-              <View style={styles.pickerWrapper}>
+              <Text className="type-body-strong text-text mb-2">
+                Choose Tag
+              </Text>
+              <View className="bg-surface border border-border-strong rounded-xl overflow-hidden mb-4">
                 <Picker
                   enabled={!isSaving}
                   selectedValue={tag}
@@ -125,47 +126,47 @@ export const CaptureTagForm = memo(
                 </Picker>
               </View>
 
-              <Text style={styles.label}>Comment</Text>
+              <Text className="type-body-strong text-text mb-2">Comment</Text>
               <TextInput
                 value={comment}
                 onChangeText={setComment}
                 editable={!isSaving}
                 placeholder="Add additional notes..."
-                placeholderTextColor="#9ca3af"
+                placeholderTextColorClassName="accent-text-muted"
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
-                style={styles.input}
+                className="bg-surface border border-border-strong rounded-xl px-4 py-3 min-h-[100px] type-body text-text mb-5 focus:border-2 focus:border-accent"
               />
 
-              <View style={styles.actions}>
+              <View className="flex-row gap-3">
                 <Pressable
-                  style={[styles.button, styles.secondary]}
+                  className="flex-1 h-[52px] rounded-button justify-center items-center bg-surface border border-border-strong active:bg-surface-muted"
                   onPress={handleRetake}
                   disabled={isSaving}
                 >
-                  <Text style={styles.secondaryText}>Retake</Text>
+                  <Text className="type-body-strong text-text">Retake</Text>
                 </Pressable>
 
                 <Pressable
-                  style={[
-                    styles.button,
-                    styles.primary,
-                    (!tag || isSaving) && styles.disabled,
-                  ]}
+                  className="flex-1 h-[52px] rounded-button justify-center items-center bg-primary active:bg-primary-pressed disabled:opacity-45"
                   onPress={handleSubmit}
                   disabled={!tag || isSaving}
                 >
                   {isSaving ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator colorClassName="accent-on-primary" />
                   ) : (
-                    <Text style={styles.primaryText}>Save & Upload</Text>
+                    <Text className="type-body-strong text-on-primary">
+                      Save & Upload
+                    </Text>
                   )}
                 </Pressable>
               </View>
 
               {!tag ? (
-                <Text style={styles.hint}>Pick a tag to enable saving.</Text>
+                <Text className="text-center type-caption text-text-muted mt-3">
+                  Pick a tag to enable saving.
+                </Text>
               ) : null}
             </ScrollView>
           </View>
@@ -176,112 +177,3 @@ export const CaptureTagForm = memo(
 );
 
 CaptureTagForm.displayName = "CaptureTagForm";
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.55)",
-  },
-  sheet: {
-    maxHeight: "88%",
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  sheetContent: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 28,
-  },
-  handle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#d1d5db",
-    marginBottom: 16,
-  },
-  preview: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  thumbnail: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    backgroundColor: "#e5e7eb",
-  },
-  previewMeta: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  previewTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  previewDetail: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  pickerWrapper: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
-    overflow: "hidden",
-    marginBottom: 16,
-  },
-  input: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minHeight: 100,
-    color: "#111827",
-    marginBottom: 20,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    height: 52,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  primary: {
-    backgroundColor: "#2196F3",
-  },
-  primaryText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  secondary: {
-    backgroundColor: "#f3f4f6",
-  },
-  secondaryText: {
-    color: "#374151",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  disabled: {
-    opacity: 0.45,
-  },
-  hint: {
-    textAlign: "center",
-    color: "#9ca3af",
-    fontSize: 12,
-    marginTop: 12,
-  },
-});

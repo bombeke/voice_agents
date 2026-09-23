@@ -1,1 +1,0 @@
-- [Expo SDK 56 Replit fixes](expo-sdk56-replit.md) — multiple Replit-specific fixes needed for Expo SDK 56 Metro to run without crashing

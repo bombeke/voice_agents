@@ -3,7 +3,10 @@ import {
   MAX_CAPTURE_ACCURACY_M,
 } from "@/hooks/useCaptureAccuracyGate";
 import { memo, useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Text, View } from "react-native";
+import { withUniwind } from "uniwind";
+
+const AnimatedView = withUniwind(Animated.View);
 
 type Props = Pick<CaptureAccuracyGate, "status" | "accuracy" | "error">;
 
@@ -69,76 +72,34 @@ export const CaptureGateBanner = memo((props: Props) => {
 
   const tone =
     status === "ready"
-      ? styles.ready
+      ? "bg-success/90 border-white/45"
       : status === "denied" || status === "error" || status === "unknown"
-        ? styles.blocked
-        : styles.waiting;
+        ? "bg-danger/90 border-white/35"
+        : "bg-black/70 border-white/25";
 
   return (
-    <View style={styles.container} pointerEvents="none">
-      <Animated.View
-        style={[
-          styles.banner,
-          tone,
-          {
-            transform: [
-              {
-                scale: pulse.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [1, 1.06],
-                }),
-              },
-            ],
-          },
-        ]}
+    <View
+      className="absolute top-4 inset-x-0 items-center z-20"
+      pointerEvents="none"
+    >
+      <AnimatedView
+        className={`min-w-[220px] max-w-[90%] px-4 py-2.5 rounded-button border items-center ${tone}`}
+        style={{
+          transform: [
+            {
+              scale: pulse.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.06],
+              }),
+            },
+          ],
+        }}
       >
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.detail}>{detail}</Text>
-      </Animated.View>
+        <Text className="type-body-strong text-white">{title}</Text>
+        <Text className="type-caption text-white/85 mt-0.5">{detail}</Text>
+      </AnimatedView>
     </View>
   );
 });
 
 CaptureGateBanner.displayName = "CaptureGateBanner";
-
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    top: 16,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 20,
-  },
-  banner: {
-    minWidth: 220,
-    maxWidth: "90%",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  waiting: {
-    backgroundColor: "rgba(0,0,0,0.72)",
-    borderColor: "rgba(255,255,255,0.25)",
-  },
-  ready: {
-    backgroundColor: "rgba(22,163,74,0.92)",
-    borderColor: "rgba(255,255,255,0.45)",
-  },
-  blocked: {
-    backgroundColor: "rgba(185,28,28,0.92)",
-    borderColor: "rgba(255,255,255,0.35)",
-  },
-  title: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  detail: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
-    marginTop: 2,
-  },
-});

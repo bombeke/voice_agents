@@ -1,14 +1,9 @@
 import { CAPTURE_BUTTON_SIZE } from "@/constants/Camera";
+import { colors } from "@/constants/theme";
 import { requestSavePermission } from "@/hooks/Helpers";
 import { createAssetAsync } from "expo-media-library";
 import React, { useCallback, useRef } from "react";
-import {
-  Alert,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  ViewProps,
-} from "react-native";
+import { Alert, TouchableOpacity, View, ViewProps } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   cancelAnimation,
@@ -21,6 +16,10 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { Camera, PhotoFile, VideoFile } from "react-native-vision-camera";
+import { withUniwind } from "uniwind";
+
+const AnimatedView = withUniwind(Animated.View);
+const StyledSvg = withUniwind(Svg);
 
 export interface CaptureButtonProps extends ViewProps {
   camera: React.RefObject<Camera> | null;
@@ -37,7 +36,6 @@ export interface CaptureButtonProps extends ViewProps {
 }
 
 const START_RECORDING_DELAY = 200;
-const BORDER_WIDTH = CAPTURE_BUTTON_SIZE * 0.1;
 
 // recording ring
 const RING_SIZE = CAPTURE_BUTTON_SIZE + 18;
@@ -180,7 +178,7 @@ export default function CaptureButton({
   /** ANIMATION: button */
   const buttonAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: withTiming(isRecordingAnim.value ? 0.75 : 1) }],
-    backgroundColor: isRecordingAnim.value ? "#ff3b30" : "white",
+    backgroundColor: isRecordingAnim.value ? colors.danger : colors.surface,
   }));
 
   /** ANIMATION: ring */
@@ -222,7 +220,12 @@ export default function CaptureButton({
 
   return (
     <GestureDetector gesture={panGesture}>
-      <View style={[styles.wrapper, style]} {...props}>
+      {/* Sizes derive from CAPTURE_BUTTON_SIZE (78): wrapper +40, pulse +20. */}
+      <View
+        className="w-[118px] h-[118px] justify-center items-center"
+        style={style}
+        {...props}
+      >
         <TouchableOpacity
           activeOpacity={0.7}
           //onPressIn={handlePressIn}
@@ -230,19 +233,23 @@ export default function CaptureButton({
           onPress={takePhoto}
           disabled={!enabled}
         >
-          <View style={styles.container}>
-            <Animated.View style={[styles.pulse, pulseStyle]} />
+          <View className="w-[118px] h-[118px] justify-center items-center">
+            <AnimatedView
+              className="absolute w-[98px] h-[98px] rounded-full bg-danger/40"
+              style={pulseStyle}
+            />
 
-            <Svg
+            <StyledSvg
               width={RING_SIZE}
               height={RING_SIZE}
-              style={styles.progressSvg}
+              className="absolute"
             >
               <Circle
                 cx={RING_SIZE / 2}
                 cy={RING_SIZE / 2}
                 r={(RING_SIZE - STROKE) / 2}
-                stroke="rgba(255,0,0,0.3)"
+                stroke={colors.danger}
+                strokeOpacity={0.3}
                 strokeWidth={STROKE}
                 fill="none"
                 strokeDasharray={CIRC}
@@ -257,14 +264,11 @@ export default function CaptureButton({
                 strokeDasharray={CIRC}
                 animatedProps={ringAnimatedProps}
               />
-            </Svg>
+            </StyledSvg>
 
-            <Animated.View
-              style={[
-                styles.captureButton,
-                { borderWidth: BORDER_WIDTH, borderColor: "white" },
-                buttonAnimatedStyle,
-              ]}
+            <AnimatedView
+              className="w-[78px] h-[78px] rounded-full border-[7.8px] border-white"
+              style={buttonAnimatedStyle}
             />
           </View>
         </TouchableOpacity>
@@ -274,33 +278,3 @@ export default function CaptureButton({
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-const styles = StyleSheet.create({
-  wrapper: {
-    width: CAPTURE_BUTTON_SIZE + 40,
-    height: CAPTURE_BUTTON_SIZE + 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  container: {
-    width: CAPTURE_BUTTON_SIZE + 40,
-    height: CAPTURE_BUTTON_SIZE + 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  pulse: {
-    position: "absolute",
-    width: CAPTURE_BUTTON_SIZE + 20,
-    height: CAPTURE_BUTTON_SIZE + 20,
-    borderRadius: (CAPTURE_BUTTON_SIZE + 20) / 2,
-    backgroundColor: "rgba(255,0,0,0.4)",
-  },
-  captureButton: {
-    width: CAPTURE_BUTTON_SIZE,
-    height: CAPTURE_BUTTON_SIZE,
-    borderRadius: CAPTURE_BUTTON_SIZE / 2,
-  },
-  progressSvg: {
-    position: "absolute",
-  },
-});

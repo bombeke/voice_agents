@@ -34,12 +34,18 @@ function AuthLayout() {
     const target = redirectAfterLogin ?? Routes.TABS;
     setRedirectAfterLogin(undefined);
     router.replace(target as any);
-  }, [loading, isAuthenticated, redirectAfterLogin, setRedirectAfterLogin, router]);
+  }, [
+    loading,
+    isAuthenticated,
+    redirectAfterLogin,
+    setRedirectAfterLogin,
+    router,
+  ]);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
+      <View className="flex-1 justify-center bg-background">
+        <ActivityIndicator size="large" colorClassName="accent-primary" />
       </View>
     );
   }

@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Text, View } from "react-native";
 import type { CameraDevice } from "react-native-vision-camera";
 import {
-  Camera,
+  Camera as VisionCamera,
   Frame,
   useCameraDevices,
   useCameraPermission,
@@ -11,6 +11,7 @@ import {
 } from "react-native-vision-camera";
 import { scheduleOnRN } from "react-native-worklets";
 import { useSharedValue } from "react-native-worklets-core";
+import { withUniwind } from "uniwind";
 
 import { useCameraController } from "@/hooks/useCameraController";
 import { prepareAndInitializeModel } from "@/services/PrepareModel";
@@ -39,6 +40,8 @@ import { NoCameraDevice } from "./NoCameraDevice";
 import { PermissionsPage } from "./PermissionsPage";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+const Camera = withUniwind(VisionCamera);
 
 export interface Props {
   device?: any;
@@ -100,7 +103,7 @@ function updateVelocity(prev: Track, det: Detection<typeof CocoLabelYolo>) {
 
 export const trackSORT = (
   state: TrackerState,
-  detections: Detection<typeof CocoLabelYolo>[]
+  detections: Detection<typeof CocoLabelYolo>[],
 ): Track[] => {
   "worklet";
 
@@ -186,7 +189,7 @@ export const useTagObjectDetection = <C extends ObjectDetectionModelSources>({
 
   const forward = (
     input: string | PixelData,
-    options?: ObjectDetectionOptions<typeof CocoLabelYolo>
+    options?: ObjectDetectionOptions<typeof CocoLabelYolo>,
   ) => runForward((inst) => inst.forward(input, options));
 
   const getAvailableInputSizes = () =>
@@ -210,7 +213,7 @@ export const CameraView = memo(() => {
   const devices = useCameraDevices();
   const device = useMemo(
     () => devices.find((d: CameraDevice) => d.position === "back"),
-    [devices]
+    [devices],
   );
   const [flash] = useState<"off" | "on">("off");
   const [modelPath, setModelPath] = useState<string | null>(null);
@@ -269,7 +272,7 @@ export const CameraView = memo(() => {
           frame.dispose();
         }
       },
-      [detRof, updateDetections, model.isReady, trackerState]
+      [detRof, updateDetections, model.isReady, trackerState],
     ),
   });
 
@@ -342,10 +345,10 @@ export const CameraView = memo(() => {
   if (!device) return <NoCameraDevice />;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.cameraWrapper}>
+    <View className="flex-1">
+      <View className="flex-1 overflow-hidden">
         <Camera
-          style={StyleSheet.absoluteFill}
+          className="absolute inset-0"
           device={device}
           isActive={true}
           outputs={[frameOutput, photoOutput]}
@@ -356,26 +359,22 @@ export const CameraView = memo(() => {
         />
       </View>
 
-      <View
-        style={[StyleSheet.absoluteFill, { backgroundColor: "transparent" }]}
-        pointerEvents="none"
-      >
+      <View className="absolute inset-0 bg-transparent" pointerEvents="none">
         {(detections ?? []).map((det, i) => {
           const box = mapBboxToScreen(det.bbox, frameSize);
           return (
             <View
               key={det.trackId ?? i}
-              style={[
-                styles.box,
-                {
-                  left: box.left,
-                  top: box.top,
-                  width: box.width,
-                  height: box.height,
-                },
-              ]}
+              className="absolute border-2 border-accent justify-start"
+              // Runtime geometry from the detection; everything else is a class.
+              style={{
+                left: box.left,
+                top: box.top,
+                width: box.width,
+                height: box.height,
+              }}
             >
-              <Text style={styles.boxLabel}>
+              <Text className="absolute -top-[22px] left-0 bg-black/70 text-white type-mono text-xs px-1.5 py-0.5 rounded">
                 #{det.trackId} {det.label} {(det.score * 100).toFixed(1)}%
               </Text>
             </View>
@@ -416,7 +415,7 @@ export const CameraView = memo(() => {
  */
 function mapBboxToScreen(
   bbox: Bbox,
-  frameSize: { width: number; height: number }
+  frameSize: { width: number; height: number },
 ) {
   // Buffer is landscape; portrait preview swaps the axes.
   const srcW = frameSize.height; // frame height -> screen X extent
@@ -450,58 +449,3 @@ function mapBboxToScreen(
     height: Math.max(0, bottom - top),
   };
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  formContainer: {
-    padding: 16,
-    backgroundColor: "#fff",
-    zIndex: 10,
-  },
-  cameraWrapper: {
-    flex: 1,
-    overflow: "hidden",
-  },
-  label: {
-    position: "absolute",
-    bottom: 40,
-    alignSelf: "center",
-    color: "white",
-    fontSize: 16,
-  },
-  pickerWrapper: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 100,
-  },
-  error: {
-    color: "red",
-    marginTop: 8,
-    fontWeight: "500",
-  },
-  box: {
-    position: "absolute",
-    borderWidth: 2,
-    borderColor: "red",
-    justifyContent: "flex-start",
-  },
-  boxLabel: {
-    position: "absolute",
-    top: -22,
-    left: 0,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    color: "#fff",
-    fontSize: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-});

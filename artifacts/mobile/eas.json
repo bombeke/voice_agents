@@ -24,7 +24,8 @@
       "environment": "preview",
       "pnpm": "11.20.0",
       "env": {
-        "APP_VARIANT": "preview"
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_API_MOCKING": "disabled"
       }
     },
 
@@ -34,7 +35,8 @@
       "environment":"production",
       "pnpm": "11.20.0",
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_API_MOCKING": "disabled"
       }
     }
   }

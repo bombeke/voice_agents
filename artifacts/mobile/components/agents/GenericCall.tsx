@@ -1,80 +1,83 @@
-import Icon from '@expo/vector-icons/MaterialCommunityIcons';
-import { ReactNode, useState } from 'react';
+import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { ReactNode, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import Colors from '../ui/Colors';
+  View,
+} from "react-native";
+import { colors } from "@/constants/theme";
 
-import { Relay } from '@signalwire/react-native';
-import useRelayClient from '../../hooks/useRelayClient';
-import { AssetCall } from './AssetCall';
-import { CallRTCView } from './CallRTCView';
+import { Relay } from "@signalwire/react-native";
+import useRelayClient from "../../hooks/useRelayClient";
+import { AssetCall } from "./AssetCall";
+import { CallRTCView } from "./CallRTCView";
 
-export const GenericCall =(): ReactNode | Promise<ReactNode> =>{
-
-  const {client, connected, call} = useRelayClient(
+export const GenericCall = (): ReactNode | Promise<ReactNode> => {
+  const { client, connected, call } = useRelayClient(
     {
-      project: '',
-      token: '',
+      project: "",
+      token: "",
     },
     function onRinging(call) {
-      const {remoteCallerName, remoteCallerNumber} = call.options;
+      const { remoteCallerName, remoteCallerNumber } = call.options;
       const caller = remoteCallerName || remoteCallerNumber;
       Alert.alert(
-        'Inbound Call',
+        "Inbound Call",
         `Call from ${caller}`,
         [
           {
-            text: 'Reject',
+            text: "Reject",
             onPress: () => call.hangup(),
-            style: 'cancel',
+            style: "cancel",
           },
           {
-            text: 'Answer',
+            text: "Answer",
             onPress: () => call.answer(),
           },
         ],
-        {cancelable: false},
+        { cancelable: false },
       );
     },
   );
 
-  const [extension, setExtension] = useState('+12762700060');
+  const [extension, setExtension] = useState("+12762700060");
   return (
-    <KeyboardAvoidingView style={styles.container}>
-      <View style={styles.wrapperTop}>
-        <Text style={styles.welcome}>Call Agent</Text>
-        <Text style={styles.instructions}>
-          Status: {connected ? 'Connected' : 'Not connected'}
+    <KeyboardAvoidingView className="flex-1 max-h-[700px]">
+      <View className="flex-[0.5] justify-center">
+        <Text className="type-h2 text-text text-center m-2.5">Call Agent</Text>
+        <Text className="type-body text-text-muted text-center mb-1">
+          Status: {connected ? "Connected" : "Not connected"}
         </Text>
       </View>
-      <Middle client={client} call={call} extension={extension} setExtension={setExtension} />
-      
+      <Middle
+        client={client}
+        call={call}
+        extension={extension}
+        setExtension={setExtension}
+      />
     </KeyboardAvoidingView>
   );
-}
+};
 
-export const Middle =({
+export const Middle = ({
   call,
   extension,
   setExtension,
-  client
+  client,
 }: {
   call: any;
   extension: string;
   setExtension: (_: string) => void;
-  client: Relay | null
+  client: Relay | null;
 }) => {
   if (call) {
     return (
-      <View style={styles.wrapperMiddle}>
-        { /*call?.localStream && (
+      <View className="flex-[2] flex-row justify-center items-center border-t border-border pr-2">
+        {
+          /*call?.localStream && (
           <RTCView
             mirror={false}
             objectFit="contain"
@@ -82,9 +85,10 @@ export const Middle =({
             style={{width: '100%', height: '100%'}}
             zOrder={1}
           />)*/
-          call?.localStream && (<CallRTCView callStream={call?.localStream} />)
+          call?.localStream && <CallRTCView callStream={call?.localStream} />
         }
-        { /*call?.remoteStream && (
+        {
+          /*call?.remoteStream && (
           <RTCView
             mirror={false}
             objectFit="contain"
@@ -92,31 +96,32 @@ export const Middle =({
             style={{width: '100%', height: '100%'}}
             zOrder={1}
           />)*/
-          call?.remoteStream && (<CallRTCView callStream={call?.remoteStream} />)
+          call?.remoteStream && <CallRTCView callStream={call?.remoteStream} />
         }
       </View>
     );
-  } 
-  else {
+  } else {
     return (
       <>
-        <View style={styles.wrapperMiddle}>
-          <Text style={styles.tel}>Enter a number:</Text>
+        <View className="flex-[2] flex-row justify-center items-center border-t border-border pr-2">
+          <Text className="pr-2 type-body text-text">Enter a number:</Text>
           <TextInput
-            style={styles.textInput}
-            textAlign={'center'}
-            onChangeText={extension => setExtension(extension)}
+            className="h-10 w-[180px] border border-border-strong rounded p-2 type-body text-text bg-surface"
+            textAlign={"center"}
+            onChangeText={(extension) => setExtension(extension)}
             value={extension}
           />
-          {client && <Bottom call={call} client={client} extension={extension} />}
+          {client && (
+            <Bottom call={call} client={client} extension={extension} />
+          )}
         </View>
-        <AssetCall/>
+        <AssetCall />
       </>
     );
   }
-}
+};
 
-export const Bottom =({
+export const Bottom = ({
   client,
   call,
   extension,
@@ -124,7 +129,7 @@ export const Bottom =({
   client: Relay;
   call: any;
   extension: string;
-}) =>{
+}) => {
   const [btnMicActive, setBtnMicActive] = useState(false);
   const [btnCamActive, setBtnCamActive] = useState(false);
   const [btnDeafActive, setBtnDeafActive] = useState(false);
@@ -133,7 +138,10 @@ export const Bottom =({
 
   function makeCall() {
     // @ts-ignore
-    client.newCall({destinationNumber: extension, video: {facingMode: 'user'}});
+    client.newCall({
+      destinationNumber: extension,
+      video: { facingMode: "user" },
+    });
   }
 
   function hangup() {
@@ -141,17 +149,17 @@ export const Bottom =({
   }
 
   function toggleMic() {
-    setBtnMicActive(i => !i);
+    setBtnMicActive((i) => !i);
     call.toggleAudioMute();
   }
 
   function toggleCam() {
-    setBtnCamActive(u => !u);
+    setBtnCamActive((u) => !u);
     call.toggleVideoMute();
   }
 
   function toggleDeaf() {
-    setBtnDeafActive(i => !i);
+    setBtnDeafActive((i) => !i);
     call.toggleDeaf();
   }
 
@@ -160,7 +168,7 @@ export const Bottom =({
   }
 
   function toggleSpeaker() {
-    setBtnSpeakerActive(i => !i);
+    setBtnSpeakerActive((i) => !i);
     setTimeout(() => {
       // only call on next render
       call.setSpeakerPhone(btnSpeakerActive);
@@ -169,134 +177,85 @@ export const Bottom =({
 
   if (call) {
     return (
-      <View style={styles.wrapperBottom}>
-        <View style={styles.wrapperBottomRow}>
-          <TouchableOpacity style={styles.button} onPress={toggleMic}>
+      <View className="flex-[0.5] p-2">
+        <View className="flex-[0.5] flex-row justify-around items-center">
+          <TouchableOpacity
+            className="items-center justify-center rounded-full h-10 w-[120px]"
+            onPress={toggleMic}
+          >
             <Icon
               name="microphone"
               size={25}
-              color={btnMicActive ? '#000' : 'gray'}
+              color={btnMicActive ? colors.text : colors.textMuted}
             />
-            <Text style={styles.buttonText}>Mute</Text>
+            <Text className="text-center type-caption text-text">Mute</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button} onPress={toggleDeaf}>
+          <TouchableOpacity
+            className="items-center justify-center rounded-full h-10 w-[120px]"
+            onPress={toggleDeaf}
+          >
             <Icon
               name="volume-mute"
               size={25}
-              color={btnDeafActive ? '#000' : 'gray'}
+              color={btnDeafActive ? colors.text : colors.textMuted}
             />
-            <Text style={styles.buttonText}>Deaf</Text>
+            <Text className="text-center type-caption text-text">Deaf</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button} onPress={toggleCam}>
+          <TouchableOpacity
+            className="items-center justify-center rounded-full h-10 w-[120px]"
+            onPress={toggleCam}
+          >
             <Icon
               name="camera"
               size={25}
-              color={btnCamActive ? '#000' : 'gray'}
+              color={btnCamActive ? colors.text : colors.textMuted}
             />
-            <Text style={styles.buttonText}>Camera</Text>
+            <Text className="text-center type-caption text-text">Camera</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button} onPress={switchCamera}>
-            <Icon name="camera-retake" size={25} color="#000" />
-            <Text style={styles.buttonText}>Flip Cam</Text>
+          <TouchableOpacity
+            className="items-center justify-center rounded-full h-10 w-[120px]"
+            onPress={switchCamera}
+          >
+            <Icon name="camera-retake" size={25} color={colors.text} />
+            <Text className="text-center type-caption text-text">Flip Cam</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.button} onPress={toggleSpeaker}>
+          <TouchableOpacity
+            className="items-center justify-center rounded-full h-10 w-[120px]"
+            onPress={toggleSpeaker}
+          >
             <Icon
               name="volume-high"
               size={25}
-              color={btnSpeakerActive ? '#000' : 'gray'}
+              color={btnSpeakerActive ? colors.text : colors.textMuted}
             />
-            <Text style={styles.buttonText}>Speaker</Text>
+            <Text className="text-center type-caption text-text">Speaker</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.wrapperBottomRow}>
+        <View className="flex-[0.5] flex-row justify-around items-center">
           <TouchableOpacity
-            style={[styles.button, {backgroundColor: Colors.red}]}
-            onPress={hangup}>
-            <Icon name="phone-hangup" size={25} color="#FFF" />
+            className="items-center justify-center rounded-full h-10 w-[120px] bg-danger"
+            onPress={hangup}
+          >
+            <Icon name="phone-hangup" size={25} color={colors.surface} />
           </TouchableOpacity>
         </View>
       </View>
     );
-  } 
-  else {
+  } else {
     return (
-      <View style={styles.wrapperBottom}>
-          <TouchableOpacity
-            style={[styles.button, {backgroundColor: Colors.green}]}
-            onPress={makeCall}>
-            <Icon name="phone" size={25} color="#FFFFFF" />
-          </TouchableOpacity>
+      <View className="flex-[0.5] p-2">
+        <TouchableOpacity
+          className="items-center justify-center rounded-full h-10 w-[120px] bg-success"
+          onPress={makeCall}
+        >
+          <Icon name="phone" size={25} color={colors.surface} />
+        </TouchableOpacity>
       </View>
     );
   }
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    maxHeight: 700,
-  },
-  wrapperTop: {
-    flex: 0.5,
-    justifyContent: 'center',
-  },
-  wrapperMiddle: {
-    flex: 2,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderColor: '#000',
-    borderTopWidth: 1,
-    paddingRight: 8
-  },
-  wrapperBottom: {
-    flex: 0.5,
-    borderColor: '#000',
-    borderTopWidth: 0,
-    borderBottomWidth: 0,
-    padding: 8
-  },
-  wrapperBottomRow: {
-    flex: 0.5,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  textInput: {
-    height: 40,
-    width: 180,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 8
-  },
-  tel:{
-    paddingRight: 8
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
-  },
-  button: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 100,
-    height: 40,
-    width: 120,
-  },
-  buttonText: {
-    textAlign: 'center',
-    fontSize: 12,
-  },
-});
+};

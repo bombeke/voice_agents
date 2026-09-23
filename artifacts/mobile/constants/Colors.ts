@@ -1,55 +1,72 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design tokens from design/ui-screens.html (see CLAUDE.md).
+ * The app ships a single high-contrast light theme for outdoor/sunlight use,
+ * so `dark` mirrors `light` until a dark theme is designed.
+ *
+ * Styling uses Tailwind classes backed by the same tokens in global.css
+ * (`bg-surface`, `text-text-muted`, …). Keep the two in sync; use these JS
+ * values only for props that can't take a className (icon `color`, Skia,
+ * MapLibre layers, Animated interpolations).
  */
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export const palette = {
+  background: "#F4F2EC",
+  surface: "#FFFFFF",
+  surfaceMuted: "#ECE9E0",
+  text: "#1A1D1B",
+  textMuted: "#55594F",
+  border: "#DAD6CA",
+  borderStrong: "#C9C4B6",
+
+  primary: "#0F5E51",
+  primaryPressed: "#0A4439",
+  primarySoft: "#DDEBE6",
+  onPrimary: "#FFFFFF",
+  accent: "#F5C04A",
+  onAccent: "#1A1D1B",
+  /** Rails in the app logo. */
+  logoRail: "#5FA895",
+
+  success: "#1E6B3A",
+  successSoft: "#DDEEE2",
+  onSuccessSoft: "#143F24",
+  warning: "#8A4205",
+  warningSoft: "#FBEBD6",
+  onWarningSoft: "#5A2B03",
+  danger: "#A3261B",
+  dangerSoft: "#F8DCD8",
+  onDangerSoft: "#7A1C13",
+} as const;
+
+export const CategoryColors = {
+  energy: { solid: "#9A5B00", tile: "#F6E9D2", border: "#E8D3AE" },
+  water: { solid: "#1B5E91", tile: "#DCE9F4", border: "#BCD3E8" },
+  telecom: { solid: "#5A3F8F", tile: "#E7E0F2", border: "#D0C4E6" },
+  roads: { solid: "#6A4A2E", tile: "#EDE3D8", border: "#D9C8B5" },
+} as const;
+
+export type AssetCategory = keyof typeof CategoryColors;
+
+export const ConfidenceColors = {
+  high: palette.success,
+  medium: palette.warning,
+  low: palette.danger,
+} as const;
+
+const theme = {
+  ...palette,
+  tint: palette.primary,
+  icon: palette.textMuted,
+  tabIconDefault: palette.textMuted,
+  tabIconSelected: palette.primary,
+  mapCluster: palette.primary,
+  mapClusterBorder: palette.surface,
+  shadow: "#000000",
+};
 
 export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
+  light: theme,
+  dark: theme,
 };
 
-const primary = "#0A7EA4";
-const secondary = "#2D5F7A";
-const accent = "#4CAF50";
-const danger = "#E53935";
-const warning = "#FFB300";
-
-export default {
-  light: {
-    primary,
-    secondary,
-    accent,
-    danger,
-    warning,
-    text: "#1A1A1A",
-    textSecondary: "#666666",
-    background: "#FFFFFF",
-    surface: "#F5F5F5",
-    border: "#E0E0E0",
-    tint: primary,
-    tabIconDefault: "#9E9E9E",
-    tabIconSelected: primary,
-    success: accent,
-    mapCluster: primary,
-    mapClusterBorder: "#FFFFFF",
-    cardBackground: "#FFFFFF",
-    shadow: "#000000",
-  },
-};
+export default Colors;

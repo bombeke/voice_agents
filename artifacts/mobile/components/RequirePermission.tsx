@@ -61,16 +61,16 @@ export function RequirePermission({
 
   if (loading || !isAuthenticated || !claims) {
     return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
+      <View className="flex-1 justify-center bg-background">
+        <ActivityIndicator size="large" colorClassName="accent-primary" />
       </View>
     );
   }
 
   if (adminMode === "offline-readonly" && !allowOfflineReadonly) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
-        <Text className="text-center text-gray-600">
+      <View className="flex-1 justify-center p-6 bg-background">
+        <Text className="text-center type-body text-text-muted">
           This feature is unavailable in offline mode.
         </Text>
       </View>

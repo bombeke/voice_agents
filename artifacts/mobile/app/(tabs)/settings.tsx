@@ -1,7 +1,15 @@
 import { FontAwesome } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
+import { colors } from "@/constants/theme";
 import { useAuth } from "@/providers/AuthProvider";
 
 type RowProps = {
@@ -11,38 +19,36 @@ type RowProps = {
   iconColor?: string;
 };
 
-function InfoRow({ icon, label, value, iconColor = "#6B7280" }: RowProps) {
+function InfoRow({
+  icon,
+  label,
+  value,
+  iconColor = colors.textMuted,
+}: RowProps) {
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 14,
-        paddingHorizontal: 18,
-        borderBottomWidth: 1,
-        borderBottomColor: "#F3F4F6",
-        gap: 14,
-      }}
-    >
-      <View
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 10,
-          backgroundColor: "#F9FAFB",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+    <View className="flex-row items-center py-3.5 px-4 gap-3.5 border-b border-surface-muted min-h-[52px]">
+      <View className="w-[34px] h-[34px] rounded-tile bg-surface-muted items-center justify-center">
         <FontAwesome name={icon as any} size={15} color={iconColor} />
       </View>
-      <Text style={{ flex: 1, fontSize: 14, color: "#374151", fontWeight: "500" }}>
-        {label}
-      </Text>
+      <Text className="flex-1 type-label text-text">{label}</Text>
       {value ? (
-        <Text style={{ fontSize: 13, color: "#9CA3AF" }}>{value}</Text>
+        <Text className="type-mono text-[13px] text-text-muted">{value}</Text>
       ) : null}
     </View>
+  );
+}
+
+function SectionLabel({
+  children,
+  className = "",
+}: {
+  children: string;
+  className?: string;
+}) {
+  return (
+    <Text className={`type-overline text-text-muted ml-5 mb-2 ${className}`}>
+      {children}
+    </Text>
   );
 }
 
@@ -67,74 +73,29 @@ export default function Settings() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#F8FAFC" }}
-      contentContainerStyle={{ paddingBottom: 40 }}
+      className="flex-1 bg-background"
+      contentContainerClassName="pb-10"
       showsVerticalScrollIndicator={false}
     >
       {/* Profile card */}
-      <View
-        style={{
-          backgroundColor: "#FFFFFF",
-          margin: 16,
-          borderRadius: 18,
-          padding: 20,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 10,
-          elevation: 2,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-          <View
-            style={{
-              width: 58,
-              height: 58,
-              borderRadius: 29,
-              backgroundColor: "#EFF6FF",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <FontAwesome name="user" size={26} color="#2563EB" />
+      <View className="bg-surface border border-border m-4 rounded-2xl p-5">
+        <View className="flex-row items-center gap-4">
+          <View className="w-[58px] h-[58px] rounded-full bg-primary-soft items-center justify-center">
+            <FontAwesome name="user" size={26} color={colors.primary} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{ fontSize: 17, fontWeight: "700", color: "#111827" }}
-              numberOfLines={1}
-            >
+          <View className="flex-1">
+            <Text className="type-title text-text" numberOfLines={1}>
               {claims?.sub ?? "User"}
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+            <View className="flex-row items-center gap-1.5 mt-1">
               {isAdmin ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 4,
-                    backgroundColor: "#EFF6FF",
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 20,
-                  }}
-                >
-                  <FontAwesome name="shield" size={10} color="#2563EB" />
-                  <Text style={{ fontSize: 11, color: "#2563EB", fontWeight: "700" }}>
-                    Administrator
-                  </Text>
+                <View className="flex-row items-center gap-1 bg-primary-soft px-2.5 h-[26px] rounded-full">
+                  <FontAwesome name="shield" size={10} color={colors.primary} />
+                  <Text className="type-chip text-primary">Administrator</Text>
                 </View>
               ) : (
-                <View
-                  style={{
-                    backgroundColor: "#F3F4F6",
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 20,
-                  }}
-                >
-                  <Text style={{ fontSize: 11, color: "#6B7280", fontWeight: "600" }}>
-                    Operator
-                  </Text>
+                <View className="bg-surface-muted px-2.5 h-[26px] justify-center rounded-full">
+                  <Text className="type-chip text-text-muted">Operator</Text>
                 </View>
               )}
             </View>
@@ -143,33 +104,8 @@ export default function Settings() {
       </View>
 
       {/* Account info */}
-      <Text
-        style={{
-          fontSize: 11,
-          fontWeight: "700",
-          color: "#9CA3AF",
-          letterSpacing: 1,
-          textTransform: "uppercase",
-          marginLeft: 20,
-          marginBottom: 8,
-          marginTop: 4,
-        }}
-      >
-        Account
-      </Text>
-      <View
-        style={{
-          backgroundColor: "#FFFFFF",
-          marginHorizontal: 16,
-          borderRadius: 18,
-          overflow: "hidden",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 10,
-          elevation: 2,
-        }}
-      >
+      <SectionLabel className="mt-1">Account</SectionLabel>
+      <View className="bg-surface border border-border mx-4 rounded-2xl overflow-hidden">
         {claims?.sub ? (
           <InfoRow icon="id-badge" label="User ID" value={claims.sub} />
         ) : null}
@@ -180,66 +116,21 @@ export default function Settings() {
           icon="lock"
           label="Role"
           value={isAdmin ? "Admin" : "Operator"}
-          iconColor={isAdmin ? "#2563EB" : "#6B7280"}
+          iconColor={isAdmin ? colors.primary : colors.textMuted}
         />
       </View>
 
       {/* Sign out */}
-      <Text
-        style={{
-          fontSize: 11,
-          fontWeight: "700",
-          color: "#9CA3AF",
-          letterSpacing: 1,
-          textTransform: "uppercase",
-          marginLeft: 20,
-          marginBottom: 8,
-          marginTop: 24,
-        }}
-      >
-        Session
-      </Text>
-      <View
-        style={{
-          backgroundColor: "#FFFFFF",
-          marginHorizontal: 16,
-          borderRadius: 18,
-          overflow: "hidden",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 10,
-          elevation: 2,
-        }}
-      >
+      <SectionLabel className="mt-6">Session</SectionLabel>
+      <View className="bg-surface border border-border mx-4 rounded-2xl overflow-hidden">
         <Pressable
           onPress={handleLogout}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            paddingHorizontal: 18,
-            gap: 14,
-            backgroundColor: pressed ? "#FFF1F2" : "#FFFFFF",
-          })}
+          className="flex-row items-center py-4 px-4 gap-3.5 bg-surface active:bg-danger-soft"
         >
-          <View
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              backgroundColor: "#FFF1F2",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <FontAwesome name="sign-out" size={15} color="#EF4444" />
+          <View className="w-[34px] h-[34px] rounded-tile bg-danger-soft items-center justify-center">
+            <FontAwesome name="sign-out" size={15} color={colors.danger} />
           </View>
-          <Text
-            style={{ fontSize: 15, color: "#EF4444", fontWeight: "600" }}
-          >
-            Sign Out
-          </Text>
+          <Text className="type-body-strong text-danger">Sign Out</Text>
         </Pressable>
       </View>
     </ScrollView>

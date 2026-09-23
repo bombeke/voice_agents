@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, SafeAreaView, StatusBar, View } from "react-native";
 //import { mediaDevices, RTCView } from "react-native-webrtc-web-shim";
 
-export const CallRTCView = ({ callStream }: any)=> {
+export const CallRTCView = ({ callStream }: any) => {
   const [stream, setStream] = useState<any>(null);
 
   const start = async () => {
@@ -26,25 +26,25 @@ export const CallRTCView = ({ callStream }: any)=> {
     }
   };
 
-  useEffect(()=>{
-    if(callStream){
+  useEffect(() => {
+    if (callStream) {
       setStream(callStream);
     }
-  },[callStream]);
+  }, [callStream]);
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle="dark-content" />
-      <View style={{ flex: 1 }}>
+      <View className="flex-1">
         {
-        ///stream && <RTCView streamURL={stream.toURL()} style={{ flex: 1 }} />
+          ///stream && <RTCView streamURL={stream.toURL()} style={{ flex: 1 }} />
         }
       </View>
-      <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
-        <Button title="Start" onPress={start} />
-        <Button title="Stop" onPress={stop} />
+      <View className="flex-row justify-around">
+        <Button title="Start" onPress={start} colorClassName="accent-primary" />
+        <Button title="Stop" onPress={stop} colorClassName="accent-primary" />
       </View>
     </SafeAreaView>
   );
-}
+};
 
 export default CallRTCView;

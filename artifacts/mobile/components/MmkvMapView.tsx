@@ -1,20 +1,31 @@
 import { geoTagsToGeoJSON } from "@/hooks/useGeoJsonHooks";
-import { Camera, CircleLayer, MapView, ShapeSource, SymbolLayer } from "@maplibre/maplibre-react-native";
+import { colors } from "@/constants/theme";
+import {
+  Camera,
+  CircleLayer,
+  MapView as RNMapView,
+  ShapeSource,
+  SymbolLayer,
+} from "@maplibre/maplibre-react-native";
 import { useCallback, useEffect, useState } from "react";
+import { withUniwind } from "uniwind";
 import { useMMKVStorage } from "./MmkvContext";
+
+const MapView = withUniwind(RNMapView);
 
 export default function ImageGeoMap() {
   const [geojson, setGeojson] = useState<any>(null);
   const storage = useMMKVStorage();
 
-  const refresh =()=> useCallback(() => {
-    setGeojson(geoTagsToGeoJSON());
-  },[]);
+  const refresh = () =>
+    useCallback(() => {
+      setGeojson(geoTagsToGeoJSON());
+    }, []);
 
   useEffect(() => {
     refresh();
     // Listen for MMKV changes
-    if(storage){
+    if (storage) {
       const listener = storage.addOnValueChangedListener((key: string) => {
         if (key === "geotags") refresh();
       });
@@ -25,7 +36,7 @@ export default function ImageGeoMap() {
   if (!geojson) return null;
 
   return (
-    <MapView style={{ flex: 1 }}>
+    <MapView className="flex-1">
       <Camera
         zoomLevel={14}
         centerCoordinate={[
@@ -40,9 +51,9 @@ export default function ImageGeoMap() {
           id="photoPoints"
           style={{
             circleRadius: 6,
-            circleColor: "rgba(0,122,255,0.9)",
+            circleColor: colors.primary,
             circleStrokeWidth: 2,
-            circleStrokeColor: "#ffffff",
+            circleStrokeColor: colors.surface,
           }}
         />
 
@@ -52,7 +63,7 @@ export default function ImageGeoMap() {
           style={{
             textField: ["get", "created"],
             textSize: 10,
-            textColor: "#000",
+            textColor: colors.text,
             iconSize: 0.0001, // use if you add an icon
           }}
         />

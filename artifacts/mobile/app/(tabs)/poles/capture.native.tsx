@@ -1,7 +1,7 @@
 import { CameraView } from "@/components/camera/CameraView";
 import { Detection } from "@/hooks/useTagDetection";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 
 export interface InferResult {
   detections: Detection[];
@@ -16,16 +16,9 @@ export interface InferResult {
  */
 export default function CameraScreen() {
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-black">
       <StatusBar style="light" />
       <CameraView />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-});
