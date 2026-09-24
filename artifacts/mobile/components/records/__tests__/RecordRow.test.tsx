@@ -32,4 +32,16 @@ describe("RecordRow", () => {
     await fireEvent.press(screen.getByRole("button", { name: /Culvert/ }));
     expect(onPress).toHaveBeenCalledWith(RECORD);
   });
+
+  it("names who captured it in a team list", async () => {
+    const capturedBy = { id: "enumerator-04", name: "Enumerator 04" };
+    await render(
+      <RecordRow
+        record={{ ...RECORD, capturedBy }}
+        onPress={() => {}}
+        showOwner
+      />,
+    );
+    expect(screen.getByText(/^Enumerator 04 · /)).toBeOnTheScreen();
+  });
 });

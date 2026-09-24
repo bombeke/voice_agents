@@ -49,6 +49,8 @@ beforeAll(async () => {
   await openUserData(FIELD);
 });
 beforeEach(() => accountStore.clear());
+// Also clears the query client, whose cache timers would keep Jest running.
+afterAll(() => closeUserData());
 
 const SIGN_UP = {
   name: "Grace Nakato",
@@ -212,6 +214,24 @@ describe("dev mocks", () => {
       axiosClient.patch(url, decision, as(supervisor)),
     ).rejects.toMatchObject({ response: { status: 409 } });
 
+    // The supervisor's team: every field capture plus the other enumerators'.
+    await expect(
+      axiosClient.get("/records/v1/team", as(field)),
+    ).rejects.toMatchObject({ response: { status: 403 } });
+    const team = (await axiosClient.get("/records/v1/team", as(supervisor)))
+      .data as { summary: { capturedBy: { name: string } } }[];
+    expect(
+      team.filter((r) => r.summary.capturedBy.name === "Field Enumerator"),
+    ).toHaveLength(14);
+    expect(new Set(team.map((r) => r.summary.capturedBy.name))).toEqual(
+      new Set([
+        "Field Enumerator",
+        "Enumerator 02",
+        "Enumerator 04",
+        "Enumerator 07",
+      ]),
+    );
+
     expect(await mine()).toEqual([
       {
         captureId: fieldCulvert.id,
@@ -220,7 +240,7 @@ describe("dev mocks", () => {
         decidedAt: "2026-09-24T10:00:00.000Z",
       },
     ]);
-  });
+  }, 20_000); // Each fake response takes 400 ms.
 
   it("announces itself with the marker the release check looks for", () => {
     expect(console.warn).toHaveBeenCalledWith(

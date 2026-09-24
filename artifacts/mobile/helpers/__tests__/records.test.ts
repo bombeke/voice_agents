@@ -151,3 +151,27 @@ describe("isRecordFilter", () => {
     expect(isRecordFilter(undefined)).toBe(false);
   });
 });
+
+describe("team records", () => {
+  const teamRow = {
+    id: "t1",
+    category: "energy" as const,
+    title: "Transformer",
+    capturedAt: new Date(2026, 8, 24, 9, 5).toISOString(),
+    accuracyM: 2.4,
+    syncStatus: "synced" as const,
+    flagged: false,
+    capturedBy: { id: "enumerator-04", name: "Enumerator 04" },
+  };
+
+  it("names the enumerator first when asked", () => {
+    expect(formatRecordMeta(teamRow, true)).toBe(
+      "Enumerator 04 · 09:05 · ±2.4 m",
+    );
+    expect(formatRecordMeta(teamRow)).toBe("09:05 · ±2.4 m");
+  });
+
+  it("finds a record by its enumerator", () => {
+    expect(filterRecords([teamRow], "all", "enumerator 04")).toEqual([teamRow]);
+  });
+});

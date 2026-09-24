@@ -21,7 +21,11 @@ import { setCaptureUploader } from "@/services/sync/CaptureSync";
 import type { Enumerator } from "@/types/Capture";
 import type { RejectReason, ReviewOutcome } from "@/types/Review";
 import { REVIEW_BATCH_SIZE } from "@/constants/Config";
-import { MY_REVIEWS_URL, REVIEW_BATCH_URL } from "@/services/sync/ReviewSync";
+import {
+  MY_REVIEWS_URL,
+  REVIEW_BATCH_URL,
+  TEAM_RECORDS_URL,
+} from "@/services/sync/ReviewSync";
 import { accountStore } from "./AccountStore";
 import { fakeMapAssets } from "./assets";
 import {
@@ -36,6 +40,7 @@ import {
   decideOnServer,
   myReviewStatuses,
   nextReviewBatch,
+  teamRecords,
 } from "./reviewServer";
 import { fakeDeviceStatus } from "./settings";
 import { fakeGnssSource, fakePhotoQuality } from "./gnss";
@@ -198,6 +203,10 @@ export const devMocks: DevMocks = {
         });
         return accepted ? [200, {}] : [409, { detail: "Already reviewed" }];
       });
+    adapter.onGet(TEAM_RECORDS_URL).reply((config) => {
+      if (!canReview(requester(config.headers))) return [403, {}];
+      return [200, teamRecords(mapAssets$.peek())];
+    });
     adapter.onGet(MY_REVIEWS_URL).reply((config) => {
       const userId = requester(config.headers);
       if (!userId) return [401, {}];

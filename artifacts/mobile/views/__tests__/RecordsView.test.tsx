@@ -1,6 +1,7 @@
 import { replaceCaptures } from "@/services/storage/CaptureStore";
 import { isOnline$ } from "@/services/storage/LegendState";
 import { setCaptureUploader } from "@/services/sync/CaptureSync";
+import { addTeamRecords, clearReviews } from "@/services/storage/ReviewStore";
 import type { CaptureSummary } from "@/types/Capture";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { RecordsView } from "../RecordsView";
@@ -66,12 +67,18 @@ const RECORDS = [
 ];
 
 const mockRouter = { push: jest.fn() };
+const mockRefreshTeam = jest.fn(async () => true);
+jest.mock("@/services/sync/ReviewSync", () => ({
+  refreshTeamRecords: () => mockRefreshTeam(),
+}));
 jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 
 const row = (title: string) =>
   screen.getByLabelText(new RegExp(`^${title.replace(/[·]/g, ".")}, `));
 
 beforeEach(() => {
+  mockRefreshTeam.mockClear();
+  clearReviews();
   setCaptureUploader(async () => ({ synced: [], failed: [] }));
   isOnline$.set(true);
   replaceCaptures(RECORDS);
@@ -173,5 +180,54 @@ describe("RecordsView", () => {
     expect(screen.queryByRole("button", { name: "Sync now" })).toBeNull();
     expect(screen.queryByRole("header", { name: "Today" })).toBeNull();
     expect(screen.getByRole("tab", { name: "All · 0" })).toBeOnTheScreen();
+  });
+
+  it("has no Mine / Team switch for an enumerator", async () => {
+    await render(<RecordsView />);
+    expect(screen.queryByRole("tab", { name: "Team" })).toBeNull();
+    expect(mockRefreshTeam).not.toHaveBeenCalled();
+  });
+
+  it("switches a supervisor to the team's records", async () => {
+    const enumerator = { id: "enumerator-04", name: "Enumerator 04" };
+    addTeamRecords([
+      {
+        summary: {
+          ...record({
+            id: "team-transformer",
+            title: "Transformer",
+            capturedAt: today(0, 5),
+          }),
+          capturedBy: enumerator,
+        },
+        record: { id: "team-transformer" } as never,
+      },
+    ]);
+    await render(<RecordsView canSeeTeam />);
+    expect(screen.getByRole("tab", { name: "Mine" })).toBeSelected();
+    expect(screen.queryByText("Transformer")).toBeNull();
+
+    await fireEvent.press(screen.getByRole("tab", { name: "Team" }));
+    expect(mockRefreshTeam).toHaveBeenCalled();
+    expect(row("Transformer")).toHaveAccessibleName(
+      /^Transformer, Enumerator 04 · \d\d:\d\d · ±2\.8 m, Synced$/,
+    );
+    expect(screen.queryByText("Concrete pole")).toBeNull();
+    // Uploads stay about the supervisor's own records.
+    expect(screen.queryByRole("button", { name: "Sync now" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "All · 1" })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole("tab", { name: "Mine" }));
+    expect(screen.getByText("2 records waiting to upload")).toBeOnTheScreen();
+  });
+
+  it("says when no team records are downloaded yet", async () => {
+    await render(<RecordsView canSeeTeam />);
+    await fireEvent.press(screen.getByRole("tab", { name: "Team" }));
+    expect(
+      screen.getByText(
+        "No team records here yet. Pull down to fetch them when online.",
+      ),
+    ).toBeOnTheScreen();
   });
 });

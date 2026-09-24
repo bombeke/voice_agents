@@ -13,6 +13,7 @@ import type { ReviewBatchResponse, ReviewItem } from "@/types/Review";
 import {
   downloadReviewBatch,
   refreshMyReviews,
+  refreshTeamRecords,
   uploadReviewDecisions,
 } from "../ReviewSync";
 
@@ -176,5 +177,23 @@ describe("refreshMyReviews", () => {
     mockApi.get.mockRejectedValue(httpError(500));
     await expect(refreshMyReviews()).resolves.toBe(false);
     expect(myReviewStatus$.get().c1.state).toBe("waiting");
+  });
+});
+
+describe("refreshTeamRecords", () => {
+  it("keeps the team's records for offline use", async () => {
+    mockApi.get.mockResolvedValue({ data: BATCH.records });
+    await expect(refreshTeamRecords()).resolves.toBe(true);
+    expect(mockApi.get).toHaveBeenCalledWith("/records/v1/team");
+    expect(Object.keys(teamRecords$.get())).toEqual(["record-1"]);
+  });
+
+  it("keeps what it had offline or on error", async () => {
+    isOnline$.set(false);
+    await expect(refreshTeamRecords()).resolves.toBe(false);
+    isOnline$.set(true);
+    mockApi.get.mockRejectedValue(httpError(503));
+    await expect(refreshTeamRecords()).resolves.toBe(false);
+    expect(mockApi.get).toHaveBeenCalledTimes(1);
   });
 });

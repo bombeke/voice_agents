@@ -2,15 +2,22 @@ import { REVIEW_BATCH_SIZE } from "@/constants/Config";
 import { axiosClient } from "@/services/Api";
 import { isOnline$ } from "@/services/storage/NetworkState";
 import {
+  addTeamRecords,
   applyReviewBatch,
   replaceMyReviews,
   setDecisionStatus,
   unsentDecisions,
 } from "@/services/storage/ReviewStore";
-import type { MyReviewStatus, ReviewBatchResponse } from "@/types/Review";
+import type {
+  MyReviewStatus,
+  ReviewBatchResponse,
+  TeamRecord,
+} from "@/types/Review";
 
 export const REVIEW_BATCH_URL = "/review/v1/batch";
 export const MY_REVIEWS_URL = "/review/v1/mine";
+/** Records of the enumerators assigned to this supervisor. */
+export const TEAM_RECORDS_URL = "/records/v1/team";
 /** Design-doc §8: supervisor approve or reject. */
 export const reviewDecisionUrl = (recordId: string) =>
   `/observations/v1/stream/${encodeURIComponent(recordId)}/review`;
@@ -94,6 +101,22 @@ export async function refreshMyReviews(): Promise<boolean> {
     return true;
   } catch (err) {
     console.warn("[review] status refresh failed", err);
+    return false;
+  }
+}
+
+/**
+ * Fetches the team's records for Records › Team, kept for offline use. False
+ * offline or on error, leaving what was downloaded before.
+ */
+export async function refreshTeamRecords(): Promise<boolean> {
+  if (!isOnline$.peek()) return false;
+  try {
+    const { data } = await axiosClient.get<TeamRecord[]>(TEAM_RECORDS_URL);
+    addTeamRecords(data);
+    return true;
+  } catch (err) {
+    console.warn("[records] team refresh failed", err);
     return false;
   }
 }

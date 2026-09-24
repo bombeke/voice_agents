@@ -357,7 +357,13 @@ export const strings = {
       online: "Photos upload on Wi-Fi",
       syncNow: "Sync now",
     },
+    scopes: {
+      label: "Show records",
+      mine: "Mine",
+      team: "Team",
+    },
     empty: {
+      team: "No team records here yet. Pull down to fetch them when online.",
       all: "No records yet. Captures you save appear here.",
       pending: "Nothing waiting to upload.",
       flagged: "No flagged records.",

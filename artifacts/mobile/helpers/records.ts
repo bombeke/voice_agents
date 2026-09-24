@@ -57,7 +57,7 @@ export function countRecords(
   return counts;
 }
 
-/** The tab, then a case-insensitive match on the name, detail, asset code or category. */
+/** The tab, then a case-insensitive match on the name, detail, asset code, category or enumerator. */
 export function filterRecords(
   captures: readonly CaptureSummary[],
   filter: RecordFilter,
@@ -74,6 +74,7 @@ export function filterRecords(
           c.detail,
           c.assetId,
           strings.categories[c.category].label,
+          c.capturedBy?.name,
         ].some((field) => field?.toLowerCase().includes(q))),
   );
 }
@@ -124,9 +125,15 @@ export function recordBadge(capture: CaptureSummary): RecordStatus {
   return capture.syncStatus;
 }
 
-/** "10:14 · ±2.8 m · 2 detections". */
-export function formatRecordMeta(capture: CaptureSummary): string {
-  const parts: string[] = captureMetaParts(capture);
+/** "10:14 · ±2.8 m · 2 detections", after "Enumerator 04 · " with `withOwner`. */
+export function formatRecordMeta(
+  capture: CaptureSummary,
+  withOwner = false,
+): string {
+  const parts: string[] = [
+    ...(withOwner && capture.capturedBy ? [capture.capturedBy.name] : []),
+    ...captureMetaParts(capture),
+  ];
   if (capture.detail) parts.push(capture.detail);
   return parts.join(" · ");
 }

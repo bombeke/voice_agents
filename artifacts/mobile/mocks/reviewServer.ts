@@ -239,6 +239,24 @@ export function myReviewStatuses(
   });
 }
 
+/**
+ * `GET /records/v1/team`: every record of the supervisor's enumerators, the
+ * field user's captures included, as the server holds them (synced).
+ */
+export function teamRecords(
+  assets: readonly MapAsset[],
+  now: Date = new Date(),
+): TeamRecord[] {
+  const field = fakeCaptures(now, FIELD).map((c, i): TeamRecord => ({
+    summary: { ...c, syncStatus: "synced", capturedBy: FIELD },
+    record: { ...fakeRecordFor(c, assets, i), capturedBy: FIELD },
+  }));
+  const others = ROWS.map((row, i) => ({ row, i }))
+    .filter(({ row }) => row.owner.id !== FIELD.id)
+    .map(({ row, i }) => teamRecord(row, i, now, assets));
+  return [...field, ...others];
+}
+
 /** Forgets every batch and decision (tests). */
 export function resetReviewServer() {
   storage.remove(STATE_KEY);
