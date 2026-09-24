@@ -15,7 +15,7 @@ import {
   saveSession,
 } from "@/services/auth/AuthStorage";
 import { isTokenExpired } from "@/services/auth/AuthUtils";
-import type { Claims, Session } from "@/types/Auth";
+import type { AuthMethod, Claims, Session } from "@/types/Auth";
 
 export type { Claims };
 
@@ -28,6 +28,8 @@ export type AuthContextType = {
   isAdmin: boolean;
   adminMode: AdminMode;
   claims?: Claims | null;
+  /** How the current session signed in; undefined when signed out. */
+  authMethod?: AuthMethod;
   permissions: string[];
   org?: string;
 
@@ -40,7 +42,11 @@ export type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType>(null!);
 
-type BootResult = { claims: Claims | null; offline: boolean };
+type BootResult = {
+  claims: Claims | null;
+  method?: AuthMethod;
+  offline: boolean;
+};
 
 /** Resolve the stored session at launch: valid, cached offline, refreshed, or none. */
 async function restoreSession(): Promise<BootResult> {
@@ -48,17 +54,20 @@ async function restoreSession(): Promise<BootResult> {
   if (!session) return { claims: null, offline: false };
 
   if (!isTokenExpired(session.expiresAt)) {
-    return { claims: session.claims, offline: false };
+    return { claims: session.claims, method: session.method, offline: false };
   }
 
   // Expired but offline: keep working on the cached session so field capture
   // never blocks on connectivity. The API refreshes on the next 401.
   const net = await NetInfo.fetch();
-  if (!net.isConnected) return { claims: session.claims, offline: true };
+  if (!net.isConnected) {
+    return { claims: session.claims, method: session.method, offline: true };
+  }
 
   if (await refreshSession()) {
     const next = await loadSession();
-    if (next) return { claims: next.claims, offline: false };
+    if (next)
+      return { claims: next.claims, method: next.method, offline: false };
   }
   await clearSession();
   return { claims: null, offline: false };
@@ -67,6 +76,7 @@ async function restoreSession(): Promise<BootResult> {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [claims, setClaims] = useState<Claims | null>(null);
+  const [authMethod, setAuthMethod] = useState<AuthMethod>();
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string>();
   const [offlineMode, setOfflineMode] = useState(false);
 
@@ -77,9 +87,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Failed to restore session:", err);
         return { claims: null, offline: false };
       })
-      .then(({ claims, offline }) => {
+      .then(({ claims, method, offline }: BootResult) => {
         if (cancelled) return;
         setClaims(claims);
+        setAuthMethod(method);
         setOfflineMode(offline);
         setLoading(false);
       });
@@ -92,11 +103,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await saveSession(session);
     setOfflineMode(false);
     setClaims(session.claims);
+    setAuthMethod(session.method);
   }, []);
 
   const logout = useCallback(async () => {
     await clearSession();
     setClaims(null);
+    setAuthMethod(undefined);
     setOfflineMode(false);
     setRedirectAfterLogin(undefined);
   }, []);
@@ -118,6 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isAdmin,
       adminMode,
       claims,
+      authMethod,
       permissions: claims?.permissions ?? [],
       org: claims?.org,
       redirectAfterLogin,
@@ -127,6 +141,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [
     claims,
+    authMethod,
     loading,
     offlineMode,
     redirectAfterLogin,

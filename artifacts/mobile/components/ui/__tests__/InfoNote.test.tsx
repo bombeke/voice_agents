@@ -8,4 +8,11 @@ describe("InfoNote", () => {
       screen.getByText("We’ll email a verification link."),
     ).toBeOnTheScreen();
   });
+
+  it("announces a warning", async () => {
+    await render(<InfoNote tone="warning">3 records haven’t synced.</InfoNote>);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "3 records haven’t synced.",
+    );
+  });
 });

@@ -28,4 +28,11 @@ describe("Chip", () => {
     await fireEvent.press(screen.getByRole("checkbox"));
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  it("takes a single-select role", async () => {
+    await render(<Chip label="GPS" role="tab" onPress={() => {}} selected />);
+    expect(screen.getByRole("tab", { name: "GPS" })).toBeSelected();
+    await render(<Chip label="Other" role="radio" onPress={() => {}} />);
+    expect(screen.getByRole("radio", { name: "Other" })).not.toBeChecked();
+  });
 });

@@ -54,4 +54,26 @@ describe("SegmentedControl", () => {
     await fireEvent.press(screen.getByRole("tab", { name: "No" }));
     expect(onChange).toHaveBeenCalledWith("no");
   });
+
+  it("lays four options out as a grid and still picks one", async () => {
+    const onChange = jest.fn();
+    await render(
+      <SegmentedControl
+        label="Theme"
+        options={["system", "light", "dark", "outdoor"] as const}
+        labels={{
+          system: "System",
+          light: "Light",
+          dark: "Dark",
+          outdoor: "Outdoor",
+        }}
+        value="system"
+        onChange={onChange}
+        columns={2}
+      />,
+    );
+    expect(screen.getAllByRole("radio")).toHaveLength(4);
+    await fireEvent.press(screen.getByRole("radio", { name: "Outdoor" }));
+    expect(onChange).toHaveBeenCalledWith("outdoor");
+  });
 });

@@ -11,12 +11,23 @@ import { setGnssSource } from "@/services/location/GnssSource";
 import { mapAssets$ } from "@/services/storage/AssetStore";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
 import { records$, replaceRecords } from "@/services/storage/RecordStore";
+import {
+  replaceReviewQueue,
+  reviewDecisions$,
+  reviewQueue$,
+} from "@/services/storage/ReviewStore";
+import {
+  deviceStatus$,
+  replaceDeviceStatus,
+} from "@/services/storage/SettingsStore";
 import { setCaptureUploader } from "@/services/sync/CaptureSync";
 import { accountStore } from "./AccountStore";
 import { fakeMapAssets } from "./assets";
 import { FAKE_GNSS, fakeCaptureUploader, fakeCaptures } from "./captures";
 import { fakeDetectionEstimator } from "./detections";
 import { fakeRecords } from "./records";
+import { fakeReviewQueue } from "./reviews";
+import { fakeDeviceStatus } from "./settings";
 import { fakeGnssSource, fakePhotoQuality } from "./gnss";
 import { fakeNearbyAssetSource, fakeSpeechToText } from "./tagging";
 import { FAKE_SSO_USER, type FakeUser, REJECTED_PASSWORD } from "./fixtures";
@@ -26,12 +37,13 @@ import type { DevMocks } from "./types";
 /**
  * Dev-only fake backend for the auth endpoints, seed captures for Home and
  * Records (with their full records for the detail screen) and a fake
- * uploader behind "Sync now", assets for the Map tab, a simulated GNSS receiver and photo-quality check
- * for the capture screen,
- * fake attribute estimates for the detection review, and a nearby duplicate
- * and voice input for the tagging form. The app's real code runs
- * unchanged; only what answers it is fake. Metro swaps this module for
- * mocks/stub.ts unless EXPO_PUBLIC_API_MOCKING=enabled.
+ * uploader behind "Sync now", assets for the Map tab, a simulated GNSS
+ * receiver and photo-quality check for the capture screen, fake attribute
+ * estimates for the detection review, a nearby duplicate and voice input for
+ * the tagging form, the supervisor's review queue, and the device status on
+ * Settings. The app's real code runs unchanged; only what answers it is
+ * fake. Metro swaps this module for mocks/stub.ts unless
+ * EXPO_PUBLIC_API_MOCKING=enabled.
  *
  * `scripts/check-release-bundle.sh` fails the build if this marker is bundled.
  */
@@ -71,6 +83,16 @@ export const devMocks: DevMocks = {
         ),
       );
     }
+    // Review tab: the mockup's queue, once. A supervisor who cleared it
+    // (decisions recorded) doesn't get it back on the next launch.
+    if (
+      reviewQueue$.get().length === 0 &&
+      Object.keys(reviewDecisions$.get()).length === 0
+    ) {
+      replaceReviewQueue(fakeReviewQueue(captures$.get()));
+    }
+    // Settings: the mockup's model update and storage, until a project is set.
+    if (!deviceStatus$.get().project) replaceDeviceStatus(fakeDeviceStatus());
     // Records tab: "Sync now" uploads to nowhere.
     setCaptureUploader(fakeCaptureUploader);
 

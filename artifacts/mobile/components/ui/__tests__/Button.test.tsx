@@ -38,4 +38,17 @@ describe("Button", () => {
     await fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  it("renders the outline, danger and small variants as buttons", async () => {
+    await render(
+      <>
+        <Button variant="outline" size="sm">
+          Download
+        </Button>
+        <Button variant="danger">Sign out</Button>
+      </>,
+    );
+    expect(screen.getByRole("button", { name: "Download" })).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeOnTheScreen();
+  });
 });

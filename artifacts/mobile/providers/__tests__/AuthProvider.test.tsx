@@ -63,6 +63,7 @@ describe("AuthProvider", () => {
     expect(auth.current.isAuthenticated).toBe(true);
     expect(auth.current.claims?.sub).toBe("field");
     expect(auth.current.org).toBe("Pilot Zone 3");
+    expect(auth.current.authMethod).toBe("password");
     expect(auth.current.adminMode).toBe("online");
   });
 
@@ -94,12 +95,17 @@ describe("AuthProvider", () => {
     const auth = await boot();
     const next = session(NOW + 3600);
 
-    await act(() => auth.current.signIn(next));
-    expect(mockStorage.saveSession).toHaveBeenCalledWith(next);
+    await act(() => auth.current.signIn({ ...next, method: "sso" }));
+    expect(mockStorage.saveSession).toHaveBeenCalledWith({
+      ...next,
+      method: "sso",
+    });
     expect(auth.current.isAuthenticated).toBe(true);
+    expect(auth.current.authMethod).toBe("sso");
 
     await act(() => auth.current.logout());
     expect(mockStorage.clearSession).toHaveBeenCalled();
     expect(auth.current.isAuthenticated).toBe(false);
+    expect(auth.current.authMethod).toBeUndefined();
   });
 });

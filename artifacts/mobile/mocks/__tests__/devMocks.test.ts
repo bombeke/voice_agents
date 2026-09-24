@@ -5,6 +5,8 @@ import { nearbyAssets } from "@/services/capture/NearbyAssets";
 import { speechToText } from "@/services/capture/SpeechToText";
 import { mapAssets$ } from "@/services/storage/AssetStore";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
+import { reviewQueue$ } from "@/services/storage/ReviewStore";
+import { deviceStatus$ } from "@/services/storage/SettingsStore";
 import { syncPendingCaptures } from "@/services/sync/CaptureSync";
 import { accountStore } from "../AccountStore";
 import { fakeCaptures } from "../captures";
@@ -70,6 +72,23 @@ describe("dev mocks", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it("seeds the supervisor's queue, linked to the fake captures", () => {
+    const queue = reviewQueue$.get();
+    expect(queue).toHaveLength(4);
+    const captureIds = new Set(captures$.get().map((c) => c.id));
+    const linked = queue.filter((i) => i.captureId);
+    expect(linked.length).toBeGreaterThan(0);
+    for (const i of linked) expect(captureIds).toContain(i.captureId);
+  });
+
+  it("seeds the Settings screen's project, model update and storage", () => {
+    expect(deviceStatus$.get()).toMatchObject({
+      project: "Pilot Zone 3",
+      model: { version: "det-v1.3.0", update: { version: "v1.4.0" } },
+    });
+    expect(deviceStatus$.storage.photosBytes.get()).toBeGreaterThan(0);
   });
 
   it("seeds the Map tab's assets", () => {

@@ -30,6 +30,11 @@ interface ChipProps {
   onPress?: () => void;
   selected?: boolean;
   disabled?: boolean;
+  /**
+   * `checkbox` (default) for multi-select; `radio` or `tab` when the chips
+   * are a single choice, like the review queue's reason filter.
+   */
+  role?: "checkbox" | "radio" | "tab";
 }
 
 export function Chip({
@@ -39,14 +44,19 @@ export function Chip({
   onPress,
   selected = false,
   disabled,
+  role = "checkbox",
 }: ChipProps) {
   if (onPress) {
     return (
       <Pressable
         onPress={onPress}
         disabled={disabled}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: selected, disabled }}
+        accessibilityRole={role}
+        accessibilityState={
+          role === "tab"
+            ? { selected, disabled }
+            : { checked: selected, disabled }
+        }
         hitSlop={4}
         className={`min-h-11 px-4 py-1.5 rounded-full flex-row items-center justify-center gap-1.5 border active:opacity-85 disabled:opacity-40 ${
           selected ? "bg-text border-text" : "bg-surface border-border-strong"

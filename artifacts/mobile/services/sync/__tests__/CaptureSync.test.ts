@@ -5,6 +5,7 @@ import {
   replayOpQueue,
   retryFailedOps,
 } from "@/services/storage/LegendState";
+import { deviceStatus$, resetSettings } from "@/services/storage/SettingsStore";
 import type { CaptureSummary, CaptureSyncStatus } from "@/types/Capture";
 import {
   type CaptureUploader,
@@ -40,6 +41,7 @@ beforeEach(() => {
   setCaptureUploader();
   opQueue$.set([]);
   failedOps$.set([]);
+  resetSettings();
   replaceCaptures([
     record("a", "pending"),
     record("b", "failed"),
@@ -73,6 +75,25 @@ describe("syncPendingCaptures", () => {
       c: "synced",
       d: "pending",
     });
+  });
+
+  it("records when an upload last reached the server", async () => {
+    setCaptureUploader(async () => ({ synced: ["a"], failed: [] }));
+    await syncPendingCaptures();
+    expect(deviceStatus$.lastSyncedAt.get()).toEqual(expect.any(String));
+  });
+
+  it("keeps the last sync time when nothing was uploaded", async () => {
+    setCaptureUploader(async () => ({ synced: [], failed: ["a"] }));
+    await syncPendingCaptures();
+    expect(deviceStatus$.lastSyncedAt.get()).toBeUndefined();
+
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    setCaptureUploader(async () => {
+      throw new Error("offline");
+    });
+    await syncPendingCaptures();
+    expect(deviceStatus$.lastSyncedAt.get()).toBeUndefined();
   });
 
   it("marks the batch failed when the uploader throws", async () => {

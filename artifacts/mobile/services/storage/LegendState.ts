@@ -20,6 +20,18 @@ import {
 } from "./AssetStore";
 import { CAPTURES_STORAGE_KEY, captures$ } from "./CaptureStore";
 import { RECORDS_STORAGE_KEY, records$ } from "./RecordStore";
+import {
+  REVIEW_DECISIONS_STORAGE_KEY,
+  REVIEW_QUEUE_STORAGE_KEY,
+  reviewDecisions$,
+  reviewQueue$,
+} from "./ReviewStore";
+import {
+  DEVICE_STATUS_STORAGE_KEY,
+  SETTINGS_STORAGE_KEY,
+  deviceStatus$,
+  settings$,
+} from "./SettingsStore";
 import type { LocalEventRecord } from "./EventStore";
 import {
   deleteCaptureImage,
@@ -242,6 +254,42 @@ export function initPersistence() {
   );
 
   syncObservable(
+    reviewQueue$,
+    syncPlugin({
+      persist: {
+        name: REVIEW_QUEUE_STORAGE_KEY,
+      },
+    }),
+  );
+
+  syncObservable(
+    reviewDecisions$,
+    syncPlugin({
+      persist: {
+        name: REVIEW_DECISIONS_STORAGE_KEY,
+      },
+    }),
+  );
+
+  syncObservable(
+    settings$,
+    syncPlugin({
+      persist: {
+        name: SETTINGS_STORAGE_KEY,
+      },
+    }),
+  );
+
+  syncObservable(
+    deviceStatus$,
+    syncPlugin({
+      persist: {
+        name: DEVICE_STATUS_STORAGE_KEY,
+      },
+    }),
+  );
+
+  syncObservable(
     mapAssets$,
     syncPlugin({
       persist: {
@@ -362,7 +410,9 @@ export const syncPoleToServer = async (
         type: "image/jpeg",
       } as any);
     } else if (pole.imageUri) {
-      console.warn(`[sync] image for pole ${pole.pid} is missing; uploading metadata only`);
+      console.warn(
+        `[sync] image for pole ${pole.pid} is missing; uploading metadata only`,
+      );
     }
   }
 
@@ -375,7 +425,7 @@ export const syncPoleToServer = async (
     },
     timeout: UPLOAD_TIMEOUT_MS,
   });
-  console.log("ADDED:",res)
+  console.log("ADDED:", res);
 
   if (res.status < 200 || res.status >= 300) {
     throw new Error(`Failed to sync pole (${res.status})`);
@@ -414,9 +464,7 @@ const releaseImages = (uris: (string | undefined)[]) => {
  * Saves poles locally (offline-first) and queues them for upload.
  * Accepts one pole or a batch (e.g. every detection from one photo).
  */
-export const setPoleVision = (
-  data: LocalPole | LocalPole[],
-): LocalPole[] => {
+export const setPoleVision = (data: LocalPole | LocalPole[]): LocalPole[] => {
   const input = (Array.isArray(data) ? data : [data]).filter(Boolean);
   if (!input.length) return [];
 
@@ -439,14 +487,18 @@ export const setPoleVision = (
       ...prev,
       ...pole,
       pid,
-      imageUri: persistCaptureImage(pole.imageUri ?? prev?.imageUri, imageCache),
+      imageUri: persistCaptureImage(
+        pole.imageUri ?? prev?.imageUri,
+        imageCache,
+      ),
       deleted: false,
       synced: false,
       updatedAt,
       deviceId,
       vc: bumpVC(mergeVC(prev?.vc, pole.vc), deviceId),
     });
-    if (!kinds.has(pid)) kinds.set(pid, existing.has(pid) ? "update" : "create");
+    if (!kinds.has(pid))
+      kinds.set(pid, existing.has(pid) ? "update" : "create");
   }
 
   const poles = Array.from(stamped.values());
@@ -481,7 +533,11 @@ export const deletePoleVision = (id: string) => {
     updatedAt: nowIso(),
     deviceId,
   };
-  const deletedPole: LocalPole = { ...tombstone, id: existing?.id, deleted: true };
+  const deletedPole: LocalPole = {
+    ...tombstone,
+    id: existing?.id,
+    deleted: true,
+  };
 
   batch(() => {
     poleVisionDB$.poles.set((prev) =>
@@ -489,7 +545,9 @@ export const deletePoleVision = (id: string) => {
     );
     poleVisionDB$.tombstones.set((t) => ({ ...(t ?? {}), [id]: tombstone }));
     enqueuePoleOp(deletedPole, "delete");
-    appendAudit([{ type: "POLE_DELETE", payload: deletedPole, ts: Date.now() }]);
+    appendAudit([
+      { type: "POLE_DELETE", payload: deletedPole, ts: Date.now() },
+    ]);
   });
 
   releaseImages([existing?.imageUri]);
@@ -576,7 +634,9 @@ const classifySyncError = (err: any, op: Operation): SyncErrorOutcome => {
   if (op.kind === "delete" && (status === 404 || status === 410)) return "done";
   if ([401, 403, 408, 425, 429].includes(status)) return "retry";
   if (status >= 500) {
-    return (op.attempts ?? 0) + 1 >= MAX_SERVER_ERROR_ATTEMPTS ? "fail" : "retry";
+    return (op.attempts ?? 0) + 1 >= MAX_SERVER_ERROR_ATTEMPTS
+      ? "fail"
+      : "retry";
   }
   return "fail";
 };
@@ -615,8 +675,11 @@ const onOpFailed = (op: Operation, err: any, outcome: SyncErrorOutcome) => {
         },
       ]);
     });
-    console.log("Error:",err)
-    console.warn(`[sync] server rejected op ${op.opId} for pole ${op.recordLocalId}`, errorMessage(err));
+    console.log("Error:", err);
+    console.warn(
+      `[sync] server rejected op ${op.opId} for pole ${op.recordLocalId}`,
+      errorMessage(err),
+    );
     return;
   }
 
@@ -648,13 +711,12 @@ const drainOpQueue = async (): Promise<ReplayResult> => {
       if (!op) break;
 
       inFlightOpId = op.opId;
-      console.log("Operation:",op)
+      console.log("Operation:", op);
       try {
         await syncPoleToServer(op.payload as LocalPole, op.idempotencyKey);
         onOpSucceeded(op);
         pushed++;
-      } 
-      catch (err) {
+      } catch (err) {
         const outcome = classifySyncError(err, op);
         if (outcome === "done") {
           onOpSucceeded(op);
@@ -798,7 +860,10 @@ export const mergeRemotePoles = (remoteRaw: unknown[]) => {
     }
 
     // Keep our local image file; the server copy may be another device's path.
-    let result: LocalPole = { ...merged, imageUri: lp?.imageUri ?? merged.imageUri };
+    let result: LocalPole = {
+      ...merged,
+      imageUri: lp?.imageUri ?? merged.imageUri,
+    };
 
     if (rel === "BEFORE") {
       // The server already has a newer version; a queued older one must not overwrite it.
@@ -862,7 +927,12 @@ function repairLegacyState() {
       continue;
     }
     for (const [k, v] of Object.entries(p ?? {})) {
-      if (/^\d+$/.test(k) && v && typeof v === "object" && (v as LocalPole).pid) {
+      if (
+        /^\d+$/.test(k) &&
+        v &&
+        typeof v === "object" &&
+        (v as LocalPole).pid
+      ) {
         recovered.set((v as LocalPole).pid!, v as LocalPole);
       }
     }
@@ -883,7 +953,9 @@ function repairLegacyState() {
   }
 
   const validIds = new Set(valid.map(poleKey));
-  const toRecover = Array.from(recovered.values()).filter((p) => !validIds.has(p.pid));
+  const toRecover = Array.from(recovered.values()).filter(
+    (p) => !validIds.has(p.pid),
+  );
 
   batch(() => {
     if (valid.length !== poles.length) poleVisionDB$.poles.set(valid);
@@ -892,20 +964,28 @@ function repairLegacyState() {
     // Audit entries used to be written into eventsStore$ (the DHIS2 event store).
     const events = eventsStore$.peek() ?? [];
     const cleaned = events.filter(
-      (e: any) => !(e && !e.localId && (e.type === "POLE_UPSERT" || e.type === "POLE_DELETE")),
+      (e: any) =>
+        !(
+          e &&
+          !e.localId &&
+          (e.type === "POLE_UPSERT" || e.type === "POLE_DELETE")
+        ),
     );
     if (cleaned.length !== events.length) eventsStore$.set(cleaned);
   });
 
   if (toRecover.length) {
-    console.log(`[sync] recovered ${toRecover.length} poles from corrupted records`);
+    console.log(
+      `[sync] recovered ${toRecover.length} poles from corrupted records`,
+    );
     setPoleVision(toRecover);
   }
 }
 
 // --------- Vector clocks ---------
 
-const hasClock = (vc?: VectorClock | null) => !!vc && Object.keys(vc).length > 0;
+const hasClock = (vc?: VectorClock | null) =>
+  !!vc && Object.keys(vc).length > 0;
 
 const updatedAtMs = (p?: { updatedAt?: string }) => {
   const t = p?.updatedAt ? Date.parse(p.updatedAt) : NaN;
@@ -925,7 +1005,10 @@ export const compareVersions = (
   return "EQUAL";
 };
 
-export const bumpVC = (vc: VectorClock | undefined, deviceId: string): VectorClock => {
+export const bumpVC = (
+  vc: VectorClock | undefined,
+  deviceId: string,
+): VectorClock => {
   return {
     ...vc,
     [deviceId]: (vc?.[deviceId] ?? 0) + 1,
@@ -934,7 +1017,10 @@ export const bumpVC = (vc: VectorClock | undefined, deviceId: string): VectorClo
 
 export type VCRelation = "BEFORE" | "AFTER" | "CONCURRENT" | "EQUAL";
 
-export const compareVC = (a: VectorClock = {}, b: VectorClock = {}): VCRelation => {
+export const compareVC = (
+  a: VectorClock = {},
+  b: VectorClock = {},
+): VCRelation => {
   let gt = false,
     lt = false;
 
@@ -965,7 +1051,10 @@ export const mergeConcurrent = (a: CRDTPole, b: CRDTPole): CRDTPole => {
   };
 };
 
-export const mergeVC = (a: VectorClock = {}, b: VectorClock = {}): VectorClock => {
+export const mergeVC = (
+  a: VectorClock = {},
+  b: VectorClock = {},
+): VectorClock => {
   const merged: VectorClock = {};
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
 

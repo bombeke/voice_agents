@@ -42,6 +42,17 @@ export function setCaptureStatus(
   );
 }
 
+/** Raises or clears the supervisor flag on the given records. */
+export function setCaptureFlagged(ids: Iterable<string>, flagged: boolean) {
+  const wanted = new Set(ids);
+  if (!wanted.size) return;
+  captures$.set((prev) =>
+    prev.map((c) =>
+      wanted.has(c.id) && c.flagged !== flagged ? { ...c, flagged } : c,
+    ),
+  );
+}
+
 export function replaceCaptures(captures: CaptureSummary[]) {
   captures$.set(captures);
 }

@@ -4,6 +4,8 @@ import { useCaptureSummary } from "@/hooks/useCaptureSummary";
 import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG, MenuItem } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
+import { reviewQueue$ } from "@/services/storage/ReviewStore";
+import { useSelector } from "@legendapp/state/react";
 import {
   getFocusedRouteNameFromRoute,
   type RouteProp,
@@ -43,6 +45,11 @@ const tabBarStyle = (route: RouteProp<Record<string, object | undefined>>) =>
     ? ({ display: "none" } as const)
     : undefined;
 
+const badge = (tab: string, pending: number, toReview: number) => {
+  const count = tab === "records" ? pending : tab === "review" ? toReview : 0;
+  return count > 0 ? count : undefined;
+};
+
 const renderTabBar = (props: Parameters<typeof TabBar>[0]) => (
   <TabBar {...props} />
 );
@@ -50,6 +57,7 @@ const renderTabBar = (props: Parameters<typeof TabBar>[0]) => (
 export default function AppTabs() {
   const { isAdmin, claims, adminMode } = useAuth();
   const { stats } = useCaptureSummary();
+  const reviewCount = useSelector(() => reviewQueue$.get().length);
 
   const visible = useMemo(() => {
     const menu = filterMenu(MENU_CONFIG, { isAdmin, claims, adminMode });
@@ -75,11 +83,9 @@ export default function AppTabs() {
                     tabBarIcon: ({ color, size }) => (
                       <Icon name={item.icon} color={color} size={size} />
                     ),
-                    // The pending-sync badge stays visible from every tab.
-                    tabBarBadge:
-                      name === "records" && stats.pending > 0
-                        ? stats.pending
-                        : undefined,
+                    // The pending-sync badge stays visible from every tab,
+                    // as does the supervisor's queue.
+                    tabBarBadge: badge(name, stats.pending, reviewCount),
                   }
                 : { href: null }
             }

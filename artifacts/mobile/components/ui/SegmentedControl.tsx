@@ -11,6 +11,8 @@ interface SegmentedControlProps<T extends string> {
   disabled?: boolean;
   /** `tablist` when the choice switches what the screen below shows. */
   role?: "radiogroup" | "tablist";
+  /** 2 wraps the options into a grid, like the Settings theme picker. */
+  columns?: 1 | 2;
 }
 
 /** Single choice from a few options: a muted track with a raised white segment. */
@@ -22,13 +24,15 @@ export function SegmentedControl<T extends string>({
   label,
   disabled,
   role = "radiogroup",
+  columns = 1,
 }: SegmentedControlProps<T>) {
   const tabs = role === "tablist";
+  const grid = columns === 2;
   return (
     <View
       accessibilityRole={role}
       accessibilityLabel={label}
-      className="flex-row p-1 gap-1 rounded-button bg-surface-muted"
+      className={`flex-row p-1 gap-1 rounded-button bg-surface-muted ${grid ? "flex-wrap" : ""}`}
     >
       {options.map((option) => {
         const selected = option === value;
@@ -43,7 +47,7 @@ export function SegmentedControl<T extends string>({
             }
             disabled={disabled}
             onPress={() => onChange(option)}
-            className={`flex-1 min-h-11 items-center justify-center rounded-lg disabled:opacity-40 ${
+            className={`${grid ? "grow basis-[48%]" : "flex-1"} min-h-11 items-center justify-center rounded-lg disabled:opacity-40 ${
               selected ? "bg-surface shadow-sm" : "active:bg-border"
             }`}
           >

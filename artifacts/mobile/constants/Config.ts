@@ -16,3 +16,6 @@ export const DEVICE_KEY_NAME = "device_keypair_v1";
 
 export const ROTATION_KEY = "device_key_rotation_ts";
 export const ROTATION_INTERVAL = 30 * 24 * 60 * 60; // 30 days
+
+/** "Terms and privacy policy" opens this; the row is disabled when unset. */
+export const TERMS_URL: string | undefined = process.env.EXPO_PUBLIC_TERMS_URL;

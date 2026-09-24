@@ -5,6 +5,7 @@ import {
   replayOpQueue,
   retryFailedOps,
 } from "@/services/storage/LegendState";
+import { markSynced } from "@/services/storage/SettingsStore";
 import type { CaptureSummary } from "@/types/Capture";
 import { batch } from "@legendapp/state";
 
@@ -60,6 +61,7 @@ async function run() {
         ids.filter((id) => !settled.has(id)),
         "pending",
       );
+      if (synced.length) markSynced();
     });
   } catch (err) {
     console.warn("[sync] capture upload failed", err);
