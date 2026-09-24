@@ -26,11 +26,15 @@ const mockMap = {
   features: [] as { properties: { id: string; category: string } }[],
   camera: { flyTo: jest.fn(), easeTo: jest.fn() },
   source: { getClusterExpansionZoom: jest.fn(async () => 14) },
+  /** The Map's onPress, which a source press bubbles up to. */
+  mapPress: undefined as undefined | ((event: object) => void),
 };
 
 /**
  * MapLibre is native. The fakes render each pin, one cluster, and the map
- * background as buttons that fire the same press events the real ones do.
+ * background as buttons that fire the same press events the real ones do. A
+ * source press also reaches the Map's onPress with its features, whatever
+ * the source handler does, so the view must not rely on stopPropagation.
  */
 jest.mock("@maplibre/maplibre-react-native", () => {
   const React = require("react");
@@ -40,9 +44,15 @@ jest.mock("@maplibre/maplibre-react-native", () => {
     stopPropagation: jest.fn(),
     nativeEvent: { features: [feature] },
   });
+  const pressSource = (onPress: (event: object) => void, feature: object) => {
+    const event = pressEvent(feature);
+    onPress(event);
+    mockMap.mapPress?.(event);
+  };
   return {
     Map: ({ children, mapStyle, onPress }: any) => {
       mockMap.style = mapStyle;
+      mockMap.mapPress = onPress;
       return h(
         View,
         null,
@@ -68,18 +78,16 @@ jest.mock("@maplibre/maplibre-react-native", () => {
           h(Pressable, {
             key: f.id,
             accessibilityLabel: `Pin ${f.id}`,
-            onPress: () => onPress(pressEvent(f)),
+            onPress: () => pressSource(onPress, f),
           }),
         ),
         h(Pressable, {
           accessibilityLabel: "Cluster",
           onPress: () =>
-            onPress(
-              pressEvent({
-                geometry: { type: "Point", coordinates: [32.57, 0.36] },
-                properties: { cluster: true, cluster_id: 7, point_count: 12 },
-              }),
-            ),
+            pressSource(onPress, {
+              geometry: { type: "Point", coordinates: [32.57, 0.36] },
+              properties: { cluster: true, cluster_id: 7, point_count: 12 },
+            }),
         }),
         children,
       );

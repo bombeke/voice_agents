@@ -138,6 +138,9 @@ const ROWS: Row[] = [
   },
 ];
 
+/** Every seeded capture id starts with this; real ones never do. */
+export const FAKE_CAPTURE_PREFIX = "fake-capture-";
+
 export const FAKE_GNSS: GnssStatus = { bands: "L1+L5", ok: true };
 
 export function fakeCaptures(now: Date = new Date()): CaptureSummary[] {
@@ -150,7 +153,7 @@ export function fakeCaptures(now: Date = new Date()): CaptureSummary[] {
   );
   return ROWS.map(({ flagged, ...row }, i) => ({
     ...row,
-    id: `fake-capture-${i + 1}`,
+    id: `${FAKE_CAPTURE_PREFIX}${i + 1}`,
     capturedAt: new Date(now.getTime() - i * step).toISOString(),
     flagged: flagged ?? false,
   }));

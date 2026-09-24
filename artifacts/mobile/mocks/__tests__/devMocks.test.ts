@@ -105,11 +105,38 @@ describe("dev mocks", () => {
     expect(speechToText().isAvailable()).toBe(true);
   });
 
-  it("keeps real captures instead of reseeding", () => {
-    const own = fakeCaptures().slice(0, 1);
-    captures$.set(own);
-    devMocks.install();
-    expect(captures$.get()).toBe(own);
+  it("adds the seed next to real captures and keeps decided reviews out", () => {
+    // A fresh install, with its own stores, on a device that has data.
+    jest.isolateModules(() => {
+      const { captures$ } = require("@/services/storage/CaptureStore");
+      const { records$ } = require("@/services/storage/RecordStore");
+      const {
+        reviewQueue$,
+        reviewDecisions$,
+      } = require("@/services/storage/ReviewStore");
+      const own = { ...fakeCaptures()[0], id: "own-capture", title: "My pole" };
+      captures$.set([own]);
+      reviewDecisions$.set({
+        "fake-review-1": {
+          itemId: "fake-review-1",
+          outcome: "approved",
+          decidedAt: new Date().toISOString(),
+          syncStatus: "pending",
+        },
+      });
+      require("..").devMocks.install();
+
+      const captures = captures$.get();
+      expect(captures[0]).toBe(own);
+      expect(captures).toHaveLength(15);
+      expect(records$.get()["fake-capture-1"]).toBeDefined();
+      expect(records$.get()["own-capture"]).toBeUndefined();
+      expect(reviewQueue$.get().map((i: { id: string }) => i.id)).toEqual([
+        "fake-review-2",
+        "fake-review-3",
+        "fake-review-4",
+      ]);
+    });
   });
 
   it("announces itself with the marker the release check looks for", () => {

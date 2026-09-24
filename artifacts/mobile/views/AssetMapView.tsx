@@ -120,7 +120,12 @@ export function AssetMapView({ focusId }: { focusId?: string } = {}) {
       <StyledMap
         className="flex-1"
         mapStyle={BASEMAP_STYLES[preferences.basemap]}
-        onPress={() => selectAsset(null)}
+        onPress={(event) => {
+          // A pin or cluster press bubbles up here too, carrying its features;
+          // only a press on the bare map clears the selection.
+          if ("features" in event.nativeEvent) return;
+          selectAsset(null);
+        }}
         compass={false}
       >
         <Camera ref={camera} initialViewState={initialViewState} />
