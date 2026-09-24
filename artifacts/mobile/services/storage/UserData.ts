@@ -20,10 +20,16 @@ import {
 } from "./LegendState";
 import { RECORDS_STORAGE_KEY, records$ } from "./RecordStore";
 import {
+  MY_REVIEWS_STORAGE_KEY,
+  REVIEW_BATCH_STORAGE_KEY,
   REVIEW_DECISIONS_STORAGE_KEY,
   REVIEW_QUEUE_STORAGE_KEY,
+  TEAM_RECORDS_STORAGE_KEY,
+  myReviewStatus$,
+  reviewBatch$,
   reviewDecisions$,
   reviewQueue$,
+  teamRecords$,
 } from "./ReviewStore";
 import { SETTINGS_STORAGE_KEY, settings$ } from "./SettingsStore";
 
@@ -56,6 +62,10 @@ const USER_STORES: UserStore[] = [
   store(RECORDS_STORAGE_KEY, records$),
   store(REVIEW_QUEUE_STORAGE_KEY, reviewQueue$),
   store(REVIEW_DECISIONS_STORAGE_KEY, reviewDecisions$),
+  // New with per-user data: nothing to migrate.
+  { key: REVIEW_BATCH_STORAGE_KEY, obs$: reviewBatch$ },
+  { key: TEAM_RECORDS_STORAGE_KEY, obs$: teamRecords$ },
+  { key: MY_REVIEWS_STORAGE_KEY, obs$: myReviewStatus$ },
   store(SETTINGS_STORAGE_KEY, settings$),
   store(STORAGE_OPS_KEY, opQueue$),
   store("polevision_failed_ops_v1", failedOps$),

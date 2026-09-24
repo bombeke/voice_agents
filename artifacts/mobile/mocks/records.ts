@@ -78,6 +78,18 @@ function recordFor(
 }
 
 /**
+ * One more fake record, e.g. another enumerator's for a supervisor: placed
+ * near asset `i` of the Map, never with the mockup pole's details.
+ */
+export function fakeRecordFor(
+  capture: CaptureSummary,
+  assets: readonly MapAsset[],
+  i: number,
+): CaptureRecord {
+  return recordFor(capture, undefined, i + 1, assets[i % assets.length]);
+}
+
+/**
  * Full records behind the record detail screen in `start:mock`, one per
  * fake capture (same ids, located at their Map pins), plus an August
  * inspection of EP-00412 for its condition history.

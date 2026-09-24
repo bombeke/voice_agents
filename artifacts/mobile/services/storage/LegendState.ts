@@ -159,8 +159,8 @@ export const auditLog$ = observable<AuditEvent[]>([]);
 //@ts-ignore
 export const authStore$ = observable<AuthType>({ kind: "basic" });
 
-/** observable for network state */
-export const isOnline$ = observable(true);
+/** Re-exported for existing imports; see NetworkState.ts. */
+export { isOnline$ } from "./NetworkState";
 
 /**
  * Stable per-install id used as this device's slot in vector clocks.

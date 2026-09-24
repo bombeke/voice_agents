@@ -67,22 +67,23 @@ describe("filterMenu", () => {
     expect(JSON.stringify(menu)).toBe(snapshot);
   });
 
-  it("shows the Review tab to supervisors only", () => {
-    const tabs = (permissions: string[]) =>
+  it("shows the Review tab to every role, for their own records at least", () => {
+    const tabs = (roles: string[], permissions: string[] = []) =>
       keys(
-        filterMenu(MENU_CONFIG, { isAdmin: false, claims: { permissions } }),
+        filterMenu(MENU_CONFIG, {
+          isAdmin: false,
+          claims: { roles, permissions },
+        }),
       );
-    expect(tabs(["agents:view"])).toEqual([
+    const all = ["index", "map", "records", "review", "settings"];
+    expect(tabs(["enumerator"])).toEqual(all);
+    expect(tabs(["supervisor"])).toEqual(all);
+    expect(tabs(["admin"])).toEqual(all);
+    // A token with neither a role nor the permission.
+    expect(tabs([], ["agents:view"])).toEqual([
       "index",
       "map",
       "records",
-      "settings",
-    ]);
-    expect(tabs(["agents:view", "records:review"])).toEqual([
-      "index",
-      "map",
-      "records",
-      "review",
       "settings",
     ]);
   });

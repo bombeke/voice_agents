@@ -12,6 +12,7 @@ import { closeUserData, openUserData } from "@/services/storage/UserData";
 import { deviceStatus$ } from "@/services/storage/SettingsStore";
 import { syncPendingCaptures } from "@/services/sync/CaptureSync";
 import { accountStore } from "../AccountStore";
+import { resetReviewServer } from "../reviewServer";
 import { fakeCaptures } from "../captures";
 import { devMocks as stub } from "../stub";
 
@@ -131,27 +132,94 @@ describe("dev mocks", () => {
     await closeUserData();
     expect(captures$.get()).toEqual([]);
 
-    // A supervisor captures less and gets the review queue.
+    // A supervisor captures less, under ids of their own, and gets the
+    // review queue from the server rather than a seed.
     await openUserData(SUPERVISOR);
-    expect(captures$.get()).toHaveLength(4);
-    expect(captures$.get().some((c) => c.id === "own-capture")).toBe(false);
-    const queue = reviewQueue$.get();
-    expect(queue).toHaveLength(4);
-    const captureIds = new Set(captures$.get().map((c) => c.id));
-    for (const i of queue.filter((i) => i.captureId)) {
-      expect(captureIds).toContain(i.captureId);
-    }
-
-    // A decided item doesn't come back on the next sign-in.
-    decideReview("fake-review-1", "approved");
-    await closeUserData();
-    await openUserData(SUPERVISOR);
-    expect(reviewQueue$.get().map((i) => i.id)).not.toContain("fake-review-1");
+    expect(captures$.get()).toHaveLength(3);
+    expect(captures$.get().every((c) => c.id.includes("supervisor"))).toBe(
+      true,
+    );
+    expect(reviewQueue$.get()).toEqual([]);
 
     // The enumerator's own capture is still theirs.
     await openUserData(FIELD);
     expect(captures$.get()).toHaveLength(15);
     expect(captures$.get().find((c) => c.id === "own-capture")).toEqual(own);
+  });
+
+  it("serves supervisors review batches and each user their verdicts", async () => {
+    resetReviewServer();
+    const tokenOf = async (username: string) =>
+      (await post("/auth/login/password", { username, password: "x" })).data
+        .access_token as string;
+    const as = (token: string) => ({
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const supervisor = await tokenOf("supervisor");
+    const field = await tokenOf("field");
+
+    // Enumerators can't download the team's queue.
+    await expect(
+      axiosClient.get("/review/v1/batch", as(field)),
+    ).rejects.toMatchObject({ response: { status: 403 } });
+
+    const first = (await axiosClient.get("/review/v1/batch", as(supervisor)))
+      .data;
+    expect(first.items.map((i: { title: string }) => i.title)).toEqual([
+      "Culvert · pipe",
+      "Public tap",
+      "Transformer",
+      "Telecom pole",
+    ]);
+    expect(first.records).toHaveLength(4);
+    const culvert = first.items[0];
+    // It is the field user's own flagged capture.
+    const fieldCulvert = fakeCaptures().find(
+      (c) => c.title === "Culvert · pipe",
+    )!;
+    expect(culvert.captureId).toBe(fieldCulvert.id);
+    expect(first.records[0].summary.capturedBy).toEqual({
+      id: "field",
+      name: "Field Enumerator",
+    });
+
+    const second = (await axiosClient.get("/review/v1/batch", as(supervisor)))
+      .data;
+    expect(second.items).toHaveLength(3);
+    const third = (await axiosClient.get("/review/v1/batch", as(supervisor)))
+      .data;
+    expect(third.items).toEqual([]);
+
+    const mine = async () =>
+      (await axiosClient.get("/review/v1/mine", as(field))).data;
+    expect(await mine()).toEqual([
+      { captureId: fieldCulvert.id, state: "waiting" },
+    ]);
+
+    const url = `/observations/v1/stream/${culvert.captureId}/review`;
+    const decision = {
+      outcome: "rejected",
+      rejectReason: "poor_photo",
+      decidedAt: "2026-09-24T10:00:00.000Z",
+    };
+    await expect(
+      axiosClient.patch(url, decision, as(field)),
+    ).rejects.toMatchObject({ response: { status: 403 } });
+    expect(
+      (await axiosClient.patch(url, decision, as(supervisor))).status,
+    ).toBe(200);
+    await expect(
+      axiosClient.patch(url, decision, as(supervisor)),
+    ).rejects.toMatchObject({ response: { status: 409 } });
+
+    expect(await mine()).toEqual([
+      {
+        captureId: fieldCulvert.id,
+        state: "rejected",
+        rejectReason: "poor_photo",
+        decidedAt: "2026-09-24T10:00:00.000Z",
+      },
+    ]);
   });
 
   it("announces itself with the marker the release check looks for", () => {

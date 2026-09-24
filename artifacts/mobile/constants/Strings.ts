@@ -364,6 +364,7 @@ export const strings = {
       search: "No records match your search.",
     },
     detail: {
+      capturedBy: "Captured by {name}",
       back: "Back to records",
       photos: "Photos",
       photoCount: "{index} of {count} photos",
@@ -446,8 +447,43 @@ export const strings = {
     cancel: "Cancel",
     confirmReject: "Confirm reject",
     empty: {
-      all: "The queue is clear. Flagged records will appear here.",
+      all: "The queue is clear. Download a batch to review more.",
       filtered: "No records waiting for this reason.",
+    },
+    scopes: {
+      label: "Show review",
+      team: "Team queue",
+      mine: "My records",
+    },
+    batch: {
+      label: "Review batch",
+      none: "Download records to review. You can decide them offline.",
+      summary: "Batch of {size} · downloaded {when}",
+      unsent: "{count} decisions waiting to upload",
+      unsentOne: "1 decision waiting to upload",
+      download: "Download batch",
+      downloadNext: "Download next batch",
+      downloading: "Downloading…",
+      offline:
+        "Connect to download a batch. Decisions made offline upload later.",
+      nothingNew: "Nothing new waiting on the server.",
+      added: "{count} records added to your queue.",
+      failed: "Couldn’t download the batch. Try again.",
+    },
+    mine: {
+      overline: "Review",
+      title: "My records in review · {count}",
+      intro:
+        "Records routed to a supervisor for low AI confidence, GPS or a possible duplicate.",
+      empty: "None of your records are waiting for a supervisor.",
+      states: {
+        waiting: "Waiting",
+        approved: "Approved",
+        rejected: "Rejected",
+      },
+      waitingNote: "Waiting for a supervisor",
+      rejectedBecause: "Rejected: {reason}. Edit the record to fix it.",
+      rowLabel: "{title}, {meta}, {state}. Open record",
     },
   },
   settings: {

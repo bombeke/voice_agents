@@ -10,6 +10,7 @@ import { BackendSyncObserver } from "@/services/storage/BackendSyncObserver";
 import { initPersistence } from "@/services/storage/LegendState";
 import { OpQueueReplayObserver } from "@/services/storage/OpQueueReplayObserver";
 import { createUserStorage } from "@/services/storage/Storage";
+import { ReviewSyncObserver } from "@/services/sync/ReviewSyncObserver";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -53,6 +54,7 @@ function SignedInSync() {
     <>
       <BackendSyncObserver />
       <OpQueueReplayObserver />
+      <ReviewSyncObserver />
     </>
   );
 }
