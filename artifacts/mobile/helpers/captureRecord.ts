@@ -13,6 +13,7 @@ import type {
   CaptureRecord,
   CaptureSummary,
   CapturedPhoto,
+  Enumerator,
   ReviewDetection,
   TagForm,
 } from "@/types/Capture";
@@ -25,6 +26,8 @@ export interface RecordInput {
   draft: boolean;
   modelVersion: string;
   newId: () => string;
+  /** The signed-in user; the server scopes records by it. */
+  capturedBy?: Enumerator;
 }
 
 /** The location's flags plus a new asset saved next to a possible duplicate. */
@@ -64,6 +67,7 @@ export function buildRecords(input: RecordInput): SyncedUtilityPole[] {
         ? form.duplicate.id
         : undefined,
     draft,
+    capturedBy: input.capturedBy?.id,
     synced: false,
   };
   const accepted = acceptedDetections(detections);
@@ -102,10 +106,10 @@ export function buildSummary(
   records: readonly SyncedUtilityPole[],
   input: Pick<
     RecordInput,
-    "photos" | "location" | "detections" | "form" | "draft"
+    "photos" | "location" | "detections" | "form" | "draft" | "capturedBy"
   >,
 ): CaptureSummary {
-  const { photos, location, detections, form, draft } = input;
+  const { photos, location, detections, form, draft, capturedBy } = input;
   const accepted = acceptedDetections(detections);
   const primary = accepted[0];
   const assetId =
@@ -127,6 +131,7 @@ export function buildSummary(
       draft ||
       recordFlags(input).length > 0 ||
       shouldFlag(detections, location),
+    ...(capturedBy ? { capturedBy } : {}),
   };
 }
 
@@ -156,6 +161,7 @@ export function buildRecord(
     functional: form.functional,
     comment: form.comment.trim(),
     poleIds: records.map((r) => r.pid!),
+    ...(summary.capturedBy ? { capturedBy: summary.capturedBy } : {}),
   };
 }
 

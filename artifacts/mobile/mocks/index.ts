@@ -20,7 +20,10 @@ import {
   deviceStatus$,
   replaceDeviceStatus,
 } from "@/services/storage/SettingsStore";
+import { onUserDataOpened } from "@/services/storage/UserData";
+import { PERMISSIONS, effectivePermissions } from "@/services/auth/Roles";
 import { setCaptureUploader } from "@/services/sync/CaptureSync";
+import type { Enumerator } from "@/types/Capture";
 import { accountStore } from "./AccountStore";
 import { fakeMapAssets } from "./assets";
 import {
@@ -74,6 +77,46 @@ function withMissing<T extends { id: string }>(
   return missing.length > 0 ? [...current, ...missing] : null;
 }
 
+/** Supervisors and admins also capture, just less than the field team. */
+const OWN_CAPTURES_FOR_REVIEWERS = 4;
+
+/**
+ * Home, Records and record details for the user who just signed in, plus the
+ * review queue for reviewers. Adds whichever seed rows are missing, so a user
+ * with real captures still gets the mockups' records next to their own.
+ */
+function seedUser(user: Enumerator) {
+  const reviewer = effectivePermissions(accountStore.find(user.id)).includes(
+    PERMISSIONS.REVIEW_DECIDE,
+  );
+  const seed = fakeCaptures(new Date(), user);
+  const own = reviewer ? seed.slice(0, OWN_CAPTURES_FOR_REVIEWERS) : seed;
+  const captures = withMissing(captures$.get(), own);
+  if (captures) captures$.set(captures);
+
+  // Record detail screens for the fake captures, never for real ones.
+  const records = records$.get();
+  const missingRecords = fakeRecords(
+    captures$.get().filter((c) => c.id.startsWith(FAKE_CAPTURE_PREFIX)),
+    mapAssets$.get(),
+  ).filter((r) => !records[r.id]);
+  if (missingRecords.length > 0) {
+    records$.set({
+      ...records,
+      ...Object.fromEntries(missingRecords.map((r) => [r.id, r])),
+    });
+  }
+
+  if (!reviewer) return;
+  // The mockup's queue. An item already decided doesn't come back.
+  const decided = reviewDecisions$.get();
+  const queue = withMissing(
+    reviewQueue$.get(),
+    fakeReviewQueue(captures$.get()).filter((i) => !decided[i.id]),
+  );
+  if (queue) replaceReviewQueue(queue);
+}
+
 let adapter: MockAdapter | null = null;
 
 export const devMocks: DevMocks = {
@@ -84,34 +127,12 @@ export const devMocks: DevMocks = {
     if (adapter) return;
     console.warn(`${DEV_MOCKS_MARKER} Fake API enabled for auth endpoints.`);
 
-    // Home, Records and Map data. Adds whichever seed rows are missing, so a
-    // device that already holds real captures (or data from an older build)
-    // still gets the mockups' records, while its own rows stay untouched.
-    const captures = withMissing(captures$.get(), fakeCaptures());
-    if (captures) captures$.set(captures);
+    // Device-wide: the Map's assets and the GNSS state.
     if (!gnssStatus$.get()) gnssStatus$.set(FAKE_GNSS);
     const assets = withMissing(mapAssets$.get(), fakeMapAssets());
     if (assets) mapAssets$.set(assets);
-    // Record detail screens for the fake captures, never for real ones.
-    const records = records$.get();
-    const missingRecords = fakeRecords(
-      captures$.get().filter((c) => c.id.startsWith(FAKE_CAPTURE_PREFIX)),
-      mapAssets$.get(),
-    ).filter((r) => !records[r.id]);
-    if (missingRecords.length > 0) {
-      records$.set({
-        ...records,
-        ...Object.fromEntries(missingRecords.map((r) => [r.id, r])),
-      });
-    }
-    // Review tab: the mockup's queue. An item the supervisor already decided
-    // doesn't come back on the next launch.
-    const decided = reviewDecisions$.get();
-    const queue = withMissing(
-      reviewQueue$.get(),
-      fakeReviewQueue(captures$.get()).filter((i) => !decided[i.id]),
-    );
-    if (queue) replaceReviewQueue(queue);
+    // Each user's own data, when their database opens at sign-in.
+    onUserDataOpened(seedUser);
     // Settings: the mockup's model update and storage, until a project is set.
     if (!deviceStatus$.get().project) replaceDeviceStatus(fakeDeviceStatus());
     // Records tab: "Sync now" uploads to nowhere.

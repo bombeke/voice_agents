@@ -16,6 +16,15 @@ jest.mock("@/services/auth/AuthStorage", () => ({
   saveSession: (s: Session) => mockStorage.saveSession(s),
   clearSession: () => mockStorage.clearSession(),
 }));
+const mockUserData = {
+  openUserData: jest.fn(async (_user: { id: string; name: string }) => {}),
+  closeUserData: jest.fn(async () => {}),
+};
+jest.mock("@/services/storage/UserData", () => ({
+  openUserData: (user: { id: string; name: string }) =>
+    mockUserData.openUserData(user),
+  closeUserData: () => mockUserData.closeUserData(),
+}));
 jest.mock("@/services/auth/AuthService", () => ({
   refreshSession: () => mockRefresh(),
 }));
@@ -65,6 +74,28 @@ describe("AuthProvider", () => {
     expect(auth.current.org).toBe("Pilot Zone 3");
     expect(auth.current.authMethod).toBe("password");
     expect(auth.current.adminMode).toBe("online");
+    expect(mockUserData.openUserData).toHaveBeenCalledWith({
+      id: "field",
+      name: "field",
+    });
+  });
+
+  it("gives the roles' permissions on top of the token's", async () => {
+    mockStorage.loadSession.mockResolvedValue(
+      session(NOW + 3600, ["supervisor"]),
+    );
+    const auth = await boot();
+    expect(auth.current.permissions).toEqual(
+      expect.arrayContaining(["records:read:own", "records:review"]),
+    );
+  });
+
+  it("stays signed out when the user's data cannot open", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    mockStorage.loadSession.mockResolvedValue(session(NOW + 3600));
+    mockUserData.openUserData.mockRejectedValueOnce(new Error("keystore"));
+    const auth = await boot();
+    expect(auth.current.isAuthenticated).toBe(false);
   });
 
   it("keeps an expired session offline, with its cached claims", async () => {
@@ -102,9 +133,14 @@ describe("AuthProvider", () => {
     });
     expect(auth.current.isAuthenticated).toBe(true);
     expect(auth.current.authMethod).toBe("sso");
+    expect(mockUserData.openUserData).toHaveBeenCalledWith({
+      id: "field",
+      name: "field",
+    });
 
     await act(() => auth.current.logout());
     expect(mockStorage.clearSession).toHaveBeenCalled();
+    expect(mockUserData.closeUserData).toHaveBeenCalled();
     expect(auth.current.isAuthenticated).toBe(false);
     expect(auth.current.authMethod).toBeUndefined();
   });

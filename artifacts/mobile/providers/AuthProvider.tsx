@@ -15,6 +15,8 @@ import {
   saveSession,
 } from "@/services/auth/AuthStorage";
 import { isTokenExpired } from "@/services/auth/AuthUtils";
+import { effectivePermissions } from "@/services/auth/Roles";
+import { closeUserData, openUserData } from "@/services/storage/UserData";
 import type { AuthMethod, Claims, Session } from "@/types/Auth";
 
 export type { Claims };
@@ -41,6 +43,12 @@ export type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType>(null!);
+
+/** The signed-in person as records name them. */
+const userOf = (claims: Claims) => ({
+  id: claims.sub,
+  name: claims.name ?? claims.preferred_username ?? claims.sub,
+});
 
 type BootResult = {
   claims: Claims | null;
@@ -87,6 +95,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Failed to restore session:", err);
         return { claims: null, offline: false };
       })
+      .then(async (boot: BootResult) => {
+        // The user's own database loads before any screen can read it.
+        if (boot.claims) await openUserData(userOf(boot.claims));
+        return boot;
+      })
+      .catch((err) => {
+        console.error("Failed to open the user's data:", err);
+        return { claims: null, offline: false } as BootResult;
+      })
       .then(({ claims, method, offline }: BootResult) => {
         if (cancelled) return;
         setClaims(claims);
@@ -100,6 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signIn = useCallback(async (session: Session) => {
+    await openUserData(userOf(session.claims));
     await saveSession(session);
     setOfflineMode(false);
     setClaims(session.claims);
@@ -112,6 +130,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setAuthMethod(undefined);
     setOfflineMode(false);
     setRedirectAfterLogin(undefined);
+    // After the screens let go of the stores; unsent records stay saved.
+    await closeUserData();
   }, []);
 
   const handleSetRedirectAfterLogin = useCallback((path?: string) => {
@@ -132,7 +152,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       adminMode,
       claims,
       authMethod,
-      permissions: claims?.permissions ?? [],
+      permissions: effectivePermissions(claims),
       org: claims?.org,
       redirectAfterLogin,
       signIn,

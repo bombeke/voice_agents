@@ -200,6 +200,18 @@ describe("buildRecord", () => {
     });
   });
 
+  it("names who captured it on the record, its row and the upload", () => {
+    const capturedBy = { id: "field", name: "Field Enumerator" };
+    const data = input({ capturedBy });
+    const records = buildRecords(data);
+    const summary = buildSummary(records, data);
+    expect(records[0].capturedBy).toBe("field");
+    expect(summary.capturedBy).toEqual(capturedBy);
+    expect(buildRecord(summary, records, data, []).capturedBy).toEqual(
+      capturedBy,
+    );
+  });
+
   it("has no attributes when no detection was kept", () => {
     const data = input({ detections: [] });
     const records = buildRecords(data);

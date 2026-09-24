@@ -1,4 +1,5 @@
 import type { Claims } from "@/types/Auth";
+import { effectivePermissions } from "./Roles";
 
 export function isTokenExpired(expiresAt?: number | null) {
   if (!expiresAt) return true;
@@ -6,6 +7,7 @@ export function isTokenExpired(expiresAt?: number | null) {
   return now >= expiresAt - 30; // 30s grace window
 }
 
+/** Granted by the token or implied by one of its roles (see Roles.ts). */
 export function hasPerm(claims: Claims | null, perm: string): boolean {
-  return claims?.permissions?.includes(perm) ?? false;
+  return effectivePermissions(claims).includes(perm);
 }

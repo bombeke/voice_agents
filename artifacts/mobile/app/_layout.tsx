@@ -2,7 +2,7 @@ import { MMKVProvider } from "@/components/MmkvContext";
 import { fontAssets } from "@/constants/theme";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { devMocks } from "@/mocks";
-import { AuthProvider } from "@/providers/AuthProvider";
+import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { DetectorModelProvider } from "@/providers/DetectorModelProvider";
 import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
 import { queryClient } from "@/services/Api";
@@ -42,6 +42,21 @@ export function RootLayoutNav() {
   );
 }
 
+/**
+ * Upload and pull only while someone is signed in: the queues open are that
+ * user's, so they always go up with their owner's token.
+ */
+function SignedInSync() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return null;
+  return (
+    <>
+      <BackendSyncObserver />
+      <OpQueueReplayObserver />
+    </>
+  );
+}
+
 const userId = "mmkv_user_app";
 const storage = createUserStorage(userId);
 initPersistence();
@@ -75,8 +90,7 @@ export default function RootLayout() {
                   <SafeAreaListener
                     onChange={({ insets }) => Uniwind.updateInsets(insets)}
                   >
-                    <BackendSyncObserver />
-                    <OpQueueReplayObserver />
+                    <SignedInSync />
                     <RootLayoutNav />
                   </SafeAreaListener>
                 </SafeAreaProvider>

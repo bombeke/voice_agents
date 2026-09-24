@@ -5,6 +5,12 @@ export type CaptureSyncStatus = "pending" | "uploading" | "synced" | "failed";
 /** What the category picker hands the camera; "auto" lets the AI choose. */
 export type CaptureCategory = AssetCategory | "auto";
 
+/** Who captured a record: the user's id (token `sub`) and display name. */
+export interface Enumerator {
+  id: string;
+  name: string;
+}
+
 /** The slice of a capture the Home and Records screens need. */
 export interface CaptureSummary {
   id: string;
@@ -22,6 +28,8 @@ export interface CaptureSummary {
   syncStatus: CaptureSyncStatus;
   /** Routed to a supervisor (low AI confidence, heavy overrides, duplicate). */
   flagged: boolean;
+  /** Absent on records saved before captures carried their owner. */
+  capturedBy?: Enumerator;
 }
 
 /** A stored photo of a record; `uri` is null when the file is gone (or in mocks). */
@@ -51,6 +59,7 @@ export interface CaptureRecord {
   comment: string;
   /** The op-queue records (one per kept detection) an edit has to update. */
   poleIds: string[];
+  capturedBy?: Enumerator;
 }
 
 export interface GnssStatus {

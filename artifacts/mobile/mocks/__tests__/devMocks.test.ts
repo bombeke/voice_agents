@@ -5,7 +5,10 @@ import { nearbyAssets } from "@/services/capture/NearbyAssets";
 import { speechToText } from "@/services/capture/SpeechToText";
 import { mapAssets$ } from "@/services/storage/AssetStore";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
-import { reviewQueue$ } from "@/services/storage/ReviewStore";
+import { decideReview, reviewQueue$ } from "@/services/storage/ReviewStore";
+import { records$ } from "@/services/storage/RecordStore";
+import { addCapture } from "@/services/storage/CaptureStore";
+import { closeUserData, openUserData } from "@/services/storage/UserData";
 import { deviceStatus$ } from "@/services/storage/SettingsStore";
 import { syncPendingCaptures } from "@/services/sync/CaptureSync";
 import { accountStore } from "../AccountStore";
@@ -18,11 +21,31 @@ jest.mock("@/services/Api", () => ({
   queryClient: new (require("@tanstack/react-query").QueryClient)(),
 }));
 
+// The per-user database key lives in the keystore.
+jest.mock("@/services/AuthHelpers", () => {
+  const secrets = new Map<string, string>();
+  return {
+    getSecret: async (key: string) => secrets.get(key) ?? null,
+    saveSecret: async (key: string, value: string) => {
+      secrets.set(key, value);
+    },
+  };
+});
+
+let mockUuid = 0;
+jest.mock("expo-crypto", () => ({
+  randomUUID: () => `0000000${++mockUuid}-aaaa-bbbb-cccc-dddddddddddd`,
+}));
+
 const { axiosClient } = jest.requireMock("@/services/Api");
 
-beforeAll(() => {
+const FIELD = { id: "field", name: "Field Enumerator" };
+const SUPERVISOR = { id: "supervisor", name: "Area Supervisor" };
+
+beforeAll(async () => {
   jest.spyOn(console, "warn").mockImplementation(() => {});
   devMocks.install();
+  await openUserData(FIELD);
 });
 beforeEach(() => accountStore.clear());
 
@@ -47,8 +70,10 @@ describe("dev mocks", () => {
     expect(stub).toBeNull();
   });
 
-  it("seeds the Home screen's captures and GNSS state", () => {
+  it("seeds the signed-in enumerator's captures and the GNSS state", () => {
     expect(captures$.get()).toHaveLength(14);
+    expect(captures$.get()[0].capturedBy).toEqual(FIELD);
+    expect(records$.get()["fake-capture-1"]).toBeDefined();
     expect(gnssStatus$.get()).toEqual({ bands: "L1+L5", ok: true });
   });
 
@@ -74,13 +99,8 @@ describe("dev mocks", () => {
     }
   });
 
-  it("seeds the supervisor's queue, linked to the fake captures", () => {
-    const queue = reviewQueue$.get();
-    expect(queue).toHaveLength(4);
-    const captureIds = new Set(captures$.get().map((c) => c.id));
-    const linked = queue.filter((i) => i.captureId);
-    expect(linked.length).toBeGreaterThan(0);
-    for (const i of linked) expect(captureIds).toContain(i.captureId);
+  it("gives an enumerator no review queue to decide", () => {
+    expect(reviewQueue$.get()).toEqual([]);
   });
 
   it("seeds the Settings screen's project, model update and storage", () => {
@@ -105,38 +125,33 @@ describe("dev mocks", () => {
     expect(speechToText().isAvailable()).toBe(true);
   });
 
-  it("adds the seed next to real captures and keeps decided reviews out", () => {
-    // A fresh install, with its own stores, on a device that has data.
-    jest.isolateModules(() => {
-      const { captures$ } = require("@/services/storage/CaptureStore");
-      const { records$ } = require("@/services/storage/RecordStore");
-      const {
-        reviewQueue$,
-        reviewDecisions$,
-      } = require("@/services/storage/ReviewStore");
-      const own = { ...fakeCaptures()[0], id: "own-capture", title: "My pole" };
-      captures$.set([own]);
-      reviewDecisions$.set({
-        "fake-review-1": {
-          itemId: "fake-review-1",
-          outcome: "approved",
-          decidedAt: new Date().toISOString(),
-          syncStatus: "pending",
-        },
-      });
-      require("..").devMocks.install();
+  it("seeds each user their own data, next to what they captured", async () => {
+    const own = { ...fakeCaptures()[0], id: "own-capture", title: "My pole" };
+    addCapture(own);
+    await closeUserData();
+    expect(captures$.get()).toEqual([]);
 
-      const captures = captures$.get();
-      expect(captures[0]).toBe(own);
-      expect(captures).toHaveLength(15);
-      expect(records$.get()["fake-capture-1"]).toBeDefined();
-      expect(records$.get()["own-capture"]).toBeUndefined();
-      expect(reviewQueue$.get().map((i: { id: string }) => i.id)).toEqual([
-        "fake-review-2",
-        "fake-review-3",
-        "fake-review-4",
-      ]);
-    });
+    // A supervisor captures less and gets the review queue.
+    await openUserData(SUPERVISOR);
+    expect(captures$.get()).toHaveLength(4);
+    expect(captures$.get().some((c) => c.id === "own-capture")).toBe(false);
+    const queue = reviewQueue$.get();
+    expect(queue).toHaveLength(4);
+    const captureIds = new Set(captures$.get().map((c) => c.id));
+    for (const i of queue.filter((i) => i.captureId)) {
+      expect(captureIds).toContain(i.captureId);
+    }
+
+    // A decided item doesn't come back on the next sign-in.
+    decideReview("fake-review-1", "approved");
+    await closeUserData();
+    await openUserData(SUPERVISOR);
+    expect(reviewQueue$.get().map((i) => i.id)).not.toContain("fake-review-1");
+
+    // The enumerator's own capture is still theirs.
+    await openUserData(FIELD);
+    expect(captures$.get()).toHaveLength(15);
+    expect(captures$.get().find((c) => c.id === "own-capture")).toEqual(own);
   });
 
   it("announces itself with the marker the release check looks for", () => {

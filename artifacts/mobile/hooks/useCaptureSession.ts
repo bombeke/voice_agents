@@ -23,6 +23,7 @@ import {
 import { persistCaptureImage, toFileUri } from "@/services/storage/ImageStore";
 import type { SyncedUtilityPole } from "@/services/storage/LegendState";
 import { records$, upsertRecord } from "@/services/storage/RecordStore";
+import { currentUser$ } from "@/services/storage/UserData";
 import type { AssetCategory } from "@/constants/Colors";
 import type {
   CaptureLocation,
@@ -196,6 +197,7 @@ export function useCaptureSession() {
           draft,
           modelVersion: DETECTOR_MODEL_VERSION,
           newId: randomUUID,
+          capturedBy: currentUser$.peek() ?? undefined,
         };
         const records = buildRecords(input);
         const saved = (await addPole(records)) as
