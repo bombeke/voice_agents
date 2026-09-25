@@ -50,6 +50,8 @@ function trackerFor(mountId: number): TrackerState {
 export interface TrackLabel {
   trackId: number;
   label: string;
+  /** Rounded to two decimals, for the box label. */
+  confidence: number;
   /** 0.40–0.70: shown as "suggested" and needs a tap to accept later (§6.3). */
   suggested: boolean;
 }
@@ -67,6 +69,8 @@ export interface LiveDetection {
   status: DetectorStatus;
   /** Model download progress, 0–100. */
   downloadProgress: number;
+  /** Time of the last inference, ms; null before the first. */
+  inferenceMs: number | null;
   /** Current tracks as fractions of the frame, for storing with a photo. */
   snapshot: () => CapturedDetection[];
 }
@@ -96,19 +100,27 @@ export function useLiveDetection(
   const tracks = useSharedValue<Track[]>([]);
   const [trackLabels, setTrackLabels] = useState<TrackLabel[]>([]);
   const [frameSize, setFrameSize] = useState<Size | null>(null);
+  const [inferenceMs, setInferenceMs] = useState<number | null>(null);
   const labelsKey = useRef("");
   const frameSizeRef = useRef<Size | null>(null);
 
   const publish = useCallback(
-    (next: Track[], size: Size) => {
+    (next: Track[], size: Size, ms: number) => {
       tracks.value = next;
+      // Whole milliseconds, so React only re-renders when the figure changes.
+      setInferenceMs(Math.round(ms));
       const labels = next.map((t) => ({
         trackId: t.trackId,
         label: t.label,
+        confidence: Math.round(t.confidence * 100) / 100,
         suggested: t.confidence < CONFIDENCE.accepted,
       }));
+      // Confidence in 0.05 steps, so the labels don't re-render every frame.
       const key = labels
-        .map((t) => `${t.trackId}:${t.label}:${t.suggested}`)
+        .map(
+          (t) =>
+            `${t.trackId}:${t.label}:${t.suggested}:${Math.round(t.confidence * 20)}`,
+        )
         .join("|");
       if (key !== labelsKey.current) {
         labelsKey.current = key;
@@ -146,7 +158,10 @@ export function useLiveDetection(
           layout: "hwc",
         };
         const detections: Detection[] = [];
-        for (const d of detectObjectsWorklet(input)) {
+        const started = Date.now();
+        const found = detectObjectsWorklet(input);
+        const ms = Date.now() - started;
+        for (const d of found) {
           if (hidden[d.label]) continue;
           detections.push({
             label: d.label,
@@ -162,7 +177,7 @@ export function useLiveDetection(
         const next = visibleTracks(
           updateTracks(trackerFor(mountId), detections),
         );
-        scheduleOnRN(publish, next, size);
+        scheduleOnRN(publish, next, size, ms);
       } catch {
         // A failed frame is skipped; the next one retries.
       } finally {
@@ -203,6 +218,7 @@ export function useLiveDetection(
     frameSize,
     status,
     downloadProgress: detector.downloadProgress,
+    inferenceMs,
     snapshot,
   };
 }

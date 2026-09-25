@@ -12,15 +12,20 @@ import { mapAssets$ } from "@/services/storage/AssetStore";
 import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
 import { records$ } from "@/services/storage/RecordStore";
 import {
-  replaceReviewQueue,
-  reviewDecisions$,
-  reviewQueue$,
-} from "@/services/storage/ReviewStore";
-import {
   deviceStatus$,
   replaceDeviceStatus,
 } from "@/services/storage/SettingsStore";
+import { onUserDataOpened } from "@/services/storage/UserData";
+import { PERMISSIONS, effectivePermissions } from "@/services/auth/Roles";
 import { setCaptureUploader } from "@/services/sync/CaptureSync";
+import type { Enumerator } from "@/types/Capture";
+import type { RejectReason, ReviewOutcome } from "@/types/Review";
+import { REVIEW_BATCH_SIZE } from "@/constants/Config";
+import {
+  MY_REVIEWS_URL,
+  REVIEW_BATCH_URL,
+  TEAM_RECORDS_URL,
+} from "@/services/sync/ReviewSync";
 import { accountStore } from "./AccountStore";
 import { fakeMapAssets } from "./assets";
 import {
@@ -31,7 +36,12 @@ import {
 } from "./captures";
 import { fakeDetectionEstimator } from "./detections";
 import { fakeRecords } from "./records";
-import { fakeReviewQueue } from "./reviews";
+import {
+  decideOnServer,
+  myReviewStatuses,
+  nextReviewBatch,
+  teamRecords,
+} from "./reviewServer";
 import { fakeDeviceStatus } from "./settings";
 import { fakeGnssSource, fakePhotoQuality } from "./gnss";
 import { fakeNearbyAssetSource, fakeSpeechToText } from "./tagging";
@@ -74,6 +84,65 @@ function withMissing<T extends { id: string }>(
   return missing.length > 0 ? [...current, ...missing] : null;
 }
 
+/** Supervisors and admins also capture, just less than the field team. */
+const OWN_CAPTURES_FOR_REVIEWERS = 3;
+
+/**
+ * Home, Records and record details for the user who just signed in. Adds
+ * whichever seed rows are missing, so a user with real captures still gets
+ * the mockups' records next to their own. Reviewers get their queue from
+ * `GET /review/v1/batch`, like a real server.
+ */
+function seedUser(user: Enumerator) {
+  const reviewer = effectivePermissions(accountStore.find(user.id)).includes(
+    PERMISSIONS.REVIEW_DECIDE,
+  );
+  const seed = fakeCaptures(new Date(), user);
+  // A reviewer's own ids differ from the field user's, whose records they
+  // download as team records.
+  const own = reviewer
+    ? seed.slice(0, OWN_CAPTURES_FOR_REVIEWERS).map((c) => ({
+        ...c,
+        id: c.id.replace(
+          FAKE_CAPTURE_PREFIX,
+          `${FAKE_CAPTURE_PREFIX}${user.id}-`,
+        ),
+      }))
+    : seed;
+  const captures = withMissing(captures$.get(), own);
+  if (captures) captures$.set(captures);
+
+  // Record detail screens for the fake captures, never for real ones.
+  const records = records$.get();
+  const missingRecords = fakeRecords(
+    captures$.get().filter((c) => c.id.startsWith(FAKE_CAPTURE_PREFIX)),
+    mapAssets$.get(),
+  ).filter((r) => !records[r.id]);
+  if (missingRecords.length > 0) {
+    records$.set({
+      ...records,
+      ...Object.fromEntries(missingRecords.map((r) => [r.id, r])),
+    });
+  }
+}
+
+/** The signed-in user a request came from (its bearer token's `sub`). */
+function requester(headers: unknown): string | null {
+  const auth = (headers as Record<string, unknown> | undefined)?.Authorization;
+  const token = typeof auth === "string" ? auth.replace(/^Bearer /, "") : "";
+  try {
+    return jwtDecode<Claims>(token).sub;
+  } catch {
+    return null;
+  }
+}
+
+const canReview = (userId: string | null) =>
+  !!userId &&
+  effectivePermissions(accountStore.find(userId)).includes(
+    PERMISSIONS.REVIEW_DECIDE,
+  );
+
 let adapter: MockAdapter | null = null;
 
 export const devMocks: DevMocks = {
@@ -84,34 +153,12 @@ export const devMocks: DevMocks = {
     if (adapter) return;
     console.warn(`${DEV_MOCKS_MARKER} Fake API enabled for auth endpoints.`);
 
-    // Home, Records and Map data. Adds whichever seed rows are missing, so a
-    // device that already holds real captures (or data from an older build)
-    // still gets the mockups' records, while its own rows stay untouched.
-    const captures = withMissing(captures$.get(), fakeCaptures());
-    if (captures) captures$.set(captures);
+    // Device-wide: the Map's assets and the GNSS state.
     if (!gnssStatus$.get()) gnssStatus$.set(FAKE_GNSS);
     const assets = withMissing(mapAssets$.get(), fakeMapAssets());
     if (assets) mapAssets$.set(assets);
-    // Record detail screens for the fake captures, never for real ones.
-    const records = records$.get();
-    const missingRecords = fakeRecords(
-      captures$.get().filter((c) => c.id.startsWith(FAKE_CAPTURE_PREFIX)),
-      mapAssets$.get(),
-    ).filter((r) => !records[r.id]);
-    if (missingRecords.length > 0) {
-      records$.set({
-        ...records,
-        ...Object.fromEntries(missingRecords.map((r) => [r.id, r])),
-      });
-    }
-    // Review tab: the mockup's queue. An item the supervisor already decided
-    // doesn't come back on the next launch.
-    const decided = reviewDecisions$.get();
-    const queue = withMissing(
-      reviewQueue$.get(),
-      fakeReviewQueue(captures$.get()).filter((i) => !decided[i.id]),
-    );
-    if (queue) replaceReviewQueue(queue);
+    // Each user's own data, when their database opens at sign-in.
+    onUserDataOpened(seedUser);
     // Settings: the mockup's model update and storage, until a project is set.
     if (!deviceStatus$.get().project) replaceDeviceStatus(fakeDeviceStatus());
     // Records tab: "Sync now" uploads to nowhere.
@@ -131,6 +178,39 @@ export const devMocks: DevMocks = {
     adapter = new MockAdapter(axiosClient, {
       delayResponse: 400,
       onNoMatch: "passthrough",
+    });
+
+    // Review: batches for supervisors, decisions, and each user's verdicts.
+    adapter.onGet(REVIEW_BATCH_URL).reply((config) => {
+      if (!canReview(requester(config.headers))) return [403, {}];
+      const limit = Number(config.params?.limit) || REVIEW_BATCH_SIZE;
+      return [200, nextReviewBatch(limit, mapAssets$.peek())];
+    });
+    adapter
+      .onPatch(/\/observations\/v1\/stream\/[^/]+\/review$/)
+      .reply((config) => {
+        if (!canReview(requester(config.headers))) return [403, {}];
+        const id = decodeURIComponent(
+          String(config.url).split("/").slice(-2, -1)[0],
+        );
+        const { outcome, rejectReason, decidedAt } = body(config.data);
+        const accepted = decideOnServer(id, {
+          outcome: outcome as ReviewOutcome,
+          ...(rejectReason
+            ? { rejectReason: rejectReason as RejectReason }
+            : {}),
+          decidedAt: String(decidedAt ?? new Date().toISOString()),
+        });
+        return accepted ? [200, {}] : [409, { detail: "Already reviewed" }];
+      });
+    adapter.onGet(TEAM_RECORDS_URL).reply((config) => {
+      if (!canReview(requester(config.headers))) return [403, {}];
+      return [200, teamRecords(mapAssets$.peek())];
+    });
+    adapter.onGet(MY_REVIEWS_URL).reply((config) => {
+      const userId = requester(config.headers);
+      if (!userId) return [401, {}];
+      return [200, myReviewStatuses(userId)];
     });
 
     adapter.onPost("/auth/login/password").reply((config) => {

@@ -28,3 +28,18 @@ export const isSameLocalDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
+
+/** 0.31358, 32.58106 → "0.31358 N, 32.58106 E" (hemisphere letters, no sign). */
+export function formatCoordinates(
+  latitude: number,
+  longitude: number,
+  digits = 5,
+  template = "{latitude} {ns}, {longitude} {ew}",
+): string {
+  return fill(template, {
+    latitude: Math.abs(latitude).toFixed(digits),
+    ns: latitude < 0 ? "S" : "N",
+    longitude: Math.abs(longitude).toFixed(digits),
+    ew: longitude < 0 ? "W" : "E",
+  });
+}

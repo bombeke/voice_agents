@@ -4,7 +4,7 @@ import { useCaptureSummary } from "@/hooks/useCaptureSummary";
 import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG, MenuItem } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
-import { reviewQueue$ } from "@/services/storage/ReviewStore";
+import { myReviewStatus$, reviewQueue$ } from "@/services/storage/ReviewStore";
 import { useSelector } from "@legendapp/state/react";
 import {
   getFocusedRouteNameFromRoute,
@@ -57,7 +57,14 @@ const renderTabBar = (props: Parameters<typeof TabBar>[0]) => (
 export default function AppTabs() {
   const { isAdmin, claims, adminMode } = useAuth();
   const { stats } = useCaptureSummary();
-  const reviewCount = useSelector(() => reviewQueue$.get().length);
+  // Everything waiting on this user: the team queue, and own records a
+  // supervisor rejected.
+  const reviewCount = useSelector(
+    () =>
+      reviewQueue$.get().length +
+      Object.values(myReviewStatus$.get()).filter((s) => s.state === "rejected")
+        .length,
+  );
 
   const visible = useMemo(() => {
     const menu = filterMenu(MENU_CONFIG, { isAdmin, claims, adminMode });

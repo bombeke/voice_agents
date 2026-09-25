@@ -35,6 +35,7 @@ function input(over: Partial<RecordInput> = {}): RecordInput {
   return {
     photos: [
       {
+        id: "photo-1",
         imageUri: "/tmp/1.jpg",
         capturedAt: Date.parse("2026-09-23T09:20:00Z"),
         heading: null,
@@ -200,6 +201,18 @@ describe("buildRecord", () => {
     });
   });
 
+  it("names who captured it on the record, its row and the upload", () => {
+    const capturedBy = { id: "field", name: "Field Enumerator" };
+    const data = input({ capturedBy });
+    const records = buildRecords(data);
+    const summary = buildSummary(records, data);
+    expect(records[0].capturedBy).toBe("field");
+    expect(summary.capturedBy).toEqual(capturedBy);
+    expect(buildRecord(summary, records, data, []).capturedBy).toEqual(
+      capturedBy,
+    );
+  });
+
   it("has no attributes when no detection was kept", () => {
     const data = input({ detections: [] });
     const records = buildRecords(data);
@@ -274,5 +287,52 @@ describe("editing a saved record", () => {
       functional: "no",
       comment: "snapped",
     });
+  });
+});
+
+describe("buildRecords with a ranged asset", () => {
+  it("places the record at the asset and keeps the phone's fix and photo metadata", () => {
+    const metadata = { engine: "ar" } as never;
+    const base = input();
+    const records = buildRecords(
+      input({
+        photos: [{ ...base.photos[0], metadata }],
+        detections: [
+          detection({
+            photoId: "photo-1",
+            position: {
+              latitude: 0.31358,
+              longitude: 32.581061,
+              altitude: 1188.5,
+              distanceM: 12.4,
+              slantDistanceM: 12.5,
+              bearingDeg: 142,
+              accuracyM: 3.1,
+              projectionErrorM: 1.2,
+              source: "ar_auto",
+              hitType: "ExistingPlaneUsingExtent",
+              arPoint: [7.6, 0, 9.8],
+              rough: false,
+            },
+            positionEdited: true,
+          }),
+        ],
+      }),
+    );
+    expect(records[0]).toMatchObject({
+      latitude: 0.31358,
+      longitude: 32.581061,
+      accuracy: 3.1,
+      altitude: 1188.5,
+      photoId: "photo-1",
+      devicePosition: { latitude: 0.3136, longitude: 32.5811 },
+      captureMetadata: metadata,
+    });
+    expect(records[0]).not.toHaveProperty("positionEdited");
+  });
+
+  it("keeps the phone's fix for an unranged asset", () => {
+    const [record] = buildRecords(input());
+    expect(record).toMatchObject({ latitude: 0.3136, longitude: 32.5811 });
   });
 });

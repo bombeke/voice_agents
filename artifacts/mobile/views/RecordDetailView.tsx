@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { InfoNote } from "@/components/ui/InfoNote";
 import { strings } from "@/constants/Strings";
+import { fill } from "@/helpers/format";
 import { useRecordDetail } from "@/hooks/useRecordDetail";
 import { Routes } from "@/services/Routes";
 import { useRouter } from "expo-router";
@@ -38,7 +39,7 @@ export function RecordDetailView({ id }: { id: string }) {
     );
   }
 
-  const { summary, record, history } = detail;
+  const { summary, record, history, own } = detail;
 
   return (
     <View className="flex-1 bg-background">
@@ -58,6 +59,11 @@ export function RecordDetailView({ id }: { id: string }) {
             syncStatus={summary.syncStatus}
             flagged={summary.flagged}
           />
+          {!own && summary.capturedBy ? (
+            <Text className="type-body-small text-text-muted">
+              {fill(d.capturedBy, { name: summary.capturedBy.name })}
+            </Text>
+          ) : null}
           <RecordAttributes record={record} />
           {record.comment ? (
             <Card>
@@ -79,33 +85,38 @@ export function RecordDetailView({ id }: { id: string }) {
         </View>
       </ScrollView>
 
-      <View className="flex-row gap-3 px-5 pt-3 pb-safe-offset-3 bg-background border-t border-border">
-        {record.assetId ? (
-          <Button
-            variant="secondary"
-            className="flex-1"
-            onPress={() =>
-              router.navigate({
-                pathname: Routes.MAP,
-                params: { id: record.assetId },
-              })
-            }
-          >
-            {d.showOnMap}
-          </Button>
-        ) : null}
-        <Button
-          className="flex-[1.5]"
-          onPress={() =>
-            router.push({
-              pathname: Routes.CAPTURE_TAG,
-              params: { recordId: record.id },
-            })
-          }
-        >
-          {d.edit}
-        </Button>
-      </View>
+      {own || record.assetId ? (
+        <View className="flex-row gap-3 px-5 pt-3 pb-safe-offset-3 bg-background border-t border-border">
+          {record.assetId ? (
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onPress={() =>
+                router.navigate({
+                  pathname: Routes.MAP,
+                  params: { id: record.assetId },
+                })
+              }
+            >
+              {d.showOnMap}
+            </Button>
+          ) : null}
+          {/* Another enumerator's record is theirs to edit, not the reviewer's. */}
+          {own ? (
+            <Button
+              className="flex-[1.5]"
+              onPress={() =>
+                router.push({
+                  pathname: Routes.CAPTURE_TAG,
+                  params: { recordId: record.id },
+                })
+              }
+            >
+              {d.edit}
+            </Button>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }

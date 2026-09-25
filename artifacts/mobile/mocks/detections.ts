@@ -1,3 +1,4 @@
+import { offsetLatLon } from "@/helpers/arGeometry";
 import { mergeDetections } from "@/helpers/captureSession";
 import { initialDecision } from "@/helpers/detectionReview";
 import {
@@ -6,8 +7,10 @@ import {
 } from "@/services/capture/AttributeEstimator";
 import type {
   AttributeKey,
+  CaptureMetadata,
   CapturedDetection,
   ConfidenceBand,
+  DetectionPosition,
   ReviewDetection,
 } from "@/types/Capture";
 
@@ -64,6 +67,49 @@ export const FAKE_DETECTIONS: CapturedDetection[] = [
   },
 ];
 
+/** The mockup's ranges: distance (m), bearing (°) and height (m) per fake track. */
+const FAKE_RANGES: Record<number, [number, number, number | null]> = {
+  [-1]: [12.4, 142, 9.2],
+  [-2]: [41.3, 118, null],
+  [-3]: [18.1, 161, 7.5],
+};
+
+/** A fake AR placement around the phone's fix, as the shutter would make it. */
+function fakePlacement(
+  detection: CapturedDetection,
+  meta: CaptureMetadata | undefined,
+): Pick<CapturedDetection, "position" | "heightM"> {
+  const range = FAKE_RANGES[detection.trackId];
+  if (!range || !meta) return {};
+  const [distanceM, bearingDeg, heightM] = range;
+  const rad = (bearingDeg * Math.PI) / 180;
+  const { latitude, longitude } = offsetLatLon(
+    meta.device.latitude,
+    meta.device.longitude,
+    distanceM * Math.sin(rad),
+    distanceM * Math.cos(rad),
+  );
+  const projectionErrorM = Math.hypot(distanceM * 0.03, distanceM * 0.087);
+  const position: DetectionPosition = {
+    latitude,
+    longitude,
+    altitude: meta.device.altitude,
+    distanceM,
+    slantDistanceM: Math.hypot(distanceM, 1.5),
+    bearingDeg,
+    accuracyM:
+      meta.device.accuracy === null
+        ? null
+        : Math.hypot(meta.device.accuracy, projectionErrorM),
+    projectionErrorM,
+    source: "ar_auto",
+    hitType: "ExistingPlaneUsingExtent",
+    arPoint: null,
+    rough: distanceM > 25,
+  };
+  return { position, heightM };
+}
+
 function estimatesFor(detection: CapturedDetection) {
   const label = detection.label.toLowerCase();
   const key = Object.keys(ESTIMATES).find((k) => label.includes(k));
@@ -78,10 +124,20 @@ export const fakeDetectionEstimator: DetectionEstimator = ({
   photos,
   category,
 }) => {
+  const first = photos[0];
   const detections =
-    merged.length > 0 || photos.length === 0
+    merged.length > 0 || !first
       ? merged
-      : mergeDetections([{ ...photos[0], detections: FAKE_DETECTIONS }]);
+      : mergeDetections([
+          {
+            ...first,
+            detections: FAKE_DETECTIONS.map((d) => ({
+              ...d,
+              photoId: first.id,
+              ...fakePlacement(d, first.metadata),
+            })),
+          },
+        ]);
 
   return detections.map((m): ReviewDetection => {
     const fake = estimatesFor(m.detection);

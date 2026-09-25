@@ -32,7 +32,6 @@ import type {
 import { act, renderHook } from "@testing-library/react-native";
 import { createAssetAsync } from "expo-media-library";
 import { Alert } from "react-native";
-import type { CameraPhotoOutput } from "react-native-vision-camera";
 import { useCaptureSession } from "../useCaptureSession";
 
 const mockAddPole = jest.fn();
@@ -49,12 +48,12 @@ jest.mock("expo-media-library", () => ({
 let mockUuid = 0;
 jest.mock("expo-crypto", () => ({ randomUUID: () => `uuid-${++mockUuid}` }));
 
-const photoOutput = (paths: string[]) =>
-  ({
-    capturePhoto: jest.fn(async () => ({
-      saveToTemporaryFileAsync: async () => paths.shift() ?? "/tmp/extra.jpg",
-    })),
-  }) as unknown as CameraPhotoOutput;
+/** A camera engine that returns the next path with the given detections. */
+const shooter = (paths: string[], detections: CapturedDetection[] = []) =>
+  jest.fn(async () => ({
+    path: paths.shift() ?? "/tmp/extra.jpg",
+    detections,
+  }));
 
 const LOCATION: CaptureLocation = {
   latitude: 0.3476,
@@ -84,16 +83,14 @@ beforeEach(() => {
 
 describe("useCaptureSession", () => {
   it("takes up to three photos, keeps the first location and saves them to the gallery", async () => {
-    const output = photoOutput(["/tmp/1.jpg", "/tmp/2.jpg", "/tmp/3.jpg"]);
+    const shoot = shooter(["/tmp/1.jpg", "/tmp/2.jpg", "/tmp/3.jpg"]);
     const { result } = await renderHook(() => useCaptureSession());
     for (let i = 0; i < MAX_PHOTOS + 1; i++) {
       await act(() =>
         result.current.takePhoto({
-          photoOutput: output,
-          flash: i === 0,
+          shoot,
           location: { ...LOCATION, latitude: i },
           heading: 142,
-          detections: [],
         }),
       );
     }
@@ -108,12 +105,7 @@ describe("useCaptureSession", () => {
       sharp: true,
       exposureOk: true,
     });
-    expect(output.capturePhoto).toHaveBeenCalledTimes(3);
-    expect(output.capturePhoto).toHaveBeenNthCalledWith(
-      1,
-      { flashMode: "on" },
-      {},
-    );
+    expect(shoot).toHaveBeenCalledTimes(3);
     expect(createAssetAsync).toHaveBeenCalledWith("file:///tmp/1.jpg", "photo");
   });
 
@@ -121,11 +113,9 @@ describe("useCaptureSession", () => {
     const { result } = await renderHook(() => useCaptureSession());
     await act(() =>
       result.current.takePhoto({
-        photoOutput: photoOutput(["/tmp/1.jpg"]),
-        flash: false,
+        shoot: shooter(["/tmp/1.jpg"]),
         location: LOCATION,
         heading: null,
-        detections: [],
       }),
     );
     await act(() => result.current.removePhoto(0));
@@ -134,22 +124,16 @@ describe("useCaptureSession", () => {
   });
 
   it("ignores a second tap while a photo is being taken", async () => {
-    const output = photoOutput(["/tmp/1.jpg", "/tmp/2.jpg"]);
+    const shoot = shooter(["/tmp/1.jpg", "/tmp/2.jpg"]);
     const { result } = await renderHook(() => useCaptureSession());
-    const args = {
-      photoOutput: output,
-      flash: false,
-      location: LOCATION,
-      heading: null,
-      detections: [],
-    };
+    const args = { shoot, location: LOCATION, heading: null };
     await act(() =>
       Promise.all([
         result.current.takePhoto(args),
         result.current.takePhoto(args),
       ]),
     );
-    expect(output.capturePhoto).toHaveBeenCalledTimes(1);
+    expect(shoot).toHaveBeenCalledTimes(1);
     expect(result.current.photos).toHaveLength(1);
   });
 
@@ -161,11 +145,9 @@ describe("useCaptureSession", () => {
     const hook = await renderHook(() => useCaptureSession());
     await act(() =>
       hook.result.current.takePhoto({
-        photoOutput: photoOutput(["/tmp/1.jpg"]),
-        flash: false,
+        shoot: shooter(["/tmp/1.jpg"], detections),
         location,
         heading: 142,
-        detections,
       }),
     );
     beginReview();
@@ -215,11 +197,14 @@ describe("useCaptureSession", () => {
       modelVersion: "yolo26n_384_xnnpack_fp32.pte",
       synced: false,
     });
+    // Without an AR range the height is left unmeasured.
     expect(records[0].attributes).toEqual(
       expect.arrayContaining([
-        { key: "countInFrame", value: "2", source: "ai", confidence: "high" },
+        { key: "estimatedHeight", value: null, source: "ar", confidence: null },
       ]),
     );
+    // Each record points at the photo it was detected in.
+    expect(records[0].photoId).toEqual(expect.stringMatching(/^uuid-/));
     expect(captures$.get()).toEqual([
       expect.objectContaining({
         category: "energy",
@@ -259,7 +244,7 @@ describe("useCaptureSession", () => {
     const { result } = await captured([detection(1, 0.9), detection(2, 0.5)]);
     rejectDetection(1);
     acceptDetection(2);
-    setAttribute(2, "countInFrame", "3");
+    setAttribute(2, "vegetationCover", "heavy");
     await act(() => result.current.startTagging());
     toggleStatus("rust");
     await save(result);
@@ -268,7 +253,12 @@ describe("useCaptureSession", () => {
     expect(records.map((r: { trackId: number }) => r.trackId)).toEqual([2]);
     expect(records[0].attributes).toEqual(
       expect.arrayContaining([
-        { key: "countInFrame", value: "3", source: "user", confidence: null },
+        {
+          key: "vegetationCover",
+          value: "heavy",
+          source: "user",
+          confidence: null,
+        },
       ]),
     );
     expect(captures$.get()[0].flagged).toBe(true);

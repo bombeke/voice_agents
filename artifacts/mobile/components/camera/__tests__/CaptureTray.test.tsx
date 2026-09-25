@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { CaptureTray, statusLine } from "../CaptureTray";
 
 const photo = (i: number, sharp: boolean | null = true): CapturedPhoto => ({
+  id: `photo-${i}`,
   imageUri: `/tmp/${i}.jpg`,
   capturedAt: i,
   heading: null,
@@ -15,6 +16,8 @@ const props = {
   canCapture: true,
   isCapturing: false,
   offerDraft: false,
+  position: null,
+  online: true,
   onCapture: jest.fn(),
   onRetake: jest.fn(),
   onContinue: jest.fn(),
@@ -77,5 +80,59 @@ describe("CaptureTray", () => {
       <CaptureTray {...props} photos={[photo(1), photo(2), photo(3)]} />,
     );
     expect(screen.getByRole("button", { name: "Take photo" })).toBeDisabled();
+  });
+
+  it("shows where the record will be placed and whether it is offline", async () => {
+    await render(
+      <CaptureTray
+        {...props}
+        online={false}
+        position={{
+          latitude: 0.313584,
+          longitude: 32.581061,
+          accuracy: 3.1,
+          isAsset: true,
+        }}
+        note="Pole at 12.4 m — the record takes its position, not yours"
+      />,
+    );
+    expect(screen.getByText("Asset position · ±3.1 m")).toBeTruthy();
+    expect(screen.getByText("0.31358 N, 32.58106 E")).toBeTruthy();
+    expect(screen.getByText("Offline")).toBeTruthy();
+    expect(screen.getByText("Photos 0/3")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Pole at 12.4 m — the record takes its position, not yours",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("toggles place by tap", async () => {
+    const onPress = jest.fn();
+    await render(
+      <CaptureTray {...props} placeByTap={{ active: false, onPress }} />,
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Place by tap" }));
+    expect(onPress).toHaveBeenCalled();
+
+    await render(
+      <CaptureTray {...props} placeByTap={{ active: true, onPress }} />,
+    );
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeSelected();
+  });
+
+  it("names why the shutter is locked", async () => {
+    await render(
+      <CaptureTray
+        {...props}
+        canCapture={false}
+        lockedLabel="Take photo — locked until AR has mapped the ground"
+      />,
+    );
+    expect(
+      screen.getByRole("button", {
+        name: "Take photo — locked until AR has mapped the ground",
+      }),
+    ).toBeDisabled();
   });
 });

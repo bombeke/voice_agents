@@ -4,6 +4,7 @@ import {
   setCaptureStatus,
 } from "@/services/storage/CaptureStore";
 import { isOnline$ } from "@/services/storage/LegendState";
+import { addTeamRecords, clearReviews } from "@/services/storage/ReviewStore";
 import { act, renderHook } from "@testing-library/react-native";
 import { useRecords } from "../useRecords";
 
@@ -13,12 +14,17 @@ jest.mock("@/services/storage/LegendState", () => ({
 jest.mock("@/services/sync/CaptureSync", () => ({
   syncPendingCaptures: jest.fn(),
 }));
+const mockRefreshTeam = jest.fn(async () => true);
+jest.mock("@/services/sync/ReviewSync", () => ({
+  refreshTeamRecords: () => mockRefreshTeam(),
+}));
 
 const CAPTURES = fakeCaptures(new Date(2026, 8, 23, 10, 14));
 const ids = (sections: { data: { id: string }[] }[]) =>
   sections.flatMap((s) => s.data.map((c) => c.id));
 
 beforeEach(() => {
+  clearReviews();
   replaceCaptures(CAPTURES);
   isOnline$.set(true);
 });
@@ -61,5 +67,27 @@ describe("useRecords", () => {
     expect(result.current.syncing).toBe(true);
     await act(() => isOnline$.set(false));
     expect(result.current.online).toBe(false);
+  });
+
+  it("lists the team's records in team scope, keeping Sync now the user's", async () => {
+    addTeamRecords([
+      {
+        summary: {
+          ...CAPTURES[0],
+          id: "team-1",
+          syncStatus: "synced",
+          capturedBy: { id: "enumerator-02", name: "Enumerator 02" },
+        },
+        record: { id: "team-1" } as never,
+      },
+    ]);
+    const { result } = await renderHook(() => useRecords("all", "team"));
+    expect(ids(result.current.sections)).toEqual(["team-1"]);
+    expect(result.current.counts.pending).toBe(0);
+    expect(result.current.ownCounts.pending).toBe(3);
+
+    await act(() => result.current.refreshTeam());
+    expect(mockRefreshTeam).toHaveBeenCalled();
+    expect(result.current.refreshing).toBe(false);
   });
 });

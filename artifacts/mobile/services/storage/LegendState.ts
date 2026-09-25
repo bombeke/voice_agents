@@ -2,6 +2,7 @@ import type { AssetCategory } from "@/constants/Colors";
 import type {
   AssetStatus,
   CaptureFlag,
+  CaptureMetadata,
   CapturedDetection,
   Functional,
 } from "@/types/Capture";
@@ -18,20 +19,7 @@ import {
   mapAssets$,
   mapPreferences$,
 } from "./AssetStore";
-import { CAPTURES_STORAGE_KEY, captures$ } from "./CaptureStore";
-import { RECORDS_STORAGE_KEY, records$ } from "./RecordStore";
-import {
-  REVIEW_DECISIONS_STORAGE_KEY,
-  REVIEW_QUEUE_STORAGE_KEY,
-  reviewDecisions$,
-  reviewQueue$,
-} from "./ReviewStore";
-import {
-  DEVICE_STATUS_STORAGE_KEY,
-  SETTINGS_STORAGE_KEY,
-  deviceStatus$,
-  settings$,
-} from "./SettingsStore";
+import { DEVICE_STATUS_STORAGE_KEY, deviceStatus$ } from "./SettingsStore";
 import type { LocalEventRecord } from "./EventStore";
 import {
   deleteCaptureImage,
@@ -106,6 +94,8 @@ export interface UtilityPole {
   linkedAssetId?: string;
   /** Saved with "Save draft": incomplete, routed to a supervisor. */
   draft?: boolean;
+  /** User id (token `sub`) of the enumerator who captured it. */
+  capturedBy?: string;
   category?: AssetCategory;
   /** Horizontal accuracy (m) of the averaged fix stamped on the record. */
   accuracy?: number;
@@ -115,6 +105,18 @@ export interface UtilityPole {
   heading?: number;
   /** Detector that produced the detection (design-doc §6.4). */
   modelVersion?: string;
+  /**
+   * The phone's own fix when the record sits at the asset's projected
+   * position (`latitude`/`longitude` are then the asset's).
+   */
+  devicePosition?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number | null;
+    altitude: number | null;
+  };
+  /** Lens, AR pose and phone fix of the photo it was detected in. */
+  captureMetadata?: CaptureMetadata;
   flags?: CaptureFlag[];
   synced: boolean;
   dhis2Id?: string;
@@ -170,8 +172,8 @@ export const auditLog$ = observable<AuditEvent[]>([]);
 //@ts-ignore
 export const authStore$ = observable<AuthType>({ kind: "basic" });
 
-/** observable for network state */
-export const isOnline$ = observable(true);
+/** Re-exported for existing imports; see NetworkState.ts. */
+export { isOnline$ } from "./NetworkState";
 
 /**
  * Stable per-install id used as this device's slot in vector clocks.
@@ -187,6 +189,12 @@ export const getDeviceId = (): string => {
   return id;
 };
 
+/**
+ * Device-wide persistence: the session store, this device's id, and the
+ * settings screen's device status and the map (see AssetStore). What a user
+ * captured or decided lives in their own database, opened at sign-in by
+ * `openUserData()` (UserData.ts).
+ */
 export function initPersistence() {
   if (configured) return;
   if (Platform.OS === "web") {
@@ -208,74 +216,6 @@ export function initPersistence() {
     syncPlugin({
       persist: {
         name: "polevision_auth_store",
-      },
-    }),
-  );
-
-  syncObservable(
-    poleVisionDB$,
-    syncPlugin({
-      persist: {
-        name: "polevision_app_db_v1",
-        mmkv: {
-          id: "polevision_poles_db",
-        },
-      },
-    }),
-  );
-  syncObservable(
-    poleVisionDBTracks$,
-    syncPlugin({
-      persist: {
-        name: "polevision_tracks",
-        mmkv: {
-          id: "polevision_tracks_db",
-        },
-      },
-    }),
-  );
-
-  syncObservable(
-    captures$,
-    syncPlugin({
-      persist: {
-        name: CAPTURES_STORAGE_KEY,
-      },
-    }),
-  );
-
-  syncObservable(
-    records$,
-    syncPlugin({
-      persist: {
-        name: RECORDS_STORAGE_KEY,
-      },
-    }),
-  );
-
-  syncObservable(
-    reviewQueue$,
-    syncPlugin({
-      persist: {
-        name: REVIEW_QUEUE_STORAGE_KEY,
-      },
-    }),
-  );
-
-  syncObservable(
-    reviewDecisions$,
-    syncPlugin({
-      persist: {
-        name: REVIEW_DECISIONS_STORAGE_KEY,
-      },
-    }),
-  );
-
-  syncObservable(
-    settings$,
-    syncPlugin({
-      persist: {
-        name: SETTINGS_STORAGE_KEY,
       },
     }),
   );
@@ -308,42 +248,6 @@ export function initPersistence() {
   );
 
   syncObservable(
-    opQueue$,
-    syncPlugin({
-      persist: {
-        name: STORAGE_OPS_KEY,
-      },
-    }),
-  );
-
-  syncObservable(
-    failedOps$,
-    syncPlugin({
-      persist: {
-        name: "polevision_failed_ops_v1",
-      },
-    }),
-  );
-
-  syncObservable(
-    eventsStore$,
-    syncPlugin({
-      persist: {
-        name: STORAGE_EVENTS_KEY,
-      },
-    }),
-  );
-
-  syncObservable(
-    auditLog$,
-    syncPlugin({
-      persist: {
-        name: "polevision_audit_log_v1",
-      },
-    }),
-  );
-
-  syncObservable(
     poleVisionDBDeviceId$,
     syncPlugin({
       persist: {
@@ -357,9 +261,8 @@ export function initPersistence() {
 
   configured = true;
 
-  // MMKV loads synchronously, so persisted values are available from here on.
+  // MMKV loads synchronously, so the persisted id is available from here on.
   getDeviceId();
-  repairLegacyState();
 }
 
 // --------- Remote (pull) ---------
@@ -741,6 +644,11 @@ const drainOpQueue = async (): Promise<ReplayResult> => {
  * Uploads queued ops in order. Concurrent callers share the same run.
  * Stops at the first retryable failure (usually offline) and leaves the rest queued.
  */
+/** Resolves once no upload is running, e.g. before another user's data opens. */
+export const settleUploads = async (): Promise<void> => {
+  await replayPromise?.catch(() => undefined);
+};
+
 export const replayOpQueue = (): Promise<ReplayResult> => {
   if (!replayPromise) {
     replayPromise = drainOpQueue().finally(() => {
@@ -915,7 +823,7 @@ export const mergeRemotePoles = (remoteRaw: unknown[]) => {
  * record (`{ 0: pole, 1: pole, ... }`) with no pid, and queued an op per edit.
  * Recover those captures and collapse the queue to one op per pole.
  */
-function repairLegacyState() {
+export function repairLegacyState() {
   if (poleVisionDB$.tombstones.peek() == null) poleVisionDB$.tombstones.set({});
 
   const poles = poleVisionDB$.poles.peek() ?? [];

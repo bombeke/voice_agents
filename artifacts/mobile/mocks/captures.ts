@@ -4,6 +4,7 @@ import type { CaptureUploader } from "@/services/sync/CaptureSync";
 import type {
   CaptureSummary,
   CaptureSyncStatus,
+  Enumerator,
   GnssStatus,
 } from "@/types/Capture";
 
@@ -143,7 +144,10 @@ export const FAKE_CAPTURE_PREFIX = "fake-capture-";
 
 export const FAKE_GNSS: GnssStatus = { bands: "L1+L5", ok: true };
 
-export function fakeCaptures(now: Date = new Date()): CaptureSummary[] {
+export function fakeCaptures(
+  now: Date = new Date(),
+  capturedBy?: Enumerator,
+): CaptureSummary[] {
   const startOfDay = new Date(now);
   startOfDay.setHours(0, 0, 0, 0);
   // Spread the rows over today, never before midnight.
@@ -156,6 +160,7 @@ export function fakeCaptures(now: Date = new Date()): CaptureSummary[] {
     id: `${FAKE_CAPTURE_PREFIX}${i + 1}`,
     capturedAt: new Date(now.getTime() - i * step).toISOString(),
     flagged: flagged ?? false,
+    ...(capturedBy ? { capturedBy } : {}),
   }));
 }
 

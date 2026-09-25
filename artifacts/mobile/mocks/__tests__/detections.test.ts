@@ -2,6 +2,7 @@ import type { CapturedPhoto } from "@/types/Capture";
 import { fakeDetectionEstimator } from "../detections";
 
 const photo = (detections: CapturedPhoto["detections"]): CapturedPhoto => ({
+  id: "photo-1",
   imageUri: "/tmp/1.jpg",
   capturedAt: 0,
   heading: null,

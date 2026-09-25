@@ -23,9 +23,11 @@ import {
 import { persistCaptureImage, toFileUri } from "@/services/storage/ImageStore";
 import type { SyncedUtilityPole } from "@/services/storage/LegendState";
 import { records$, upsertRecord } from "@/services/storage/RecordStore";
+import { currentUser$ } from "@/services/storage/UserData";
 import type { AssetCategory } from "@/constants/Colors";
 import type {
   CaptureLocation,
+  CaptureMetadata,
   CapturedDetection,
   NearbyAsset,
   TagForm,
@@ -35,45 +37,44 @@ import { randomUUID } from "expo-crypto";
 import { createAssetAsync } from "expo-media-library";
 import { useCallback } from "react";
 import { Alert } from "react-native";
-import type { CameraPhotoOutput } from "react-native-vision-camera";
 
-interface TakePhotoArgs {
-  photoOutput: CameraPhotoOutput;
-  flash: boolean;
-  location: CaptureLocation;
-  heading: number | null;
+/** A shot from either camera engine, before it joins the session. */
+export interface Shot {
+  path: string;
   detections: CapturedDetection[];
+  metadata?: CaptureMetadata;
 }
 
-async function takePhoto({
-  photoOutput,
-  flash,
-  location,
-  heading,
-  detections,
-}: TakePhotoArgs) {
+interface TakePhotoArgs {
+  /** Takes the picture: VisionCamera (CameraShot.ts) or the AR view (useArCapture). */
+  shoot: () => Promise<Shot>;
+  location: CaptureLocation;
+  heading: number | null;
+}
+
+async function takePhoto({ shoot, location, heading }: TakePhotoArgs) {
   // Read the store synchronously so a double tap can't take two shots.
   const { isCapturing, photos } = captureSession$.peek();
   if (isCapturing || photos.length >= MAX_PHOTOS) return;
   captureSession$.isCapturing.set(true);
   try {
-    const photo = await photoOutput.capturePhoto(
-      { flashMode: flash ? "on" : "off" },
-      {},
-    );
-    const path = await photo.saveToTemporaryFileAsync();
+    const { path, detections, metadata } = await shoot();
     // Also kept in the device gallery for reviewing boxes against the photo.
     if (await requestSavePermission()) {
-      await createAssetAsync(`file://${path}`, "photo").catch(() => {});
+      await createAssetAsync(toFileUri(path)!, "photo").catch(() => {});
     }
     const quality = await checkPhotoQuality(path);
+    const id = randomUUID();
     addPhoto(
       {
+        id,
         imageUri: path,
         capturedAt: Date.now(),
         heading,
-        detections,
+        // Each detection points back at the photo it was found in.
+        detections: detections.map((d) => ({ ...d, photoId: id })),
         quality,
+        ...(metadata ? { metadata } : {}),
       },
       location,
     );
@@ -196,6 +197,7 @@ export function useCaptureSession() {
           draft,
           modelVersion: DETECTOR_MODEL_VERSION,
           newId: randomUUID,
+          capturedBy: currentUser$.peek() ?? undefined,
         };
         const records = buildRecords(input);
         const saved = (await addPole(records)) as

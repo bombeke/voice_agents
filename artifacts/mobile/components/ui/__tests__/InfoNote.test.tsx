@@ -15,4 +15,17 @@ describe("InfoNote", () => {
       "3 records haven’t synced.",
     );
   });
+
+  it("leads with a bold title", async () => {
+    await render(
+      <InfoNote tone="success" title="Each asset has its own coordinates.">
+        Nothing was uploaded.
+      </InfoNote>,
+    );
+    expect(
+      screen.getByText(
+        "Each asset has its own coordinates. Nothing was uploaded.",
+      ),
+    ).toBeOnTheScreen();
+  });
 });

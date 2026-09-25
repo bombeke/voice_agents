@@ -1,4 +1,10 @@
-import { fill, formatClock, formatHeading, isSameLocalDay } from "../format";
+import {
+  fill,
+  formatClock,
+  formatCoordinates,
+  formatHeading,
+  isSameLocalDay,
+} from "../format";
 
 describe("fill", () => {
   it("replaces known placeholders and leaves unknown ones", () => {
@@ -28,5 +34,14 @@ describe("isSameLocalDay", () => {
     expect(isSameLocalDay(day, new Date(2026, 8, 23, 23, 59))).toBe(true);
     expect(isSameLocalDay(day, new Date(2026, 8, 22, 23, 59))).toBe(false);
     expect(isSameLocalDay(day, new Date(2025, 8, 23, 12))).toBe(false);
+  });
+});
+
+describe("formatCoordinates", () => {
+  it("writes hemispheres instead of signs", () => {
+    expect(formatCoordinates(0.313584, 32.581061)).toBe(
+      "0.31358 N, 32.58106 E",
+    );
+    expect(formatCoordinates(-1.2, -0.5, 2)).toBe("1.20 S, 0.50 W");
   });
 });

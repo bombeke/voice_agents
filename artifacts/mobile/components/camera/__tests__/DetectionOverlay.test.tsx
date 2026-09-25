@@ -30,14 +30,32 @@ describe("DetectionOverlay", () => {
       <DetectionOverlay
         {...common}
         labels={[
-          { trackId: 7, label: "pole", suggested: false },
-          { trackId: 8, label: "transformer", suggested: true },
+          { trackId: 7, label: "pole", confidence: 0.9, suggested: false },
+          {
+            trackId: 8,
+            label: "transformer",
+            confidence: 0.5,
+            suggested: true,
+          },
         ]}
       />,
     );
     expect(screen.getByLabelText("2 detected")).toBeTruthy();
-    expect(screen.getByText("pole · AI · high")).toBeTruthy();
-    expect(screen.getByText("transformer · suggested")).toBeTruthy();
+    expect(screen.getByText("pole · 0.90")).toBeTruthy();
+    expect(screen.getByText("transformer · 0.50")).toBeTruthy();
+  });
+
+  it("adds the inference time when it is known", async () => {
+    await render(
+      <DetectionOverlay
+        {...common}
+        inferenceMs={31}
+        labels={[
+          { trackId: 7, label: "pole", confidence: 0.91, suggested: false },
+        ]}
+      />,
+    );
+    expect(screen.getByText("pole · 0.91 · 31 ms")).toBeTruthy();
   });
 
   it("says when nothing is detected", async () => {

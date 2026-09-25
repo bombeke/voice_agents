@@ -11,6 +11,8 @@ interface RecordRowProps {
   record: CaptureSummary;
   /** Opens the record; without it the row is plain text, not a dead button. */
   onPress?: (record: CaptureSummary) => void;
+  /** Names who captured it, for a supervisor's team list. */
+  showOwner?: boolean;
 }
 
 /**
@@ -20,9 +22,10 @@ interface RecordRowProps {
 export const RecordRow = memo(function RecordRow({
   record,
   onPress,
+  showOwner = false,
 }: RecordRowProps) {
   const status = recordBadge(record);
-  const meta = formatRecordMeta(record);
+  const meta = formatRecordMeta(record, showOwner);
   const label = fill(strings.records.rowLabel, {
     title: record.title,
     meta,

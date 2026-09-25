@@ -1,7 +1,9 @@
 import type { ReviewItem, ReviewReason } from "@/types/Review";
 import {
   CATEGORY_CODES,
+  countUnsent,
   filterReviews,
+  myReviews,
   formatReviewMeta,
   formatReviewReason,
 } from "../reviewQueue";
@@ -79,5 +81,47 @@ describe("CATEGORY_CODES", () => {
       telecom: "TC",
       roads: "RD",
     });
+  });
+});
+
+describe("myReviews", () => {
+  const capture = (id: string, hour: number, flagged: boolean) => ({
+    id,
+    category: "roads" as const,
+    title: id,
+    capturedAt: new Date(2026, 8, 24, hour).toISOString(),
+    accuracyM: 3,
+    syncStatus: "synced" as const,
+    flagged,
+  });
+
+  it("lists flagged and decided captures newest first, waiting by default", () => {
+    const captures = [
+      capture("old-flagged", 8, true),
+      capture("plain", 9, false),
+      capture("new-flagged", 10, true),
+      capture("approved", 7, false),
+    ];
+    const reviews = myReviews(captures, {
+      approved: { captureId: "approved", state: "approved" },
+      "not-on-device": { captureId: "not-on-device", state: "rejected" },
+    });
+    expect(reviews.map((r) => [r.capture.id, r.status.state])).toEqual([
+      ["new-flagged", "waiting"],
+      ["old-flagged", "waiting"],
+      ["approved", "approved"],
+    ]);
+  });
+});
+
+describe("countUnsent", () => {
+  it("counts decisions the server hasn't confirmed", () => {
+    expect(
+      countUnsent({
+        a: { syncStatus: "pending" },
+        b: { syncStatus: "synced" },
+        c: { syncStatus: "failed" },
+      }),
+    ).toBe(2);
   });
 });

@@ -1,6 +1,7 @@
 import type { AssetCategory } from "@/constants/Colors";
 import { tagFormFromRecord } from "@/helpers/captureRecord";
 import { mergeDetections } from "@/helpers/captureSession";
+import { heightOf, placeFromPixel } from "@/helpers/detectionPlacement";
 import { initialDecision, reviewCategory } from "@/helpers/detectionReview";
 import { findDuplicate } from "@/helpers/duplicateCheck";
 import {
@@ -127,6 +128,14 @@ export function beginReview() {
       ...d,
       decision: before.decision,
       attributes: d.attributes.map((a) => edited.get(a.key) ?? a),
+      // A base the surveyor tapped wins over the shutter's projection.
+      ...(before.positionEdited
+        ? {
+            position: before.position,
+            heightM: before.heightM,
+            positionEdited: true,
+          }
+        : {}),
     };
   });
   captureSession$.detections.set(next);
@@ -174,6 +183,42 @@ export function setAttribute(
 }
 
 /**
+ * "Re-place by tapping the base": the surveyor tapped where the asset meets
+ * the ground on the review photo (a point in that photo's pixels). The ray
+ * through it meets the ground plane the AR session measured at the shutter
+ * (or, without AR, flat ground below the sensor attitude). False when the
+ * photo has neither pose or the ray misses the ground.
+ */
+export function replaceDetection(
+  trackId: number,
+  pixel: { x: number; y: number },
+): boolean {
+  const { detections, photos } = captureSession$.peek();
+  const detection = detections.find((d) => d.trackId === trackId);
+  const meta = photos.find((p) => p.id === detection?.photoId)?.metadata;
+  if (!detection || !meta) return false;
+  const position = placeFromPixel(meta, pixel, "ar_tap");
+  if (!position) return false;
+  const heightM = heightOf(meta, detection.box, position);
+  updateDetection(trackId, (d) => ({
+    ...d,
+    position,
+    heightM,
+    positionEdited: true,
+    attributes: d.attributes.map((a) =>
+      a.key === "estimatedHeight"
+        ? {
+            ...a,
+            value: heightM === null ? null : heightM.toFixed(1),
+            source: position.source === "sensor" ? "sensor" : "ar",
+          }
+        : a,
+    ),
+  }));
+  return true;
+}
+
+/**
  * The form for `category`: AI status suggestions and the nearest possible
  * duplicate, merged into what the surveyor already entered (if anything).
  */
@@ -183,10 +228,12 @@ function tagFormFor(
 ): TagForm {
   const { detections, location, nearby } = captureSession$.peek();
   const suggested = category ? suggestStatuses({ category, detections }) : [];
+  // The asset's own position when it was ranged, else the phone's.
+  const at = primaryDetection(detections)?.position ?? location;
   const duplicate =
-    category && location
+    category && at
       ? findDuplicate(
-          location,
+          at,
           category,
           primaryDetection(detections)?.label ?? null,
           nearby,

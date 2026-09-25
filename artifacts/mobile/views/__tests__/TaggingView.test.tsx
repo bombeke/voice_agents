@@ -40,6 +40,7 @@ let mockUuid = 0;
 jest.mock("expo-crypto", () => ({ randomUUID: () => `uuid-${++mockUuid}` }));
 
 const photo: CapturedPhoto = {
+  id: "photo-1",
   imageUri: "/tmp/1.jpg",
   capturedAt: Date.parse("2026-09-23T09:20:00Z"),
   heading: 142,

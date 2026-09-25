@@ -13,6 +13,8 @@ import type {
   CaptureRecord,
   CaptureSummary,
   CapturedPhoto,
+  DetectionPosition,
+  Enumerator,
   ReviewDetection,
   TagForm,
 } from "@/types/Capture";
@@ -25,6 +27,8 @@ export interface RecordInput {
   draft: boolean;
   modelVersion: string;
   newId: () => string;
+  /** The signed-in user; the server scopes records by it. */
+  capturedBy?: Enumerator;
 }
 
 /** The location's flags plus a new asset saved next to a possible duplicate. */
@@ -35,6 +39,30 @@ export function recordFlags({
   return form.duplicate && form.duplicateChoice === "new"
     ? [...location.flags, "duplicate_nearby"]
     : [...location.flags];
+}
+
+/** The phone's own fix, kept on a record placed at the asset's position. */
+function devicePositionOf(location: CaptureLocation) {
+  return {
+    latitude: location.latitude,
+    longitude: location.longitude,
+    accuracy: location.accuracy,
+    altitude: location.altitude,
+  };
+}
+
+/**
+ * A ranged asset's record takes the asset's position, not the phone's
+ * ("the record takes its position, not yours"). Unranged ones keep the fix.
+ */
+function assetLocation(position: DetectionPosition | null | undefined) {
+  if (!position || position.source === "device") return {};
+  return {
+    latitude: position.latitude,
+    longitude: position.longitude,
+    ...(position.accuracyM === null ? {} : { accuracy: position.accuracyM }),
+    ...(position.altitude === null ? {} : { altitude: position.altitude }),
+  };
 }
 
 /**
@@ -64,18 +92,32 @@ export function buildRecords(input: RecordInput): SyncedUtilityPole[] {
         ? form.duplicate.id
         : undefined,
     draft,
+    capturedBy: input.capturedBy?.id,
     synced: false,
   };
+  const metadataOf = (photoId?: string) =>
+    photos.find((p) => p.id === photoId)?.metadata;
   const accepted = acceptedDetections(detections);
   const records = accepted.length
-    ? accepted.map(({ decision, ...detection }) => ({
+    ? accepted.map(({ decision, positionEdited, ...detection }) => ({
         ...base,
         ...detection,
+        ...assetLocation(detection.position),
+        devicePosition: devicePositionOf(location),
+        captureMetadata: metadataOf(detection.photoId),
         detectionConfidence: detection.confidence,
         reviewStatus: decision,
         pid: newId(),
       }))
-    : [{ ...base, imageUri: first.imageUri, pid: newId() }];
+    : [
+        {
+          ...base,
+          imageUri: first.imageUri,
+          photoId: first.id,
+          captureMetadata: first.metadata,
+          pid: newId(),
+        },
+      ];
   return records as SyncedUtilityPole[];
 }
 
@@ -102,10 +144,10 @@ export function buildSummary(
   records: readonly SyncedUtilityPole[],
   input: Pick<
     RecordInput,
-    "photos" | "location" | "detections" | "form" | "draft"
+    "photos" | "location" | "detections" | "form" | "draft" | "capturedBy"
   >,
 ): CaptureSummary {
-  const { photos, location, detections, form, draft } = input;
+  const { photos, location, detections, form, draft, capturedBy } = input;
   const accepted = acceptedDetections(detections);
   const primary = accepted[0];
   const assetId =
@@ -127,6 +169,7 @@ export function buildSummary(
       draft ||
       recordFlags(input).length > 0 ||
       shouldFlag(detections, location),
+    ...(capturedBy ? { capturedBy } : {}),
   };
 }
 
@@ -156,6 +199,7 @@ export function buildRecord(
     functional: form.functional,
     comment: form.comment.trim(),
     poleIds: records.map((r) => r.pid!),
+    ...(summary.capturedBy ? { capturedBy: summary.capturedBy } : {}),
   };
 }
 

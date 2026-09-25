@@ -71,6 +71,7 @@ describe("mergeDetections", () => {
       detections: CapturedDetection[],
       imageUri: string,
     ): CapturedPhoto => ({
+      id: imageUri,
       imageUri,
       capturedAt: 0,
       heading: null,

@@ -2,14 +2,16 @@ import { MMKVProvider } from "@/components/MmkvContext";
 import { fontAssets } from "@/constants/theme";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { devMocks } from "@/mocks";
-import { AuthProvider } from "@/providers/AuthProvider";
+import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { DetectorModelProvider } from "@/providers/DetectorModelProvider";
 import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
 import { queryClient } from "@/services/Api";
+import { installSessionRefresh } from "@/services/auth/SessionRefresh";
 import { BackendSyncObserver } from "@/services/storage/BackendSyncObserver";
 import { initPersistence } from "@/services/storage/LegendState";
 import { OpQueueReplayObserver } from "@/services/storage/OpQueueReplayObserver";
 import { createUserStorage } from "@/services/storage/Storage";
+import { ReviewSyncObserver } from "@/services/sync/ReviewSyncObserver";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -42,9 +44,26 @@ export function RootLayoutNav() {
   );
 }
 
+/**
+ * Upload and pull only while someone is signed in: the queues open are that
+ * user's, so they always go up with their owner's token.
+ */
+function SignedInSync() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return null;
+  return (
+    <>
+      <BackendSyncObserver />
+      <OpQueueReplayObserver />
+      <ReviewSyncObserver />
+    </>
+  );
+}
+
 const userId = "mmkv_user_app";
 const storage = createUserStorage(userId);
 initPersistence();
+installSessionRefresh();
 // Dev-only fake API; `devMocks` is null in release bundles (metro.config.js).
 devMocks?.install();
 
@@ -75,8 +94,7 @@ export default function RootLayout() {
                   <SafeAreaListener
                     onChange={({ insets }) => Uniwind.updateInsets(insets)}
                   >
-                    <BackendSyncObserver />
-                    <OpQueueReplayObserver />
+                    <SignedInSync />
                     <RootLayoutNav />
                   </SafeAreaListener>
                 </SafeAreaProvider>

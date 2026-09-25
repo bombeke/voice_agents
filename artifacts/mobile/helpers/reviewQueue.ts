@@ -1,7 +1,9 @@
 import type { AssetCategory } from "@/constants/Colors";
 import { strings } from "@/constants/Strings";
 import { fill, formatClock, isSameLocalDay } from "@/helpers/format";
+import type { CaptureSummary } from "@/types/Capture";
 import type {
+  MyReviewStatus,
   RejectReason,
   ReviewItem,
   ReviewReason,
@@ -67,7 +69,7 @@ export function formatReviewReason(reason: ReviewReason): string {
 }
 
 /** "today 09:20", "yesterday", or "Mon 21 Sept". */
-function formatWhen(at: Date, now: Date): string {
+export function formatReviewWhen(at: Date, now: Date = new Date()): string {
   if (isSameLocalDay(at, now)) {
     return fill(strings.review.today, { time: formatClock(at) });
   }
@@ -88,7 +90,7 @@ export function formatReviewMeta(
 ): string {
   return fill(strings.review.meta, {
     enumerator: item.enumerator,
-    when: formatWhen(new Date(item.capturedAt), now),
+    when: formatReviewWhen(new Date(item.capturedAt), now),
   });
 }
 
@@ -99,3 +101,41 @@ export const CATEGORY_CODES: Record<AssetCategory, string> = {
   telecom: "TC",
   roads: "RD",
 };
+
+/** One of the user's own records that went to a supervisor, and its verdict. */
+export interface MyReview {
+  capture: CaptureSummary;
+  status: MyReviewStatus;
+}
+
+/**
+ * The user's routed records, newest first: every flagged capture (waiting
+ * until the server says otherwise) and any capture the server has a verdict
+ * for. A verdict for a capture not on this device is left out.
+ */
+export function myReviews(
+  captures: readonly CaptureSummary[],
+  statuses: Readonly<Record<string, MyReviewStatus>>,
+): MyReview[] {
+  return captures
+    .filter((c) => c.flagged || statuses[c.id])
+    .map((capture) => ({
+      capture,
+      status: statuses[capture.id] ?? {
+        captureId: capture.id,
+        state: "waiting" as const,
+      },
+    }))
+    .sort(
+      (a, b) =>
+        Date.parse(b.capture.capturedAt) - Date.parse(a.capture.capturedAt),
+    );
+}
+
+/** Items decided on this device that the server hasn't confirmed yet. */
+export function countUnsent(
+  decisions: Readonly<Record<string, { syncStatus: string }>>,
+): number {
+  return Object.values(decisions).filter((d) => d.syncStatus !== "synced")
+    .length;
+}

@@ -46,6 +46,9 @@ export const palette = {
   gpsLocked: "#5FD08A",
   gpsConfirming: "#F5C04A",
   gpsAcquiring: "#F2A65A",
+  /** Bottom sheet of the camera (design/screens/Camera.png). */
+  cameraSheet: "#15362F",
+  cameraSheetBorder: "#2C4F46",
 } as const;
 
 /** `ink` is the darker shade used for headings on the tile background. */

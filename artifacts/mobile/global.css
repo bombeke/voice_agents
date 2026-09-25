@@ -58,6 +58,8 @@
   --color-gps-locked: #5fd08a;
   --color-gps-confirming: #f5c04a;
   --color-gps-acquiring: #f2a65a;
+  --color-camera-sheet: #15362f;
+  --color-camera-sheet-border: #2c4f46;
 
   /* One family per weight; never combine with font-bold etc. */
   --font-display: Archivo_800ExtraBold;

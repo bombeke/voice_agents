@@ -1,4 +1,5 @@
 import { DRAFT_OFFER_AFTER_MS } from "@/constants/Capture";
+import { isARSupportedOnDevice } from "@reactvision/react-viro";
 import {
   expoLocationSource,
   setGnssSource,
@@ -22,6 +23,8 @@ const mockRouter = {
   canGoBack: () => true,
 };
 jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
+// The AR frame decoder imports Skia; these tests run without AR frames.
+jest.mock("@shopify/react-native-skia", () => ({ Skia: {} }));
 jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 
 jest.mock("@/providers/UtilityStoreProvider", () => ({
@@ -70,7 +73,56 @@ jest.mock("@/hooks/useLiveDetection", () => ({
     frameSize: null,
     status: mockDetection.status,
     downloadProgress: mockDetection.downloadProgress,
+    inferenceMs: 31,
     snapshot: () => mockDetection.snapshot,
+  }),
+}));
+
+/** The AR engine, for devices with ARCore / ARKit. */
+const mockAr = {
+  tracking: "limited" as "normal" | "limited" | "unavailable",
+  target: null as null | {
+    trackId: number;
+    hit: { type: string; position: [number, number, number] };
+    source: "ar_auto" | "ar_tap";
+    distanceM: number;
+  },
+  placing: false,
+  setPlacing: jest.fn(),
+  shoot: jest.fn(async () => ({
+    path: "/tmp/ar.jpg",
+    detections: [],
+    metadata: undefined,
+  })),
+};
+jest.mock("@/hooks/useArCapture", () => ({
+  ...jest.requireActual("@/hooks/useArCapture"),
+  useArCapture: () => ({
+    bridge: {
+      pose: {
+        position: [0, 1.5, 0],
+        rotation: [0, 0, 0],
+        forward: [0, 0, -1],
+        up: [0, 1, 0],
+        timestamp: 0,
+      },
+      tracking$: { peek: () => mockAr.tracking },
+    },
+    tracks: { value: [] },
+    trackLabels: [
+      { trackId: 1, label: "pole", confidence: 0.91, suggested: false },
+    ],
+    frameSize: null,
+    status: "ready",
+    downloadProgress: 100,
+    inferenceMs: 31,
+    tracking: mockAr.tracking,
+    target: mockAr.target,
+    placing: mockAr.placing,
+    setPlacing: mockAr.setPlacing,
+    placeAt: jest.fn(),
+    onViewport: jest.fn(),
+    shoot: mockAr.shoot,
   }),
 }));
 
@@ -95,6 +147,8 @@ beforeEach(() => {
   mockCamera.device = { id: "back", position: "back" };
   mockDetection.status = "ready";
   mockDetection.snapshot = [];
+  mockAr.tracking = "limited";
+  mockAr.target = null;
   setGnssSource({
     start: async (l) => {
       listener = l;
@@ -136,7 +190,9 @@ describe("CaptureView", () => {
     ).toBeDisabled();
 
     await lockGps();
-    expect(screen.getByText("Location locked")).toBeTruthy();
+    expect(
+      screen.getByRole("summary", { name: /^Location locked\. ± 2\.8 m/ }),
+    ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Take photo" })).toBeEnabled();
   });
 
@@ -214,5 +270,79 @@ describe("CaptureView", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  describe("with AR", () => {
+    beforeEach(() => {
+      jest
+        .mocked(isARSupportedOnDevice)
+        .mockResolvedValue({ isARSupported: true });
+    });
+    afterEach(() =>
+      jest
+        .mocked(isARSupportedOnDevice)
+        .mockResolvedValue({ isARSupported: false }),
+    );
+
+    it("keeps the shutter locked until AR has mapped the ground", async () => {
+      await render(<CaptureView category="energy" />);
+      await lockGps();
+      expect(screen.getByText("AR mapping…")).toBeTruthy();
+      expect(
+        screen.getByText(
+          "Move the phone slowly over the ground to start AR ranging",
+        ),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole("button", {
+          name: "Take photo — locked until AR has mapped the ground",
+        }),
+      ).toBeDisabled();
+      // The AR view can't flash.
+      expect(screen.queryByRole("switch", { name: "Flash off" })).toBeNull();
+    });
+
+    it("ranges the locked asset and shoots the AR view", async () => {
+      mockAr.tracking = "normal";
+      mockAr.target = {
+        trackId: 1,
+        hit: { type: "ExistingPlaneUsingExtent", position: [0, 0, -12.4] },
+        source: "ar_auto",
+        distanceM: 12.4,
+      };
+      await render(<CaptureView category="energy" />);
+      await lockGps();
+      // Without a compass the sheet can only show the phone's own fix.
+      expect(screen.getByText(/^Your position · ±/)).toBeTruthy();
+      await act(() => listener!.onHeading(142));
+
+      expect(screen.getByText("AR tracked")).toBeTruthy();
+      expect(screen.getByText("12.4 m")).toBeTruthy();
+      expect(
+        screen.getByText(
+          "Pole at 12.4 m — the record takes its position, not yours",
+        ),
+      ).toBeTruthy();
+      expect(screen.getByText(/^Asset position · ±/)).toBeTruthy();
+
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Place by tap" }),
+      );
+      expect(mockAr.setPlacing).toHaveBeenCalledWith(true);
+
+      await fireEvent.press(screen.getByRole("button", { name: "Take photo" }));
+      await waitFor(() =>
+        expect(captureSession$.photos.peek()).toHaveLength(1),
+      );
+      expect(mockAr.shoot).toHaveBeenCalledWith(
+        expect.objectContaining({
+          location: expect.objectContaining({
+            latitude: expect.closeTo(0.3476),
+          }),
+          heading: 142,
+        }),
+      );
+      expect(captureSession$.photos.peek()[0].imageUri).toBe("/tmp/ar.jpg");
+    });
   });
 });

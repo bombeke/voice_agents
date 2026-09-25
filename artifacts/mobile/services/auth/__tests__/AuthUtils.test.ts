@@ -39,6 +39,13 @@ describe("hasPerm", () => {
     expect(hasPerm(claims, "admin:read")).toBe(false);
   });
 
+  it("includes what the roles imply", () => {
+    const supervisor = { roles: ["supervisor"], permissions: [] } as any;
+    expect(hasPerm(supervisor, "records:review")).toBe(true);
+    expect(hasPerm(supervisor, "records:read:own")).toBe(true);
+    expect(hasPerm(supervisor, "admin:read")).toBe(false);
+  });
+
   it("is false without claims or a permission list", () => {
     expect(hasPerm(null, "agents:view")).toBe(false);
     expect(hasPerm({} as any, "agents:view")).toBe(false);

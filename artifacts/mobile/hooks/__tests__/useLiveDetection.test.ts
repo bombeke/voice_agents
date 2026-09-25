@@ -65,8 +65,14 @@ describe("useLiveDetection", () => {
     detect.mockReturnValue([pole(104)]);
     await act(async () => mockOnFrame!(frame()));
     expect(result.current.trackLabels).toEqual([
-      { trackId: expect.any(Number), label: "pole", suggested: false },
+      {
+        trackId: expect.any(Number),
+        label: "pole",
+        confidence: 0.9,
+        suggested: false,
+      },
     ]);
+    expect(result.current.inferenceMs).toEqual(expect.any(Number));
     expect(result.current.frameSize).toEqual({ width: 1080, height: 1920 });
     expect(result.current.status).toBe("ready");
   });

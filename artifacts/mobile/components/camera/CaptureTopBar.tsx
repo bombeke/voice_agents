@@ -17,7 +17,8 @@ interface CaptureTopBarProps {
   category: CaptureCategory;
   flash: boolean;
   onClose: () => void;
-  onToggleFlash: () => void;
+  /** Left out when the camera can't flash (the AR view). */
+  onToggleFlash?: () => void;
 }
 
 /** Close, the chosen category, and the flash toggle over the preview. */
@@ -44,31 +45,35 @@ export function CaptureTopBar({
 
       <View
         accessibilityRole="text"
-        className={`h-8 px-3 rounded-2xl flex-row items-center gap-1.5 ${PILL[category]}`}
+        className={`h-11 px-5 rounded-pill-button flex-row items-center gap-2 ${PILL[category]}`}
       >
         <Icon
           name={category === "auto" ? "crosshair" : category}
-          size={16}
+          size={18}
           color={colors.surface}
         />
-        <Text className="type-chip text-[13px] text-white">{label}</Text>
+        <Text className="type-body-strong text-white">{label}</Text>
       </View>
 
-      <Pressable
-        onPress={onToggleFlash}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: flash }}
-        accessibilityLabel={
-          flash ? strings.capture.flashOn : strings.capture.flashOff
-        }
-        className="w-11 h-11 rounded-pill-button bg-camera/60 items-center justify-center active:opacity-80"
-      >
-        <Icon
-          name={flash ? "flash" : "flash-off"}
-          size={20}
-          color={colors.surface}
-        />
-      </Pressable>
+      {onToggleFlash ? (
+        <Pressable
+          onPress={onToggleFlash}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: flash }}
+          accessibilityLabel={
+            flash ? strings.capture.flashOn : strings.capture.flashOff
+          }
+          className="w-11 h-11 rounded-pill-button bg-camera/60 items-center justify-center active:opacity-80"
+        >
+          <Icon
+            name={flash ? "flash" : "flash-off"}
+            size={20}
+            color={colors.surface}
+          />
+        </Pressable>
+      ) : (
+        <View className="w-11 h-11" />
+      )}
     </View>
   );
 }

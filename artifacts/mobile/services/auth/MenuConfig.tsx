@@ -1,5 +1,6 @@
 import type { IconName } from "@/components/ui/Icons";
 import { strings } from "@/constants/Strings";
+import { PERMISSIONS } from "./Roles";
 
 export type MenuItem = {
   key: string;
@@ -48,8 +49,8 @@ export const MENU_CONFIG: MenuItem[] = [
     tab: "review",
     href: "/(tabs)/review",
     icon: "review",
-    // Supervisors (and admins) only.
-    permission: "records:review",
+    // Enumerators see their own records' status; supervisors also the team.
+    permission: PERMISSIONS.REVIEW_READ_OWN,
   },
 
   // TODO: `app/(admin)` currently contains only `_layout.tsx` files and no

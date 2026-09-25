@@ -25,6 +25,8 @@ export interface CaptureAccuracyGate {
   averaged: AveragedFix | null;
   /** Degrees from true north; null without a compass reading. */
   heading: number | null;
+  /** True minus magnetic north, degrees; null until the platform reports it. */
+  declination: number | null;
   /** Epoch ms when the gate started waiting; drives the "save as draft" offer. */
   startedAt: number;
   error: string | null;
@@ -47,6 +49,7 @@ function reducer(state: GateState, action: Action): GateState {
 export function useCaptureAccuracyGate(enabled = true): CaptureAccuracyGate {
   const [gate, dispatch] = useReducer(reducer, INITIAL_GATE_STATE);
   const [heading, setHeading] = useState<number | null>(null);
+  const [declination, setDeclination] = useState<number | null>(null);
   const [failure, setFailure] = useState<{
     kind: "denied" | "error";
     message: string | null;
@@ -66,8 +69,13 @@ export function useCaptureAccuracyGate(enabled = true): CaptureAccuracyGate {
         onFix: (fix) => {
           if (!cancelled) dispatch({ type: "fix", fix });
         },
-        onHeading: (degrees) => {
-          if (!cancelled) setHeading(degrees);
+        onHeading: (degrees, declinationDeg) => {
+          if (cancelled) return;
+          setHeading(degrees);
+          // Rounded, so the capture screen only re-renders when it changes.
+          if (declinationDeg != null) {
+            setDeclination(Math.round(declinationDeg * 10) / 10);
+          }
         },
         onError: (kind, message) => {
           if (!cancelled) setFailure({ kind, message: message ?? null });
@@ -104,6 +112,7 @@ export function useCaptureAccuracyGate(enabled = true): CaptureAccuracyGate {
     latest: gate.latest,
     averaged,
     heading,
+    declination,
     startedAt,
     error: failure?.message ?? null,
   };

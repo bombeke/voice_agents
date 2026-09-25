@@ -3,6 +3,8 @@ import { fakeCaptures } from "@/mocks/captures";
 import { fakeRecords } from "@/mocks/records";
 import { replaceCaptures } from "@/services/storage/CaptureStore";
 import { replaceRecords } from "@/services/storage/RecordStore";
+import { addTeamRecords, clearReviews } from "@/services/storage/ReviewStore";
+import { fakeRecordFor } from "@/mocks/records";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { RecordDetailView } from "../RecordDetailView";
 
@@ -26,6 +28,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   replaceCaptures(CAPTURES);
   replaceRecords(fakeRecords(CAPTURES, fakeMapAssets(NOW)));
+  clearReviews();
 });
 
 describe("RecordDetailView", () => {
@@ -106,5 +109,39 @@ describe("RecordDetailView", () => {
       screen.getByRole("button", { name: "Back to records" }),
     );
     expect(mockRouter.back).toHaveBeenCalled();
+  });
+
+  it("opens a downloaded team record read-only, naming who captured it", async () => {
+    const capturedBy = { id: "enumerator-04", name: "Enumerator 04" };
+    const summary = {
+      ...CAPTURES[4],
+      id: "team-record-3",
+      title: "Transformer",
+      capturedBy,
+    };
+    const { assetId: _assetId, ...noAsset } = summary;
+    addTeamRecords([
+      {
+        summary: noAsset,
+        record: {
+          ...fakeRecordFor(noAsset, fakeMapAssets(NOW), 2),
+          capturedBy,
+        },
+      },
+    ]);
+    await render(<RecordDetailView id="team-record-3" />);
+    expect(
+      screen.getByRole("header", { name: "Transformer" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("Captured by Enumerator 04")).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Edit record" })).toBeNull();
+  });
+
+  it("names nobody on the user's own record, and lets them edit it", async () => {
+    await render(<RecordDetailView id="fake-capture-1" />);
+    expect(screen.queryByText(/^Captured by /)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Edit record" }),
+    ).toBeOnTheScreen();
   });
 });

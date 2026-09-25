@@ -2,7 +2,6 @@ import { API_URL } from "@/constants/Config";
 import { QueryClient } from "@tanstack/react-query";
 import type { InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
-import { refreshSession } from "./auth/AuthService";
 import { getToken } from "./auth/AuthStorage";
 //import { attachDeviceAuth } from "./auth/AxiosDeviceAuth";
 
@@ -96,18 +95,8 @@ export async function refreshOAuthToken() {
 }
 */
 
-axiosClient.interceptors.response.use(
-  (r) => r,
-  async (error) => {
-    // Auth endpoints answer 401 for bad credentials; refreshing can't help.
-    const isAuthCall = String(error.config?.url ?? "").startsWith("/auth/");
-    if (error.response?.status === 401 && !isAuthCall) {
-      const ok = await refreshSession();
-      if (ok) return axiosClient(error.config);
-    }
-    throw error;
-  },
-);
+// The 401 → refresh → retry interceptor lives in `auth/SessionRefresh.ts`
+// (installed from the root layout) so this module doesn't import AuthService.
 
 axiosClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
