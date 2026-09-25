@@ -11,6 +11,7 @@ import {
   editRecord,
   rejectDetection,
   removePhoto,
+  replaceDetection,
   resetSession,
   setAttribute,
   setComment,
@@ -23,6 +24,7 @@ import {
 } from "@/services/storage/CaptureSessionStore";
 import type {
   CaptureLocation,
+  CaptureMetadata,
   CapturedDetection,
   CapturedPhoto,
   NearbyAsset,
@@ -52,6 +54,7 @@ const photo = (
   imageUri: string,
   detections: CapturedDetection[] = [],
 ): CapturedPhoto => ({
+  id: imageUri,
   imageUri,
   capturedAt: 0,
   heading: null,
@@ -101,9 +104,9 @@ describe("CaptureSessionStore", () => {
     expect(first.attributes.map((a) => a.key)).toEqual([
       "material",
       "inclination",
+      "estimatedHeight",
       "estimatedAge",
       "vegetationCover",
-      "countInFrame",
       "distanceFromRoad",
     ]);
   });
@@ -131,14 +134,14 @@ describe("CaptureSessionStore", () => {
   it("makes a corrected value the surveyor's", () => {
     addPhoto(photo("/tmp/1.jpg", [detection(1, 0.91)]), LOCATION);
     beginReview();
-    setAttribute(1, "countInFrame", "3");
+    setAttribute(1, "vegetationCover", "heavy");
     expect(
       captureSession$.detections
         .peek()[0]
-        .attributes.find((a) => a.key === "countInFrame"),
+        .attributes.find((a) => a.key === "vegetationCover"),
     ).toEqual({
-      key: "countInFrame",
-      value: "3",
+      key: "vegetationCover",
+      value: "heavy",
       source: "user",
       confidence: null,
     });
@@ -151,7 +154,7 @@ describe("CaptureSessionStore", () => {
     );
     beginReview();
     rejectDetection(1);
-    setAttribute(1, "countInFrame", "2");
+    setAttribute(1, "vegetationCover", "partial");
 
     addPhoto(photo("/tmp/2.jpg", [detection(3, 0.8)]), LOCATION);
     beginReview();
@@ -163,7 +166,7 @@ describe("CaptureSessionStore", () => {
     expect(
       captureSession$.detections
         .peek()[0]
-        .attributes.find((a) => a.key === "countInFrame")?.source,
+        .attributes.find((a) => a.key === "vegetationCover")?.source,
     ).toBe("user");
   });
 
@@ -329,5 +332,75 @@ describe("CaptureSessionStore tagging", () => {
     });
     startSession("energy");
     expect(captureSession$.editingId.peek()).toBeNull();
+  });
+
+  describe("replaceDetection", () => {
+    const METADATA: CaptureMetadata = {
+      engine: "ar",
+      intrinsics: {
+        width: 1000,
+        height: 2000,
+        focalLengthPx: 1000,
+        focalLengthMm: null,
+        horizontalFovDeg: null,
+      },
+      device: {
+        latitude: 0.3476,
+        longitude: 32.5825,
+        altitude: 1190,
+        accuracy: 2.8,
+        altitudeAccuracy: null,
+        heading: 0,
+        pitchDeg: 0,
+        rollDeg: 0,
+      },
+      ar: {
+        position: [0, 1.5, 0],
+        rotation: [0, 0, 0],
+        forward: [0, 0, -1],
+        up: [0, 1, 0],
+        trackingState: "normal",
+        timestamp: 0,
+      },
+      cameraHeightM: 1.5,
+      detector: { model: "YOLO26n", inferenceMs: 31 },
+    };
+
+    function reviewWithMetadata() {
+      addPhoto(
+        {
+          ...photo("/tmp/1.jpg", [
+            { ...detection(1, 0.91), photoId: "/tmp/1.jpg" },
+          ]),
+          metadata: METADATA,
+        },
+        LOCATION,
+      );
+      beginReview();
+    }
+
+    it("re-projects the tapped base onto the measured ground", () => {
+      reviewWithMetadata();
+      expect(replaceDetection(1, { x: 500, y: 2000 })).toBe(true);
+      const [d] = captureSession$.detections.peek();
+      expect(d.positionEdited).toBe(true);
+      expect(d.position).toMatchObject({
+        source: "ar_tap",
+        distanceM: expect.closeTo(1.5),
+        bearingDeg: expect.closeTo(0),
+      });
+
+      // Reviewing again keeps the surveyor's placement.
+      beginReview();
+      expect(captureSession$.detections.peek()[0].position?.source).toBe(
+        "ar_tap",
+      );
+    });
+
+    it("refuses a point above the horizon or a photo without AR", () => {
+      reviewWithMetadata();
+      expect(replaceDetection(1, { x: 500, y: 100 })).toBe(false);
+      expect(replaceDetection(9, { x: 500, y: 2000 })).toBe(false);
+    });
   });
 });

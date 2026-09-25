@@ -2,6 +2,7 @@ import type { AssetCategory } from "@/constants/Colors";
 import type {
   AssetStatus,
   CaptureFlag,
+  CaptureMetadata,
   CapturedDetection,
   Functional,
 } from "@/types/Capture";
@@ -104,6 +105,18 @@ export interface UtilityPole {
   heading?: number;
   /** Detector that produced the detection (design-doc §6.4). */
   modelVersion?: string;
+  /**
+   * The phone's own fix when the record sits at the asset's projected
+   * position (`latitude`/`longitude` are then the asset's).
+   */
+  devicePosition?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number | null;
+    altitude: number | null;
+  };
+  /** Lens, AR pose and phone fix of the photo it was detected in. */
+  captureMetadata?: CaptureMetadata;
   flags?: CaptureFlag[];
   synced: boolean;
   dhis2Id?: string;

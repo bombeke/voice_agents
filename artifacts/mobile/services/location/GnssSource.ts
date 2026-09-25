@@ -10,8 +10,11 @@ import {
 /** Receives a GNSS stream; see useCaptureAccuracyGate. */
 export interface GnssListener {
   onFix(fix: GnssFix): void;
-  /** Degrees from true north (magnetic north when true north is unknown). */
-  onHeading(degrees: number): void;
+  /**
+   * Degrees from true north (magnetic north when true north is unknown), and
+   * the declination (true − magnetic) when the platform knows it.
+   */
+  onHeading(degrees: number, declinationDeg?: number | null): void;
   onError(kind: "denied" | "error", message?: string): void;
 }
 
@@ -40,6 +43,11 @@ export function toGnssFix(location: LocationObject): GnssFix {
   };
 }
 
+/** True minus magnetic heading, −180…180. */
+export function declinationFrom(trueHeading: number, magHeading: number) {
+  return ((((trueHeading - magHeading) % 360) + 540) % 360) - 180;
+}
+
 /** The device's fused location at the highest accuracy it offers (§5.1). */
 export const expoLocationSource: GnssSource = {
   async start(listener) {
@@ -59,7 +67,12 @@ export const expoLocationSource: GnssSource = {
       );
       // Heading is optional: devices without a compass still capture.
       const heading = await watchHeadingAsync(({ trueHeading, magHeading }) =>
-        listener.onHeading(trueHeading >= 0 ? trueHeading : magHeading),
+        trueHeading >= 0
+          ? listener.onHeading(
+              trueHeading,
+              declinationFrom(trueHeading, magHeading),
+            )
+          : listener.onHeading(magHeading, null),
       ).catch(() => null);
       return () => {
         position.remove();

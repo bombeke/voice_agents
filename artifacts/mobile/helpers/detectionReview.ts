@@ -154,3 +154,22 @@ export function photoRect(
     height: (box.ymax - box.ymin) * height,
   };
 }
+
+/**
+ * The inverse of photoRect for a point: a tap on a view showing the photo
+ * with resizeMode="contain" → fractions (0–1) of the photo; null when the tap
+ * fell on the letterbox.
+ */
+export function viewToPhotoFraction(
+  point: { x: number; y: number },
+  photo: Size,
+  view: Size,
+): { x: number; y: number } | null {
+  if (photo.width <= 0 || photo.height <= 0) return null;
+  const scale = Math.min(view.width / photo.width, view.height / photo.height);
+  const width = photo.width * scale;
+  const height = photo.height * scale;
+  const x = (point.x - (view.width - width) / 2) / width;
+  const y = (point.y - (view.height - height) / 2) / height;
+  return x < 0 || x > 1 || y < 0 || y > 1 ? null : { x, y };
+}

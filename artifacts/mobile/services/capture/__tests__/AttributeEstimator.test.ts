@@ -12,6 +12,7 @@ const detection = (trackId: number, label: string): CapturedDetection => ({
 });
 
 const photo: CapturedPhoto = {
+  id: "photo-1",
   imageUri: "/tmp/1.jpg",
   capturedAt: 0,
   heading: null,
@@ -58,5 +59,31 @@ describe("estimateDetections", () => {
     expect(
       estimateDetections({ merged, photos: [photo], category: "roads" }),
     ).toHaveLength(1);
+  });
+
+  it("reports the AR-measured height, or that it wasn't measured", () => {
+    const pole = { ...detection(3, "pole"), heightM: 9.23 };
+    const [measured] = estimateDetections({
+      merged: [{ detection: pole, photo }],
+      photos: [photo],
+      category: "energy",
+    });
+    expect(
+      measured.attributes.find((a) => a.key === "estimatedHeight"),
+    ).toEqual({
+      key: "estimatedHeight",
+      value: "9.2",
+      source: "ar",
+      confidence: null,
+    });
+
+    const [unmeasured] = estimateDetections({
+      merged: [{ detection: detection(3, "pole"), photo }],
+      photos: [photo],
+      category: "energy",
+    });
+    expect(
+      unmeasured.attributes.find((a) => a.key === "estimatedHeight")?.value,
+    ).toBeNull();
   });
 });

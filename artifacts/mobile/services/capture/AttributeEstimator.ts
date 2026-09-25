@@ -22,8 +22,8 @@ export interface EstimateInput {
 export type DetectionEstimator = (input: EstimateInput) => ReviewDetection[];
 
 /**
- * The attribute rows for one detection. Only the count is known on the device
- * today; the tier 2 heads and the cloud VLM (design-doc §6.1) fill the rest
+ * The attribute rows for one detection. Only the count and the AR-measured
+ * height are known on the device today; the tier 2 heads and the cloud VLM (design-doc §6.1) fill the rest
  * after sync, and the distance from the main road is a GIS computation.
  */
 export function baseAttributes(
@@ -34,6 +34,17 @@ export function baseAttributes(
   return keys.map((key): DetectionAttribute => {
     if (key === "distanceFromRoad") {
       return { key, value: null, source: "gis", confidence: null };
+    }
+    if (key === "estimatedHeight") {
+      // Measured from the ground point and the box top (detectionPlacement):
+      // the AR hit, or the sensors' ground-plane range without AR.
+      const height = detection.heightM;
+      return {
+        key,
+        value: height == null ? null : height.toFixed(1),
+        source: detection.position?.source === "sensor" ? "sensor" : "ar",
+        confidence: null,
+      };
     }
     if (key === "countInFrame") {
       const count = photo.detections.filter(

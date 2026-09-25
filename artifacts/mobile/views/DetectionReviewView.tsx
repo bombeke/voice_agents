@@ -1,13 +1,14 @@
 import { AttributePicker } from "@/components/camera/AttributePicker";
 import { CaptureStepHeader } from "@/components/camera/CaptureStepHeader";
 import { DetectionCard } from "@/components/camera/DetectionCard";
+import { ReplaceBaseSheet } from "@/components/camera/ReplaceBaseSheet";
 import {
   ReviewPhoto,
   type NumberedDetection,
 } from "@/components/camera/ReviewPhoto";
 import { Button } from "@/components/ui/Button";
 import { InfoNote } from "@/components/ui/InfoNote";
-import { DETECTOR_MODEL_VERSION } from "@/constants/DetectorModel";
+import { DETECTOR_MODEL_NAME } from "@/constants/DetectorModel";
 import { strings } from "@/constants/Strings";
 import { mostDetectedPhoto, reviewCategory } from "@/helpers/detectionReview";
 import { fill } from "@/helpers/format";
@@ -17,14 +18,20 @@ import {
   acceptDetection,
   captureSession$,
   rejectDetection,
+  replaceDetection,
   setAttribute,
   undoRejection,
 } from "@/services/storage/CaptureSessionStore";
-import type { AttributeKey } from "@/types/Capture";
+import type { AttributeKey, CaptureMetadata } from "@/types/Capture";
 import { useSelector } from "@legendapp/state/react";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
+
+/** A photo can be re-placed on when it has a pose to cast rays from. */
+function canReplace(meta: CaptureMetadata | undefined) {
+  return !!(meta?.ar || meta?.sensor);
+}
 
 /**
  * Capture step 2 of 3 (design/screens/Review AI detections.png): the photo
@@ -32,6 +39,7 @@ import { ScrollView, View } from "react-native";
  * rejects suggestions and corrects attributes, then continues to tagging
  * (/capture/tag).
  */
+
 export function DetectionReviewView() {
   const router = useRouter();
   const session = useCaptureSession();
@@ -42,6 +50,7 @@ export function DetectionReviewView() {
     // Only the first card starts open, as in the mockup.
     () => new Set(detections.slice(1).map((d) => d.trackId)),
   );
+  const [replacing, setReplacing] = useState<number | null>(null);
   const [editing, setEditing] = useState<{
     trackId: number;
     key: AttributeKey;
@@ -56,6 +65,28 @@ export function DetectionReviewView() {
     [detections, session.photos],
   );
   const resolvedCategory = reviewCategory(category, detections);
+  const metadataById = useMemo(
+    () =>
+      new Map<string, CaptureMetadata>(
+        session.photos.flatMap((p) =>
+          p.metadata ? [[p.id, p.metadata] as const] : [],
+        ),
+      ),
+    [session.photos],
+  );
+  const photoMetadata = useMemo(() => {
+    const shown = session.photos.find((p) => p.imageUri === photoUri);
+    return shown?.metadata ?? null;
+  }, [session.photos, photoUri]);
+  // The design's green note: shown once anything was ranged on the phone.
+  const ranged = detections.some(
+    (d) => d.position && d.position.source !== "device",
+  );
+  const replacingDetection =
+    detections.find((d) => d.trackId === replacing) ?? null;
+  const replacingMetadata = replacingDetection?.photoId
+    ? metadataById.get(replacingDetection.photoId)
+    : undefined;
   const editingAttribute = editing
     ? (detections
         .find((d) => d.trackId === editing.trackId)
@@ -79,8 +110,9 @@ export function DetectionReviewView() {
       ? strings.categories[resolvedCategory].label
       : strings.capture.review.autoCategory,
     count: detections.length,
-    model: DETECTOR_MODEL_VERSION,
+    model: DETECTOR_MODEL_NAME,
   });
+  const inferenceMs = photoMetadata?.detector.inferenceMs ?? null;
 
   return (
     <View className="flex-1 bg-background">
@@ -103,6 +135,16 @@ export function DetectionReviewView() {
         ) : null}
 
         <View className="px-4 pt-4 gap-2.5">
+          {ranged ? (
+            <InfoNote
+              tone="success"
+              title={strings.capture.review.onDeviceTitle}
+            >
+              {inferenceMs === null
+                ? strings.capture.review.onDeviceUntimed
+                : fill(strings.capture.review.onDevice, { ms: inferenceMs })}
+            </InfoNote>
+          ) : null}
           {numbered.length === 0 ? (
             <InfoNote>{strings.capture.review.noneFound}</InfoNote>
           ) : null}
@@ -118,6 +160,17 @@ export function DetectionReviewView() {
               onUndo={() => undoRejection(detection.trackId)}
               onEditAttribute={(key) =>
                 setEditing({ trackId: detection.trackId, key })
+              }
+              metadata={
+                detection.photoId
+                  ? metadataById.get(detection.photoId)
+                  : undefined
+              }
+              onReplace={
+                detection.photoId &&
+                canReplace(metadataById.get(detection.photoId))
+                  ? () => setReplacing(detection.trackId)
+                  : undefined
               }
             />
           ))}
@@ -137,6 +190,20 @@ export function DetectionReviewView() {
           {strings.capture.review.continue}
         </Button>
       </View>
+
+      <ReplaceBaseSheet
+        detection={replacingDetection}
+        photoSize={replacingMetadata?.intrinsics ?? { width: 0, height: 0 }}
+        onClose={() => setReplacing(null)}
+        onPlace={(at) => {
+          const meta = replacingMetadata;
+          if (!replacingDetection || !meta) return false;
+          return replaceDetection(replacingDetection.trackId, {
+            x: at.x * meta.intrinsics.width,
+            y: at.y * meta.intrinsics.height,
+          });
+        }}
+      />
 
       <AttributePicker
         attribute={editingAttribute}

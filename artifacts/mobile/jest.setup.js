@@ -92,3 +92,24 @@ jest.mock("expo-speech-recognition", () => ({
     abort: jest.fn(),
   },
 }));
+
+// ViroReact (ARCore / ARKit) is native. By default the device has no AR, so
+// the capture screen uses VisionCamera; AR tests override isARSupportedOnDevice.
+jest.mock("@reactvision/react-viro", () => {
+  const { createElement } = jest.requireActual("react");
+  const { View } = jest.requireActual("react-native");
+  return {
+    isARSupportedOnDevice: jest.fn(async () => ({ isARSupported: false })),
+    ViroARSceneNavigator: (props) =>
+      createElement(View, { testID: "ar-view", ...props }),
+    ViroARScene: ({ children }) => children ?? null,
+    ViroPolyline: () => null,
+    ViroMaterials: { createMaterials: jest.fn() },
+  };
+});
+
+// EXIF is read natively; tests get no tags.
+jest.mock("@lodev09/react-native-exify", () => ({
+  read: jest.fn(async () => null),
+  write: jest.fn(async () => ({})),
+}));

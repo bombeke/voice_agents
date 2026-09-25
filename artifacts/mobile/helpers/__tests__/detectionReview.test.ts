@@ -11,6 +11,7 @@ import {
   reviewCategory,
   shouldFlag,
   suggestionHint,
+  viewToPhotoFraction,
 } from "@/helpers/detectionReview";
 import type {
   CaptureLocation,
@@ -75,9 +76,9 @@ describe("attributes", () => {
     expect(attributeKeysFor("energy")).toEqual([
       "material",
       "inclination",
+      "estimatedHeight",
       "estimatedAge",
       "vegetationCover",
-      "countInFrame",
       "distanceFromRoad",
     ]);
     expect(attributeKeysFor(null)).toEqual([
@@ -90,6 +91,7 @@ describe("attributes", () => {
   it("formats option codes and templated values", () => {
     expect(formatAttributeValue("estimatedAge", "10-20")).toBe("10–20 years");
     expect(formatAttributeValue("inclination", "7")).toBe("7° from vertical");
+    expect(formatAttributeValue("estimatedHeight", "9.2")).toBe("9.2 m");
     expect(formatAttributeValue("countInFrame", "1")).toBe("1");
     expect(formatAttributeValue("material", null)).toBeNull();
   });
@@ -209,5 +211,21 @@ describe("mostDetectedPhoto", () => {
       ]),
     ).toBe("/tmp/1.jpg");
     expect(mostDetectedPhoto([])).toBeNull();
+  });
+});
+
+describe("viewToPhotoFraction", () => {
+  it("undoes the letterbox of a contained photo", () => {
+    // A 1000 × 2000 photo in a 400 × 400 view is 200 wide, centred.
+    const photo = { width: 1000, height: 2000 };
+    const view = { width: 400, height: 400 };
+    expect(viewToPhotoFraction({ x: 200, y: 300 }, photo, view)).toEqual({
+      x: 0.5,
+      y: 0.75,
+    });
+    expect(viewToPhotoFraction({ x: 50, y: 300 }, photo, view)).toBeNull();
+    expect(
+      viewToPhotoFraction({ x: 1, y: 1 }, { width: 0, height: 0 }, view),
+    ).toBeNull();
   });
 });

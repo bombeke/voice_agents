@@ -22,13 +22,15 @@ const AnimatedView = withUniwind(Animated.View);
 /** Boxes glide between inferences instead of jumping. */
 const GLIDE = { duration: 80 };
 /** Put the label inside the box when there's no room above it. */
-const LABEL_ROOM = 24;
+const LABEL_ROOM = 32;
 
 interface DetectionOverlayProps {
   tracks: SharedValue<Track[]>;
   labels: TrackLabel[];
   transform: ViewportTransform;
   viewport: Size;
+  /** Last inference time, shown on each box; null hides it. */
+  inferenceMs?: number | null;
 }
 
 /**
@@ -41,6 +43,7 @@ export function DetectionOverlay({
   labels,
   transform,
   viewport,
+  inferenceMs = null,
 }: DetectionOverlayProps) {
   const summary = labels.length
     ? fill(strings.capture.detected, { count: labels.length })
@@ -59,6 +62,7 @@ export function DetectionOverlay({
           tracks={tracks}
           transform={transform}
           viewport={viewport}
+          inferenceMs={inferenceMs}
         />
       ))}
     </View>
@@ -70,10 +74,17 @@ interface TrackBoxProps {
   tracks: SharedValue<Track[]>;
   transform: ViewportTransform;
   viewport: Size;
+  inferenceMs: number | null;
 }
 
-function TrackBox({ track, tracks, transform, viewport }: TrackBoxProps) {
-  const { trackId, label, suggested } = track;
+function TrackBox({
+  track,
+  tracks,
+  transform,
+  viewport,
+  inferenceMs,
+}: TrackBoxProps) {
+  const { trackId, label, suggested, confidence } = track;
   // The first frame places the box; later ones glide.
   const placed = useSharedValue(false);
 
@@ -104,24 +115,32 @@ function TrackBox({ track, tracks, transform, viewport }: TrackBoxProps) {
     return { top: top < LABEL_ROOM ? 2 : -LABEL_ROOM };
   });
 
-  const band = suggested
-    ? strings.capture.suggested
-    : strings.capture.confidenceHigh;
+  const text =
+    inferenceMs === null
+      ? fill(strings.capture.boxLabel, {
+          label,
+          confidence: confidence.toFixed(2),
+        })
+      : fill(strings.capture.boxLabelTimed, {
+          label,
+          confidence: confidence.toFixed(2),
+          ms: inferenceMs,
+        });
 
   return (
     <AnimatedView
-      className={`absolute rounded border-2 border-accent ${suggested ? "border-dashed bg-accent/5" : "bg-accent/10"}`}
+      className={`absolute rounded-xs border-[3px] border-accent ${suggested ? "border-dashed bg-accent/5" : ""}`}
       style={boxStyle}
     >
       <AnimatedView
-        className={`absolute left-0 px-1.5 py-0.5 rounded ${suggested ? "bg-camera/80" : "bg-accent"}`}
+        className={`absolute left-[-3px] px-2 py-1 rounded-lg ${suggested ? "bg-camera/80" : "bg-accent"}`}
         style={chipStyle}
       >
         <Text
           numberOfLines={1}
-          className={`type-chip text-[11px] ${suggested ? "text-accent" : "text-on-accent"}`}
+          className={`type-chip text-[13px] ${suggested ? "text-accent" : "text-on-accent"}`}
         >
-          {`${label} · ${band}`}
+          {text}
         </Text>
       </AnimatedView>
     </AnimatedView>

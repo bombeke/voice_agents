@@ -2,7 +2,7 @@ import { colors } from "@/constants/theme";
 import { Text, View } from "react-native";
 import { Icon } from "./Icons";
 
-type InfoNoteTone = "info" | "warning";
+type InfoNoteTone = "info" | "warning" | "success";
 
 const TONES = {
   info: {
@@ -17,16 +17,24 @@ const TONES = {
     icon: "warning",
     color: colors.onWarningSoft,
   },
+  success: {
+    box: "bg-success-soft",
+    text: "text-on-success-soft",
+    icon: "pin",
+    color: colors.onSuccessSoft,
+  },
 } as const;
 
 interface InfoNoteProps {
   children: string;
+  /** Bold lead-in before the text, e.g. "Each asset has its own coordinates." */
+  title?: string;
   /** `warning` for "please check" notes, like unsynced records at sign-out. */
   tone?: InfoNoteTone;
 }
 
-/** Callout (radius 12) with a leading icon: blue for info, amber for warnings. */
-export function InfoNote({ children, tone = "info" }: InfoNoteProps) {
+/** Callout (radius 12) with a leading icon: blue for info, amber for warnings, green for success. */
+export function InfoNote({ children, title, tone = "info" }: InfoNoteProps) {
   const t = TONES[tone];
   return (
     <View
@@ -36,7 +44,14 @@ export function InfoNote({ children, tone = "info" }: InfoNoteProps) {
       className={`flex-row items-start gap-2.5 rounded-xl px-3.5 py-3 ${t.box}`}
     >
       <Icon name={t.icon} size={20} color={t.color} />
-      <Text className={`flex-1 type-body-small ${t.text}`}>{children}</Text>
+      <Text className={`flex-1 type-body-small ${t.text}`}>
+        {title ? (
+          <Text className={`type-body-strong text-[14px] ${t.text}`}>
+            {`${title} `}
+          </Text>
+        ) : null}
+        {children}
+      </Text>
     </View>
   );
 }

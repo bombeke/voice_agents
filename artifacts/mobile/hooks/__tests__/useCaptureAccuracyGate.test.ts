@@ -37,7 +37,8 @@ function controlledSource() {
   return {
     stop,
     emit: (f: GnssFix) => act(() => listener.onFix(f)),
-    heading: (d: number) => act(() => listener.onHeading(d)),
+    heading: (d: number, declination?: number | null) =>
+      act(() => listener.onHeading(d, declination)),
     fail: (kind: "denied" | "error", message?: string) =>
       act(() => listener.onError(kind, message)),
     started: () => waitFor(() => expect(listener).toBeDefined()),
@@ -88,6 +89,17 @@ describe("useCaptureAccuracyGate", () => {
     expect(result.current.averaged?.accuracy).toBeCloseTo(
       (3.4 + 3.1 + 2.8) / 3,
     );
+  });
+
+  it("keeps the last known declination for the sensor compass", async () => {
+    const src = controlledSource();
+    const { result } = await renderHook(() => useCaptureAccuracyGate());
+    await src.started();
+    expect(result.current.declination).toBeNull();
+    await src.heading(142, 3.14);
+    expect(result.current.declination).toBe(3.1);
+    await src.heading(150, null);
+    expect(result.current.declination).toBe(3.1);
   });
 
   it("passes the compass heading through", async () => {

@@ -43,6 +43,13 @@ export const DETECTOR_MODEL: ObjectDetectorModel<"xyxy", string> = {
   },
 };
 
+/**
+ * Short model name shown to the surveyor ("YOLO26n on device"). CI sets
+ * EXPO_PUBLIC_DETECTOR_NAME with a custom model.
+ */
+export const DETECTOR_MODEL_NAME =
+  process.env.EXPO_PUBLIC_DETECTOR_NAME?.trim() || "YOLO26n";
+
 /** File name of the model, stored on every record it produced (§6.4). */
 export const DETECTOR_MODEL_VERSION =
   DETECTOR_MODEL.modelPath.split("?")[0].split("/").pop() ?? "unknown";

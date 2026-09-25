@@ -67,6 +67,24 @@
           }
         }
       ],
+      [
+        "./plugins/withViroAr",
+        {
+          "android": {
+            "xRMode": ["AR"]
+          },
+          "ios": {
+            "cameraUsagePermission": "$(PRODUCT_NAME) uses the camera to find assets and measure how far away they are.",
+            "locationUsagePermission": "$(PRODUCT_NAME) uses your location to place each asset on the map."
+          }
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "$(PRODUCT_NAME) uses the phone's motion and compass sensors to measure how far away an asset is."
+        }
+      ],
       "expo-router",
       "expo-asset",
       "expo-web-browser",

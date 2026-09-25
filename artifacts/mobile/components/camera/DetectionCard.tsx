@@ -1,17 +1,25 @@
 import { AttributeRow } from "@/components/camera/AttributeRow";
+import { ComputedPosition } from "@/components/camera/ComputedPosition";
 import { Button } from "@/components/ui/Button";
 import { Card, CardDivider } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Icon } from "@/components/ui/Icons";
+import { InfoNote } from "@/components/ui/InfoNote";
+import { AR_RELIABLE_RANGE_M } from "@/constants/Capture";
+import { categoryForLabel } from "@/constants/DetectorModel";
 import { strings } from "@/constants/Strings";
-import { colors } from "@/constants/theme";
+import { CategoryColors, colors } from "@/constants/theme";
 import {
   formatConfidence,
   formatLabel,
   suggestionHint,
 } from "@/helpers/detectionReview";
 import { fill } from "@/helpers/format";
-import type { AttributeKey, ReviewDetection } from "@/types/Capture";
+import type {
+  AttributeKey,
+  CaptureMetadata,
+  ReviewDetection,
+} from "@/types/Capture";
 import { Fragment } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -25,6 +33,30 @@ interface DetectionCardProps {
   onReject: () => void;
   onUndo: () => void;
   onEditAttribute: (key: AttributeKey) => void;
+  /** Metadata of the photo it was detected in (lens, AR pose, phone fix). */
+  metadata?: CaptureMetadata;
+  /** "Re-place by tapping the base"; left out when the photo has no AR or sensor pose. */
+  onReplace?: () => void;
+}
+
+/** "Confidence 0.91 · 12.4 m away", or "Placed by tap · 12.4 m away". */
+export function acceptedSubtitle(detection: ReviewDetection): string {
+  const r = strings.capture.review;
+  const lead = detection.manual
+    ? r.placedByTap
+    : fill(r.confidence, {
+        confidence: formatConfidence(detection.confidence),
+      });
+  const position = detection.position;
+  return position && position.source !== "device"
+    ? `${lead} · ${fill(r.away, { distance: position.distanceM.toFixed(1) })}`
+    : lead;
+}
+
+/** The asset dot's colour: its category's, else the primary colour. */
+function assetColor(label: string): string {
+  const category = categoryForLabel(label);
+  return category ? CategoryColors[category].solid : colors.primary;
 }
 
 /**
@@ -59,8 +91,11 @@ function AcceptedCard({
   expanded,
   onToggle,
   onEditAttribute,
+  metadata,
+  onReplace,
 }: DetectionCardProps) {
   const label = formatLabel(detection.label);
+  const { position } = detection;
   return (
     <Card variant="flush">
       <Pressable
@@ -79,9 +114,7 @@ function AcceptedCard({
         <View className="flex-1">
           <Text className="type-title text-text">{label}</Text>
           <Text className="type-body-small text-text-muted">
-            {fill(strings.capture.review.confidence, {
-              confidence: formatConfidence(detection.confidence),
-            })}
+            {acceptedSubtitle(detection)}
           </Text>
         </View>
         {expanded ? (
@@ -96,17 +129,35 @@ function AcceptedCard({
           </View>
         )}
       </Pressable>
-      {expanded
-        ? detection.attributes.map((attribute) => (
+      {expanded && position ? (
+        <>
+          <CardDivider />
+          <ComputedPosition
+            label={detection.label.replace(/[_-]/g, " ")}
+            position={position}
+            metadata={metadata}
+            color={assetColor(detection.label)}
+            onReplace={onReplace}
+          />
+        </>
+      ) : null}
+      {expanded && detection.attributes.length ? (
+        <>
+          <CardDivider />
+          <Text className="px-4 pt-4 pb-1 type-overline text-text-muted">
+            {strings.capture.review.attributes}
+          </Text>
+          {detection.attributes.map((attribute, i) => (
             <Fragment key={attribute.key}>
-              <CardDivider />
+              {i > 0 ? <CardDivider /> : null}
               <AttributeRow
                 attribute={attribute}
                 onEdit={() => onEditAttribute(attribute.key)}
               />
             </Fragment>
-          ))
-        : null}
+          ))}
+        </>
+      ) : null}
     </Card>
   );
 }
@@ -117,23 +168,36 @@ function SuggestedCard({
   onAccept,
   onReject,
 }: DetectionCardProps) {
+  const r = strings.capture.review;
+  const { position } = detection;
+  const distant =
+    !!position &&
+    position.source !== "device" &&
+    position.distanceM > AR_RELIABLE_RANGE_M;
+  const confidence = formatConfidence(detection.confidence);
   const hint = suggestionHint(detection);
-  const subtitle = fill(strings.capture.review.suggested, {
-    confidence: formatConfidence(detection.confidence),
-  });
+  const label = formatLabel(detection.label);
+  const subtitle = distant
+    ? `${fill(r.suggestedShort, { confidence })} · ${fill(r.aboutAway, {
+        distance: Math.round(position.distanceM),
+      })}`
+    : [fill(r.suggested, { confidence }), hint].filter(Boolean).join(" · ");
   return (
     <Card variant="dashed" className="gap-3">
       <View className="flex-row items-center gap-3">
         <NumberBadge number={number} solid={false} />
         <View className="flex-1">
           <Text className="type-title text-text">
-            {formatLabel(detection.label)}
+            {distant ? fill(r.distantTitle, { label }) : label}
           </Text>
-          <Text className="type-body-small text-text-muted">
-            {hint ? `${subtitle} · ${hint}` : subtitle}
-          </Text>
+          <Text className="type-body-small text-text-muted">{subtitle}</Text>
         </View>
       </View>
+      {distant ? (
+        <InfoNote tone="warning">
+          {fill(r.beyondRange, { range: AR_RELIABLE_RANGE_M })}
+        </InfoNote>
+      ) : null}
       <View className="flex-row gap-3">
         <Button variant="secondary" className="flex-1" onPress={onReject}>
           <Text className="type-body-strong text-danger">

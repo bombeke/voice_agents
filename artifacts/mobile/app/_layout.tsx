@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { DetectorModelProvider } from "@/providers/DetectorModelProvider";
 import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
 import { queryClient } from "@/services/Api";
+import { installSessionRefresh } from "@/services/auth/SessionRefresh";
 import { BackendSyncObserver } from "@/services/storage/BackendSyncObserver";
 import { initPersistence } from "@/services/storage/LegendState";
 import { OpQueueReplayObserver } from "@/services/storage/OpQueueReplayObserver";
@@ -62,6 +63,7 @@ function SignedInSync() {
 const userId = "mmkv_user_app";
 const storage = createUserStorage(userId);
 initPersistence();
+installSessionRefresh();
 // Dev-only fake API; `devMocks` is null in release bundles (metro.config.js).
 devMocks?.install();
 

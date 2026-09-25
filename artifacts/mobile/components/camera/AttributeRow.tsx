@@ -11,7 +11,7 @@ const SOURCE_TONE = {
   none: "text-text-muted",
 } as const;
 
-/** "AI · high", "GIS", "User": every value shows where it came from (§4.2). */
+/** "AI · high", "AR · from range", "GIS", "User": every value shows where it came from (§4.2). */
 export function sourceLabel({ source, confidence }: DetectionAttribute) {
   if (source === "ai" && confidence)
     return strings.capture.review.source[confidence];
@@ -35,7 +35,11 @@ export function AttributeRow({ attribute, onEdit }: AttributeRowProps) {
   const tone =
     attribute.source === "ai" && attribute.confidence
       ? SOURCE_TONE[attribute.confidence]
-      : SOURCE_TONE.none;
+      : attribute.source === "ar"
+        ? SOURCE_TONE.high
+        : attribute.source === "sensor"
+          ? SOURCE_TONE.medium
+          : SOURCE_TONE.none;
   const editable = !!onEdit && isEditable(attribute);
 
   const content = (
@@ -48,7 +52,9 @@ export function AttributeRow({ attribute, onEdit }: AttributeRowProps) {
           <Text className="type-body-small text-text-muted">
             {attribute.source === "gis"
               ? strings.capture.review.gisPending
-              : strings.capture.review.pending}
+              : attribute.source === "ar" || attribute.source === "sensor"
+                ? strings.capture.review.notMeasured
+                : strings.capture.review.pending}
           </Text>
         )}
         {low ? (

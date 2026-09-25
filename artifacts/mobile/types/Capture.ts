@@ -101,6 +101,141 @@ export interface CapturedDetection {
   label: string;
   confidence: number;
   box: NormalizedBox;
+  /** Id of the photo (CapturedPhoto.id) this detection was seen in. */
+  photoId?: string;
+  /** Where the asset itself is, projected from the photo; null when it couldn't be ranged. */
+  position?: DetectionPosition | null;
+  /** Height of the asset from its box and range, in metres; null when unknown. */
+  heightM?: number | null;
+  /** Placed by the surveyor's tap where the detector found nothing. */
+  manual?: boolean;
+}
+
+/** A metric 3D vector in the AR session's frame (x right, y up, -z ahead at start). */
+export type Vec3 = [number, number, number];
+
+/** ARCore / ARKit tracking quality when a value was sampled. */
+export type ArTrackingState = "normal" | "limited" | "unavailable";
+
+/**
+ * The AR camera pose from ViroReact's sensor fusion (onCameraTransformUpdate),
+ * already filtered against gyro drift.
+ */
+export interface ArCameraPose {
+  /** Metres from where the AR session started; shows how far the user drifted. */
+  position: Vec3;
+  /** Pitch, yaw and roll in degrees (Euler, x/y/z). */
+  rotation: Vec3;
+  /** Unit vector out of the lens. */
+  forward: Vec3;
+  /** Unit vector up the viewport; tells whether the phone was tilted. */
+  up: Vec3;
+  trackingState: ArTrackingState;
+  /** Epoch ms of the sample. */
+  timestamp: number;
+}
+
+/**
+ * The camera's attitude from the phone's own sensors (gravity + magnetometer)
+ * on devices without ARCore / ARKit. Same axes as the AR frame, but pinned to
+ * true north: x east, y up, -z north, with the lens at the origin.
+ */
+export interface SensorCameraPose {
+  /** Unit vector out of the lens. */
+  forward: Vec3;
+  /** Unit vector up the upright photo. */
+  up: Vec3;
+  /** Compass bearing of the lens, degrees from true north. */
+  headingDeg: number;
+  /** Lens pitch (+ up) and roll (+ right side down), degrees. */
+  pitchDeg: number;
+  rollDeg: number;
+  /** False when no declination was known, so north is magnetic. */
+  trueNorth: boolean;
+  /** Epoch ms of the sample. */
+  timestamp: number;
+}
+
+/**
+ * How an asset's position was found:
+ * - `ar_auto`: the AR ray through the box base hit the ground plane;
+ * - `ar_tap`: the same ray, through a point the surveyor tapped;
+ * - `ground_estimate`: no AR hit, so a flat-ground ray from the pose and camera height (rough);
+ * - `sensor`: no AR at all; the phone's tilt and compass range it from the
+ *   ground plane and the asset's typical size;
+ * - `device`: nothing better, so the phone's own fix.
+ */
+export type PositionSource =
+  "ar_auto" | "ar_tap" | "ground_estimate" | "sensor" | "device";
+
+/** The asset's own location, projected from where the phone stood. */
+export interface DetectionPosition {
+  latitude: number;
+  longitude: number;
+  /** Metres above the WGS84 ellipsoid; null when the device reported none. */
+  altitude: number | null;
+  /** Horizontal distance from the phone, metres. */
+  distanceM: number;
+  /** Straight-line distance from the lens, metres. */
+  slantDistanceM: number;
+  /** Degrees from true north, phone → asset. */
+  bearingDeg: number;
+  /** Device fix accuracy plus the projection's own error, metres (68%). */
+  accuracyM: number | null;
+  /** The projection's share of `accuracyM`. */
+  projectionErrorM: number;
+  source: PositionSource;
+  /** AR hit type (e.g. "ExistingPlaneUsingExtent", "DepthPoint"); null without a hit. */
+  hitType: string | null;
+  /** The hit point in the AR session frame; null without a hit. */
+  arPoint: Vec3 | null;
+  /** Beyond the reliable AR range: treat as a rough point. */
+  rough: boolean;
+}
+
+/** Lens and image geometry of a photo. */
+export interface CameraIntrinsics {
+  /** Image size in pixels. */
+  width: number;
+  height: number;
+  /** Focal length in pixels of this image; null when unknown. */
+  focalLengthPx: number | null;
+  /** Physical focal length in millimetres, from EXIF; null when unknown. */
+  focalLengthMm: number | null;
+  /** Horizontal field of view, degrees; null when unknown. */
+  horizontalFovDeg: number | null;
+}
+
+/** Everything known about the phone and scene at the shutter (§6.4 provenance). */
+export interface CaptureMetadata {
+  /** "ar": ARCore/ARKit owned the camera; "camera": plain VisionCamera. */
+  engine: "ar" | "camera";
+  intrinsics: CameraIntrinsics;
+  /** The phone's own fix at the shutter. */
+  device: {
+    latitude: number;
+    longitude: number;
+    /** Metres above the WGS84 ellipsoid. */
+    altitude: number | null;
+    accuracy: number | null;
+    altitudeAccuracy: number | null;
+    /** Compass heading, degrees from true north. */
+    heading: number | null;
+    /** Camera pitch (+ up) and roll, degrees; from AR when available. */
+    pitchDeg: number | null;
+    rollDeg: number | null;
+  };
+  /** The AR pose at the shutter; null without AR. */
+  ar: ArCameraPose | null;
+  /** The sensor attitude at the shutter, when there was no AR. */
+  sensor?: SensorCameraPose | null;
+  /** How high the lens was above the ground, metres, from the AR ground hit. */
+  cameraHeightM: number | null;
+  detector: {
+    model: string;
+    /** Last inference time, ms; null when unknown. */
+    inferenceMs: number | null;
+  };
 }
 
 /** Photo quality (§3 step 4); null means it wasn't checked. */
@@ -111,6 +246,8 @@ export interface PhotoQuality {
 
 /** A shot taken on the capture screen, held in memory until the form is saved. */
 export interface CapturedPhoto {
+  /** Stable id; detections point at it with `photoId`. */
+  id: string;
   /** Path from the camera; run it through toFileUri() before display. */
   imageUri: string;
   capturedAt: number;
@@ -118,6 +255,8 @@ export interface CapturedPhoto {
   heading: number | null;
   detections: CapturedDetection[];
   quality: PhotoQuality;
+  /** Absent on photos from before capture metadata was recorded. */
+  metadata?: CaptureMetadata;
 }
 
 /** Quality flags from design-doc §5.4 that the capture screen can raise. */
@@ -145,12 +284,16 @@ export type AttributeKey =
   | "inclination"
   | "estimatedAge"
   | "estimatedSize"
+  | "estimatedHeight"
   | "vegetationCover"
   | "countInFrame"
   | "distanceFromRoad";
 
-/** Who set an attribute: the model, a GIS computation, or the surveyor. */
-export type AttributeSource = "ai" | "gis" | "user";
+/**
+ * Who set an attribute: the model, AR ranging, sensor ranging (no AR), a GIS
+ * computation, or the surveyor.
+ */
+export type AttributeSource = "ai" | "ar" | "sensor" | "gis" | "user";
 
 export type ConfidenceBand = "high" | "medium" | "low";
 
@@ -173,6 +316,8 @@ export type ReviewDecision = "accepted" | "suggested" | "rejected";
 export interface ReviewDetection extends CapturedDetection {
   /** The photo its most confident sighting came from. */
   imageUri: string;
+  /** The surveyor re-placed it by tapping its base on the review photo. */
+  positionEdited?: boolean;
   decision: ReviewDecision;
   attributes: DetectionAttribute[];
 }

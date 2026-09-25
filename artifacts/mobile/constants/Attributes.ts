@@ -12,9 +12,9 @@ export const CATEGORY_ATTRIBUTES: Record<
   energy: [
     "material",
     "inclination",
+    "estimatedHeight",
     "estimatedAge",
     "vegetationCover",
-    "countInFrame",
     "distanceFromRoad",
   ],
   water: [
@@ -27,6 +27,7 @@ export const CATEGORY_ATTRIBUTES: Record<
   telecom: [
     "material",
     "inclination",
+    "estimatedHeight",
     "estimatedAge",
     "vegetationCover",
     "countInFrame",
@@ -45,13 +46,16 @@ export const CATEGORY_ATTRIBUTES: Record<
 /**
  * Values the surveyor can pick when correcting an attribute. Codes are stored
  * on the record; labels come from `strings.attributes`. `null` means the
- * attribute isn't edited on the device (GIS computes it after sync).
+ * attribute isn't edited on the device (GIS computes it after sync, or AR
+ * measured it).
  */
 export const ATTRIBUTE_OPTIONS: Record<AttributeKey, readonly string[] | null> =
   {
     material: ["concrete", "metal", "wood"],
     inclination: ["0", "5", "10", "15", "20", "30", "45"],
     estimatedAge: ["0-5", "5-10", "10-20", "20+"],
+    // Measured from the AR range, not picked.
+    estimatedHeight: null,
     estimatedSize: ["small", "medium", "large"],
     vegetationCover: ["none", "partial", "heavy"],
     countInFrame: ["1", "2", "3", "4", "5"],

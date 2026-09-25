@@ -1,6 +1,21 @@
-import type { ReviewDetection } from "@/types/Capture";
+import type { DetectionPosition, ReviewDetection } from "@/types/Capture";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { ReviewPhoto } from "../ReviewPhoto";
+
+const POSITION: DetectionPosition = {
+  latitude: 0.31358,
+  longitude: 32.581061,
+  altitude: 1188.5,
+  distanceM: 12.4,
+  slantDistanceM: 12.5,
+  bearingDeg: 142,
+  accuracyM: 3.1,
+  projectionErrorM: 1.2,
+  source: "ar_auto",
+  hitType: "ExistingPlaneUsingExtent",
+  arPoint: [7.6, 0, 9.8],
+  rough: false,
+};
 
 const detection = (
   trackId: number,
@@ -16,12 +31,15 @@ const detection = (
   attributes: [],
 });
 
-async function renderLoaded() {
+async function renderLoaded(position?: DetectionPosition) {
   await render(
     <ReviewPhoto
       imageUri="/tmp/1.jpg"
       detections={[
-        { detection: detection(1, "accepted", 0.91), number: 1 },
+        {
+          detection: { ...detection(1, "accepted", 0.91), position },
+          number: 1,
+        },
         { detection: detection(2, "suggested", 0.64), number: 2 },
         { detection: detection(3, "rejected", 0.83), number: 3 },
       ]}
@@ -51,5 +69,12 @@ describe("ReviewPhoto", () => {
     await renderLoaded();
     expect(screen.getByText("Pre-accepted ≥ 0.70")).toBeTruthy();
     expect(screen.getByText("Suggested 0.40–0.70")).toBeTruthy();
+  });
+
+  it("marks ranged assets' ground points and distances", async () => {
+    await renderLoaded(POSITION);
+    expect(screen.getByText("12.4 m")).toBeTruthy();
+    expect(screen.getByText("AR ground point")).toBeTruthy();
+    expect(screen.queryByText("Suggested 0.40–0.70")).toBeNull();
   });
 });

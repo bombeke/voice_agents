@@ -13,6 +13,7 @@ import type {
   CaptureRecord,
   CaptureSummary,
   CapturedPhoto,
+  DetectionPosition,
   Enumerator,
   ReviewDetection,
   TagForm,
@@ -38,6 +39,30 @@ export function recordFlags({
   return form.duplicate && form.duplicateChoice === "new"
     ? [...location.flags, "duplicate_nearby"]
     : [...location.flags];
+}
+
+/** The phone's own fix, kept on a record placed at the asset's position. */
+function devicePositionOf(location: CaptureLocation) {
+  return {
+    latitude: location.latitude,
+    longitude: location.longitude,
+    accuracy: location.accuracy,
+    altitude: location.altitude,
+  };
+}
+
+/**
+ * A ranged asset's record takes the asset's position, not the phone's
+ * ("the record takes its position, not yours"). Unranged ones keep the fix.
+ */
+function assetLocation(position: DetectionPosition | null | undefined) {
+  if (!position || position.source === "device") return {};
+  return {
+    latitude: position.latitude,
+    longitude: position.longitude,
+    ...(position.accuracyM === null ? {} : { accuracy: position.accuracyM }),
+    ...(position.altitude === null ? {} : { altitude: position.altitude }),
+  };
 }
 
 /**
@@ -70,16 +95,29 @@ export function buildRecords(input: RecordInput): SyncedUtilityPole[] {
     capturedBy: input.capturedBy?.id,
     synced: false,
   };
+  const metadataOf = (photoId?: string) =>
+    photos.find((p) => p.id === photoId)?.metadata;
   const accepted = acceptedDetections(detections);
   const records = accepted.length
-    ? accepted.map(({ decision, ...detection }) => ({
+    ? accepted.map(({ decision, positionEdited, ...detection }) => ({
         ...base,
         ...detection,
+        ...assetLocation(detection.position),
+        devicePosition: devicePositionOf(location),
+        captureMetadata: metadataOf(detection.photoId),
         detectionConfidence: detection.confidence,
         reviewStatus: decision,
         pid: newId(),
       }))
-    : [{ ...base, imageUri: first.imageUri, pid: newId() }];
+    : [
+        {
+          ...base,
+          imageUri: first.imageUri,
+          photoId: first.id,
+          captureMetadata: first.metadata,
+          pid: newId(),
+        },
+      ];
   return records as SyncedUtilityPole[];
 }
 
