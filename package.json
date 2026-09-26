@@ -8,6 +8,8 @@
     "build:all": "pnpm -r build",
     "android": "pnpm --filter mobile android",
     "android:build": "pnpm --filter mobile android:build",
+    "android:prebuild": "pnpm --filter mobile android:prebuild",
+    "android:mock": "pnpm --filter mobile android:mock",
     "web": "pnpm --filter mobile web",
     "dev": "pnpm --filter mobile dev",
     "ios": "pnpm --filter mobile ios",

@@ -133,7 +133,7 @@ jobs:
       - name: Clean & regenerate native project
         working-directory: artifacts/mobile
         run: |
-          pnpm exec expo prebuild --clean
+          pnpm android:prebuild
 
       - name: Clean C++ build artifacts
         run: |

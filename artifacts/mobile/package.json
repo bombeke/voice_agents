@@ -113,6 +113,7 @@
     "@types/react-dom": "~19.2.3",
     "axios-mock-adapter": "^2.1.0",
     "babel-plugin-inline-import": "^3.0.0",
+    "babel-preset-expo": "~55.0.25",
     "drizzle-kit": "0.31.11",
     "esbuild": "0.25.12",
     "expo": "^55.0.26",
