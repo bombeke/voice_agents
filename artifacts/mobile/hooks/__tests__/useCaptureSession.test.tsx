@@ -1,9 +1,7 @@
 import { MAX_PHOTOS } from "@/constants/Capture";
-import {
-  addCapture,
-  captures$,
-  clearCaptures,
-} from "@/services/storage/CaptureStore";
+import { captures, observations, outbox } from "@/db/schema";
+import { seedCaptures, setupTestDatabase } from "@/db/testing/TestDb";
+import { saveObservations } from "@/services/storage/repos/ObservationRepo";
 import { setPhotoQualityChecker } from "@/services/capture/PhotoQuality";
 import {
   acceptDetection,
@@ -18,26 +16,23 @@ import {
   startSession,
   toggleStatus,
 } from "@/services/storage/CaptureSessionStore";
-import type { LocalPole } from "@/services/storage/LegendState";
-import {
-  clearRecords,
-  records$,
-  upsertRecord,
-} from "@/services/storage/RecordStore";
+import type { LocalPole } from "@/types/Observation";
 import type {
   CaptureLocation,
   CaptureRecord,
   CapturedDetection,
 } from "@/types/Capture";
 import { act, renderHook } from "@testing-library/react-native";
+import { asc, eq } from "drizzle-orm";
 import { createAssetAsync } from "expo-media-library";
 import { Alert } from "react-native";
 import { useCaptureSession } from "../useCaptureSession";
 
-const mockAddPole = jest.fn();
-let mockPoles: LocalPole[] = [];
-jest.mock("@/providers/UtilityStoreProvider", () => ({
-  useUtilityStorePoles: () => ({ addPole: mockAddPole, poles: mockPoles }),
+// The durable copy ImageStore makes of each shot (file IO is native).
+jest.mock("@/services/storage/ImageStore", () => ({
+  ...jest.requireActual("@/services/storage/ImageStore"),
+  persistCaptureImage: (uri?: string) =>
+    uri ? `file:///docs/${uri.split("/").pop()}` : uri,
 }));
 jest.mock("@/hooks/Helpers", () => ({
   requestSavePermission: async () => true,
@@ -46,7 +41,9 @@ jest.mock("expo-media-library", () => ({
   createAssetAsync: jest.fn(async () => ({})),
 }));
 let mockUuid = 0;
-jest.mock("expo-crypto", () => ({ randomUUID: () => `uuid-${++mockUuid}` }));
+jest.mock("expo-crypto", () => ({
+  randomUUID: () => `uuid-${String(++mockUuid).padStart(4, "0")}`,
+}));
 
 /** A camera engine that returns the next path with the given detections. */
 const shooter = (paths: string[], detections: CapturedDetection[] = []) =>
@@ -71,13 +68,25 @@ const detection = (trackId: number, confidence: number): CapturedDetection => ({
   box: { xmin: 0.1, ymin: 0.1, xmax: 0.3, ymax: 0.9 },
 });
 
+const getDb = setupTestDatabase();
+
+/** The stored poles (as the server will get them), in save order. */
+const poles = async () =>
+  (
+    await getDb().orm.select().from(observations).orderBy(asc(observations.pid))
+  ).map((r) => r.data as LocalPole & { attributes?: unknown[] });
+const rows = async () =>
+  (await getDb().orm.select().from(captures)).map((r) => r.summary);
+
+/** Stored records near the fix, for the duplicate check. */
+const storePoles = (list: LocalPole[]) =>
+  getDb().write((tx) =>
+    saveObservations(tx, list, { deviceId: "other-device", now: 1 }),
+  );
+
 beforeEach(() => {
   jest.clearAllMocks();
-  clearCaptures();
-  clearRecords();
   startSession("energy");
-  mockPoles = [];
-  mockAddPole.mockResolvedValue(undefined);
   setPhotoQualityChecker(async () => ({ sharp: true, exposureOk: true }));
 });
 
@@ -174,7 +183,7 @@ describe("useCaptureSession", () => {
 
     expect(await save(result)).toBe(true);
     // The undecided 0.5 suggestion is dropped.
-    const records = mockAddPole.mock.calls[0][0];
+    const records = await poles();
     expect(records).toHaveLength(1);
     expect(records[0]).toMatchObject({
       latitude: 0.3476,
@@ -193,10 +202,14 @@ describe("useCaptureSession", () => {
       trackId: 1,
       detectionConfidence: 0.9,
       reviewStatus: "accepted",
-      imageUri: "/tmp/1.jpg",
+      imageUri: "file:///docs/1.jpg",
       modelVersion: "yolo26n_384_xnnpack_fp32.pte",
       synced: false,
     });
+    // Queued for upload in the same transaction.
+    expect(
+      (await getDb().orm.select().from(outbox)).map((o) => o.entityId),
+    ).toEqual([records[0].pid]);
     // Without an AR range the height is left unmeasured.
     expect(records[0].attributes).toEqual(
       expect.arrayContaining([
@@ -205,7 +218,7 @@ describe("useCaptureSession", () => {
     );
     // Each record points at the photo it was detected in.
     expect(records[0].photoId).toEqual(expect.stringMatching(/^uuid-/));
-    expect(captures$.get()).toEqual([
+    expect(await rows()).toEqual([
       expect.objectContaining({
         category: "energy",
         title: "Pole",
@@ -221,22 +234,21 @@ describe("useCaptureSession", () => {
     const { result } = await captured([detection(1, 0.9)]);
     toggleStatus("inclined");
     setComment("leaning");
-    // The op queue's durable copy of the photo.
-    mockAddPole.mockResolvedValueOnce([{ imageUri: "file:///docs/1.jpg" }]);
     expect(await save(result)).toBe(true);
 
-    const [summary] = captures$.get();
-    const record = records$[summary.id].get();
+    const [row] = await getDb().orm.select().from(captures);
+    const record = row.record!;
+    const [pole] = await poles();
     expect(record).toMatchObject({
-      id: summary.id,
       category: "energy",
       title: "Pole",
       statuses: ["inclined"],
       comment: "leaning",
       location: { latitude: 0.3476, accuracy: 2.8 },
       photos: [{ uri: "file:///docs/1.jpg" }],
-      poleIds: [mockAddPole.mock.calls[0][0][0].pid],
+      poleIds: [pole.pid],
     });
+    expect(record.id).toBe(row.summary.id);
     expect(record.attributes.length).toBeGreaterThan(0);
   });
 
@@ -249,8 +261,8 @@ describe("useCaptureSession", () => {
     toggleStatus("rust");
     await save(result);
 
-    const records = mockAddPole.mock.calls[0][0];
-    expect(records.map((r: { trackId: number }) => r.trackId)).toEqual([2]);
+    const records = await poles();
+    expect(records.map((r) => r.trackId)).toEqual([2]);
     expect(records[0].attributes).toEqual(
       expect.arrayContaining([
         {
@@ -261,7 +273,7 @@ describe("useCaptureSession", () => {
         },
       ]),
     );
-    expect(captures$.get()[0].flagged).toBe(true);
+    expect((await rows())[0].flagged).toBe(true);
   });
 
   it("saves a single record when nothing was detected", async () => {
@@ -273,15 +285,15 @@ describe("useCaptureSession", () => {
     setTagCategory("water");
     toggleStatus("good");
     await save(result);
-    expect(mockAddPole.mock.calls[0][0]).toEqual([
+    expect(await poles()).toEqual([
       expect.objectContaining({
-        imageUri: "/tmp/1.jpg",
+        imageUri: "file:///docs/1.jpg",
         statuses: ["good"],
         functional: "unknown",
         flags: ["gps_unverified"],
       }),
     ]);
-    expect(captures$.get()[0]).toMatchObject({
+    expect((await rows())[0]).toMatchObject({
       title: "Water & Sanitation",
       flagged: true,
     });
@@ -290,20 +302,20 @@ describe("useCaptureSession", () => {
   it("won't save a record without a status, but saves it as a flagged draft", async () => {
     const { result } = await captured([detection(1, 0.9)]);
     expect(await save(result)).toBe(false);
-    expect(mockAddPole).not.toHaveBeenCalled();
+    expect(await poles()).toEqual([]);
 
     expect(await save(result, true)).toBe(true);
-    expect(mockAddPole.mock.calls[0][0][0]).toMatchObject({
+    expect((await poles())[0]).toMatchObject({
       draft: true,
       statuses: [],
     });
-    expect(captures$.get()[0].flagged).toBe(true);
+    expect((await rows())[0].flagged).toBe(true);
   });
 
   it("checks the stored records for a duplicate and links the update", async () => {
-    mockPoles = [
+    await storePoles([
       {
-        pid: "uuid-old",
+        pid: "old",
         dhis2Id: "EP-00412",
         category: "energy",
         label: "pole",
@@ -311,7 +323,16 @@ describe("useCaptureSession", () => {
         longitude: LOCATION.longitude,
         timestamp: 0,
       },
-    ];
+      // Far away: never read by the neighbourhood query.
+      {
+        pid: "far",
+        category: "energy",
+        label: "pole",
+        latitude: 1.5,
+        longitude: 33,
+        timestamp: 0,
+      },
+    ]);
     const { result } = await captured([detection(1, 0.9)]);
     toggleStatus("good");
     // A duplicate needs an answer first.
@@ -319,15 +340,18 @@ describe("useCaptureSession", () => {
 
     setDuplicateChoice("update");
     expect(await save(result)).toBe(true);
-    expect(mockAddPole.mock.calls[0][0][0]).toMatchObject({
+    const [saved] = (await poles()).filter(
+      (p) => p.pid !== "old" && p.pid !== "far",
+    );
+    expect(saved).toMatchObject({
       linkedAssetId: "EP-00412",
       flags: [],
     });
-    expect(captures$.get()[0].flagged).toBe(false);
+    expect((await rows())[0].flagged).toBe(false);
   });
 
   it("flags a new asset saved next to a possible duplicate", async () => {
-    mockPoles = [
+    await storePoles([
       {
         pid: "EP-1",
         category: "energy",
@@ -336,27 +360,30 @@ describe("useCaptureSession", () => {
         longitude: LOCATION.longitude,
         timestamp: 0,
       },
-    ];
+    ]);
     const { result } = await captured([detection(1, 0.9)]);
     toggleStatus("good");
     setDuplicateChoice("new");
     await save(result);
-    expect(mockAddPole.mock.calls[0][0][0]).toMatchObject({
-      flags: ["duplicate_nearby"],
-    });
-    expect(mockAddPole.mock.calls[0][0][0].linkedAssetId).toBeUndefined();
-    expect(captures$.get()[0].flagged).toBe(true);
+    const [saved] = (await poles()).filter((p) => p.pid !== "EP-1");
+    expect(saved).toMatchObject({ flags: ["duplicate_nearby"] });
+    expect(saved.linkedAssetId).toBeUndefined();
+    expect((await rows())[0].flagged).toBe(true);
   });
 
   it("keeps the photos and alerts when saving fails", async () => {
     jest.spyOn(console, "error").mockImplementation(() => {});
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
-    mockAddPole.mockRejectedValueOnce(new Error("disk full"));
+    await getDb().exec(
+      "CREATE TRIGGER full BEFORE INSERT ON captures BEGIN SELECT RAISE(ABORT, 'disk full'); END",
+    );
     const { result } = await captured([]);
     toggleStatus("good");
     expect(await save(result)).toBe(false);
     expect(alert).toHaveBeenCalled();
     expect(result.current.photos).toHaveLength(1);
+    // One transaction: the poles weren't stored without their row either.
+    expect(await poles()).toEqual([]);
   });
 
   describe("editing a saved record", () => {
@@ -376,21 +403,33 @@ describe("useCaptureSession", () => {
       poleIds: ["p1", "p2"],
     };
 
-    beforeEach(() => {
-      upsertRecord(RECORD);
-      addCapture({
-        id: "r1",
-        category: "energy",
-        title: "Concrete pole",
-        detail: "2 detections",
-        capturedAt: RECORD.capturedAt,
-        accuracyM: 2.8,
-        syncStatus: "synced",
-        flagged: false,
-      });
-      mockPoles = [{ pid: "p1" }];
+    beforeEach(async () => {
+      await seedCaptures(
+        getDb(),
+        [
+          {
+            id: "r1",
+            category: "energy",
+            title: "Concrete pole",
+            detail: "2 detections",
+            capturedAt: RECORD.capturedAt,
+            accuracyM: 2.8,
+            syncStatus: "synced",
+            flagged: false,
+          },
+        ],
+        { records: { r1: RECORD } },
+      );
+      // Only p1 is on this device (p2 was never downloaded).
+      await storePoles([{ pid: "p1", latitude: 0, longitude: 0 }]);
+      await getDb().write((tx) => tx.delete(outbox));
       editRecord(RECORD);
     });
+
+    const r1 = async () =>
+      (
+        await getDb().orm.select().from(captures).where(eq(captures.id, "r1"))
+      )[0];
 
     it("saves the form to the record, its queued records and its row", async () => {
       const { result } = await renderHook(() => useCaptureSession());
@@ -399,29 +438,34 @@ describe("useCaptureSession", () => {
       setComment(" snapped ");
       expect(await save(result)).toBe(true);
 
-      // Only records still in the queue's store get the change.
-      expect(mockAddPole).toHaveBeenCalledWith([
-        {
+      // Only poles on this device get the change, queued for upload.
+      expect(await poles()).toEqual([
+        expect.objectContaining({
           pid: "p1",
           category: "energy",
           statuses: ["inclined", "cracked"],
           suggestedStatuses: ["inclined"],
           functional: "unknown",
           comment: "snapped",
-        },
+        }),
       ]);
-      expect(records$.r1.get()).toMatchObject({
+      expect(
+        (await getDb().orm.select().from(outbox)).map((o) => [
+          o.entityId,
+          o.op,
+        ]),
+      ).toEqual([["p1", "update"]]);
+      const row = await r1();
+      expect(row.record).toMatchObject({
         statuses: ["inclined", "cracked"],
         comment: "snapped",
         photos: [{ uri: null }],
       });
-      expect(captures$.get()).toEqual([
-        expect.objectContaining({
-          id: "r1",
-          detail: "2 detections",
-          syncStatus: "pending",
-        }),
-      ]);
+      expect(row.summary).toMatchObject({
+        id: "r1",
+        detail: "2 detections",
+        syncStatus: "pending",
+      });
       expect(result.current.editingId).toBeNull();
     });
 
@@ -429,7 +473,7 @@ describe("useCaptureSession", () => {
       const { result } = await renderHook(() => useCaptureSession());
       toggleStatus("inclined");
       expect(await save(result)).toBe(false);
-      expect(records$.r1.statuses.get()).toEqual(["inclined"]);
+      expect((await r1()).record?.statuses).toEqual(["inclined"]);
     });
   });
 });

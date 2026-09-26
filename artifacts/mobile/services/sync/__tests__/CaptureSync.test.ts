@@ -1,29 +1,34 @@
-import { captures$, replaceCaptures } from "@/services/storage/CaptureStore";
+import { captures, outbox } from "@/db/schema";
+import { setupTestDatabase } from "@/db/testing/TestDb";
+import { saveCapture } from "@/services/storage/CaptureStore";
+import { isOnline$ } from "@/services/storage/NetworkState";
 import {
-  failedOps$,
-  opQueue$,
-  replayOpQueue,
-  retryFailedOps,
-} from "@/services/storage/LegendState";
+  captureRow,
+  upsertOwnCaptures,
+} from "@/services/storage/repos/CaptureRepo";
 import { deviceStatus$, resetSettings } from "@/services/storage/SettingsStore";
-import type { CaptureSummary, CaptureSyncStatus } from "@/types/Capture";
-import {
-  type CaptureUploader,
-  setCaptureUploader,
-  syncPendingCaptures,
-} from "../CaptureSync";
+import type { CaptureRecord, CaptureSummary } from "@/types/Capture";
+import { syncPendingCaptures } from "../CaptureSync";
+import { startSync, stopSync } from "../SyncRuntime";
 
-jest.mock("@/services/storage/LegendState", () => {
-  const { observable } = require("@legendapp/state");
-  return {
-    opQueue$: observable([]),
-    failedOps$: observable([]),
-    replayOpQueue: jest.fn(async () => ({ ok: true })),
-    retryFailedOps: jest.fn(),
-  };
-});
+const mockPost = jest.fn();
+jest.mock("@/services/Api", () => ({
+  axiosClient: {
+    post: (...a: unknown[]) => mockPost(...a),
+    get: jest.fn(),
+    put: jest.fn(),
+  },
+}));
+jest.mock("@/services/storage/ImageStore", () => ({
+  toFileUri: (u?: string) => u,
+  persistCaptureImage: (u?: string) => u,
+  deleteCaptureImage: jest.fn(),
+}));
 
-const record = (id: string, syncStatus: CaptureSyncStatus): CaptureSummary => ({
+const summary = (
+  id: string,
+  syncStatus: CaptureSummary["syncStatus"] = "pending",
+): CaptureSummary => ({
   id,
   category: "energy",
   title: "Concrete pole",
@@ -32,109 +37,103 @@ const record = (id: string, syncStatus: CaptureSyncStatus): CaptureSummary => ({
   syncStatus,
   flagged: false,
 });
+const record = (id: string): CaptureRecord =>
+  ({
+    id,
+    category: "energy",
+    title: "Concrete pole",
+    capturedAt: "2026-09-23T10:14:03+03:00",
+    photos: [],
+    poleIds: [id],
+  }) as never;
 
-const statuses = () =>
-  Object.fromEntries(captures$.get().map((c) => [c.id, c.syncStatus]));
+/** A capture whose only pole has no photo, so the JSON push settles it. */
+const save = (id: string) =>
+  saveCapture({
+    summary: summary(id),
+    record: record(id),
+    poles: [{ pid: id, latitude: 1, longitude: 2 }],
+  });
+
+const getDb = setupTestDatabase();
+const statuses = async () =>
+  Object.fromEntries(
+    (
+      await getDb()
+        .orm.select({ id: captures.id, s: captures.syncStatus })
+        .from(captures)
+    ).map((r) => [r.id, r.s]),
+  );
+const httpError = (status?: number) =>
+  Object.assign(
+    new Error("HTTP"),
+    status ? { response: { status, data: { detail: "no" } } } : {},
+  );
 
 beforeEach(() => {
   jest.clearAllMocks();
-  setCaptureUploader();
-  opQueue$.set([]);
-  failedOps$.set([]);
+  jest.spyOn(console, "warn").mockImplementation(() => {});
+  isOnline$.set(true);
   resetSettings();
-  replaceCaptures([
-    record("a", "pending"),
-    record("b", "failed"),
-    record("c", "synced"),
-    record("d", "uploading"),
-  ]);
+  startSync(getDb());
 });
+afterEach(() => stopSync());
 
-describe("syncPendingCaptures", () => {
-  it("marks every unsynced record uploading, then applies the result", async () => {
-    let seen: Record<string, CaptureSyncStatus> = {};
-    const uploader: CaptureUploader = jest.fn(async (due) => {
-      seen = statuses();
-      expect(due.map((c) => c.id)).toEqual(["a", "b", "d"]);
-      return { synced: ["a"], failed: ["b"] };
-    });
-    setCaptureUploader(uploader);
-
+describe("syncPendingCaptures (Sync now)", () => {
+  it("pushes each record with its idempotency key and marks the row synced", async () => {
+    mockPost.mockResolvedValue({ status: 200, data: {} });
+    await save("a");
     await syncPendingCaptures();
 
-    expect(seen).toEqual({
-      a: "uploading",
-      b: "uploading",
-      c: "synced",
-      d: "uploading",
-    });
-    // "d" was neither synced nor failed, so it waits for the next try.
-    expect(statuses()).toEqual({
-      a: "synced",
-      b: "failed",
-      c: "synced",
-      d: "pending",
-    });
-  });
-
-  it("records when an upload last reached the server", async () => {
-    setCaptureUploader(async () => ({ synced: ["a"], failed: [] }));
-    await syncPendingCaptures();
+    expect(mockPost).toHaveBeenCalledWith(
+      "/observations/v1/stream",
+      expect.any(FormData),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "Idempotency-Key": expect.stringMatching(/^pole-a-.+-1$/),
+        }),
+      }),
+    );
+    expect(await statuses()).toEqual({ a: "synced" });
+    expect(await getDb().orm.select().from(outbox)).toEqual([]);
     expect(deviceStatus$.lastSyncedAt.get()).toEqual(expect.any(String));
   });
 
-  it("keeps the last sync time when nothing was uploaded", async () => {
-    setCaptureUploader(async () => ({ synced: [], failed: ["a"] }));
+  it("keeps records pending offline, and a refused one failed until the next Sync now", async () => {
+    await save("a");
+    await save("b");
+    mockPost.mockRejectedValue(httpError());
     await syncPendingCaptures();
+    expect(await statuses()).toEqual({ a: "pending", b: "pending" });
     expect(deviceStatus$.lastSyncedAt.get()).toBeUndefined();
 
-    jest.spyOn(console, "warn").mockImplementation(() => {});
-    setCaptureUploader(async () => {
-      throw new Error("offline");
-    });
+    mockPost.mockReset();
+    mockPost
+      .mockRejectedValueOnce(httpError(422))
+      .mockResolvedValue({ status: 200 });
     await syncPendingCaptures();
-    expect(deviceStatus$.lastSyncedAt.get()).toBeUndefined();
-  });
+    expect(await statuses()).toEqual({ a: "failed", b: "synced" });
 
-  it("marks the batch failed when the uploader throws", async () => {
-    jest.spyOn(console, "warn").mockImplementation(() => {});
-    setCaptureUploader(async () => {
-      throw new Error("boom");
-    });
+    mockPost.mockResolvedValue({ status: 200 });
     await syncPendingCaptures();
-    expect(statuses()).toMatchObject({ a: "failed", b: "failed", d: "failed" });
+    expect(await statuses()).toEqual({ a: "synced", b: "synced" });
   });
 
   it("shares one run between concurrent callers", async () => {
-    const uploader = jest.fn(async () => ({ synced: [], failed: [] }));
-    setCaptureUploader(uploader);
-    const first = syncPendingCaptures();
-    expect(syncPendingCaptures()).toBe(first);
-    await first;
-    expect(uploader).toHaveBeenCalledTimes(1);
+    mockPost.mockResolvedValue({ status: 200 });
+    await save("a");
+    const one = syncPendingCaptures();
+    const two = syncPendingCaptures();
+    expect(two).toBe(one);
+    await one;
+    expect(mockPost).toHaveBeenCalledTimes(1);
   });
 
-  it("does nothing when everything is synced", async () => {
-    const uploader = jest.fn();
-    setCaptureUploader(uploader);
-    replaceCaptures([record("c", "synced")]);
+  it("settles rows that have nothing queued (e.g. from before the outbox)", async () => {
+    await getDb().write((tx) =>
+      upsertOwnCaptures(tx, [captureRow(summary("old"), null, "mine", 0)]),
+    );
     await syncPendingCaptures();
-    expect(uploader).not.toHaveBeenCalled();
-  });
-
-  it("reads each record's state off the op queue by default", async () => {
-    opQueue$.set([{ recordLocalId: "a" }] as never);
-    failedOps$.set([{ recordLocalId: "b" }] as never);
-
-    await syncPendingCaptures();
-
-    expect(retryFailedOps).toHaveBeenCalled();
-    expect(replayOpQueue).toHaveBeenCalled();
-    expect(statuses()).toEqual({
-      a: "pending",
-      b: "failed",
-      c: "synced",
-      d: "synced",
-    });
+    expect(await statuses()).toEqual({ old: "synced" });
   });
 });

@@ -1,62 +1,125 @@
+import { getDb } from "@/db/Current";
+import type { AssetCategory } from "@/constants/Colors";
+import { applyTagEdit } from "@/helpers/captureRecord";
+import { signalOutbox } from "@/services/sync/Outbox";
 import type {
+  CaptureRecord,
   CaptureSummary,
-  CaptureSyncStatus,
   GnssStatus,
+  TagForm,
 } from "@/types/Capture";
+import type { LocalPole } from "@/types/Observation";
 import { observable } from "@legendapp/state";
+import {
+  captureRow,
+  getOwnRecord,
+  upsertOwnCaptures,
+} from "./repos/CaptureRepo";
+import {
+  capturePoleIds,
+  deleteObservation,
+  isImageReferenced,
+  saveObservations,
+} from "./repos/ObservationRepo";
+import { deleteCaptureImage, persistCaptureImage } from "./ImageStore";
+import { getDeviceId } from "./LegendState";
+import { trackPoints } from "@/db/schema";
 
-export const CAPTURES_STORAGE_KEY = "iip_captures_v1";
-
-/** Local capture list; persisted to MMKV by `initPersistence()` in LegendState.ts. */
-export const captures$ = observable<CaptureSummary[]>([]);
-
-/** Latest GNSS receiver state; `null` until the first fix. */
+/** Latest GNSS receiver state; `null` until the first fix. In memory only. */
 export const gnssStatus$ = observable<GnssStatus | null>(null);
 
 /**
- * Upserts by id, keeping the row's position. Updates stay immutable: Legend
- * mutates arrays in place on child sets, which memoised readers wouldn't see.
+ * Copies each pole's photo out of the camera's temp folder first (file IO
+ * stays out of the transaction); several detections of one photo share a copy.
  */
-export function addCapture(capture: CaptureSummary) {
-  captures$.set((prev) => {
-    const i = prev.findIndex((c) => c.id === capture.id);
-    return i < 0
-      ? [...prev, capture]
-      : prev.map((row, j) => (j === i ? capture : row));
+export function persistPoleImages<T extends LocalPole>(
+  poles: readonly T[],
+): T[] {
+  const cache = new Map<string, string>();
+  return poles.map((p) =>
+    p.imageUri ? { ...p, imageUri: persistCaptureImage(p.imageUri, cache) } : p,
+  );
+}
+
+/**
+ * Saves a new capture: its poles (queued for upload with their photos) and
+ * its Home/Records row, all in one transaction. Nothing is stored if any
+ * part fails. Returns the poles as stored.
+ */
+export async function saveCapture({
+  summary,
+  record,
+  poles,
+}: {
+  summary: CaptureSummary;
+  record: CaptureRecord;
+  poles: readonly LocalPole[];
+}): Promise<LocalPole[]> {
+  const now = Date.now();
+  const saved = await getDb().write(async (tx) => {
+    const stored = await saveObservations(tx, poles, {
+      deviceId: getDeviceId(),
+      now,
+      captureId: summary.id,
+    });
+    await upsertOwnCaptures(tx, [captureRow(summary, record, "mine", now)]);
+    return stored;
   });
+  signalOutbox();
+  return saved;
 }
 
-/** Moves the given records to a new sync state. */
-export function setCaptureStatus(
-  ids: Iterable<string>,
-  status: CaptureSyncStatus,
-) {
-  const wanted = new Set(ids);
-  if (!wanted.size) return;
-  captures$.set((prev) =>
-    prev.map((c) =>
-      wanted.has(c.id) && c.syncStatus !== status
-        ? { ...c, syncStatus: status }
-        : c,
-    ),
+/**
+ * "Edit record": the changed form goes to the record, its row goes back to
+ * pending, and the change is queued for the poles it made, in one
+ * transaction. False when the record isn't on the device.
+ */
+export async function saveCaptureEdit(
+  id: string,
+  form: TagForm & { category: AssetCategory },
+): Promise<boolean> {
+  const now = Date.now();
+  const saved = await getDb().write(async (tx) => {
+    const own = await getOwnRecord(tx, id);
+    if (!own) return false;
+    const edit = applyTagEdit(own.record, own.summary, form);
+    const known = await capturePoleIds(tx, own.record.poleIds);
+    const queued = own.record.poleIds.filter((pid) => known.has(pid));
+    if (queued.length) {
+      await saveObservations(
+        tx,
+        queued.map((pid) => ({ pid, ...edit.poleFields })),
+        { deviceId: getDeviceId(), now, captureId: id },
+      );
+    }
+    await upsertOwnCaptures(tx, [
+      captureRow(edit.summary, edit.record, "mine", now),
+    ]);
+    return true;
+  });
+  if (saved) signalOutbox();
+  return saved;
+}
+
+/** Deletes a pole locally and queues the delete; frees its photo if unused. */
+export async function deletePole(pid: string) {
+  const db = getDb();
+  const image = await db.write((tx) =>
+    deleteObservation(tx, pid, { deviceId: getDeviceId(), now: Date.now() }),
   );
+  signalOutbox();
+  if (image && !(await isImageReferenced(db.orm, image)))
+    deleteCaptureImage(image);
 }
 
-/** Raises or clears the supervisor flag on the given records. */
-export function setCaptureFlagged(ids: Iterable<string>, flagged: boolean) {
-  const wanted = new Set(ids);
-  if (!wanted.size) return;
-  captures$.set((prev) =>
-    prev.map((c) =>
-      wanted.has(c.id) && c.flagged !== flagged ? { ...c, flagged } : c,
-    ),
+export async function addTrackPoint(point: {
+  lat: number;
+  lng: number;
+  timestamp?: number;
+}) {
+  await getDb().write((tx) =>
+    tx
+      .insert(trackPoints)
+      .values({ ...point, timestamp: point.timestamp ?? Date.now() }),
   );
-}
-
-export function replaceCaptures(captures: CaptureSummary[]) {
-  captures$.set(captures);
-}
-
-export function clearCaptures() {
-  captures$.set([]);
 }

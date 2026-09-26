@@ -7,7 +7,7 @@ Infrastructure Asset Capture app: field teams photograph infrastructure, pin it 
 - Expo SDK 55 (dev client, not Expo Go, for native modules), React Native 0.83, React 19.2.
 - expo-router (file-based, entry `expo-router/entry`), TypeScript strict, alias `@/*` → `artifacts/mobile/*`.
 - Camera: react-native-vision-camera 5.2 (+ resizer/worklets plugins). ML: react-native-executorch 0.10 (`useObjectDetector` + `detectObjectsWorklet`; never the `/legacy` entry). Detector config and CI overrides: `constants/DetectorModel.ts`.
-- Storage: MMKV for small hot state (auth, flags, config, last sync); expo-sqlite / Legend State for durable data (observations, event queue, sync log).
+- Storage: SQLite is the single source of truth for records: op-sqlite (SQLCipher, one encrypted DB per user, WAL) + drizzle-orm, schema in `db/schema.ts`. Legend-State observables persisted to MMKV hold only ephemeral UI/session state (auth, device id, prefs, filters, drafts), never record sets. TanStack Query does network only: the pull `queryFn` writes delta pages into SQLite and returns `{ cursor, applied }`; no persister. Don't add expo-sqlite (it bundles a second SQLite that clashes with op-sqlite).
 - Maps: @maplibre/maplibre-react-native. Styling: uniwind (Tailwind v4) only; no tamagui, no react-native-paper, no `StyleSheet.create`. Data: @tanstack/react-query, axios.
 - Native versions are pinned in root `resolutions` and in workspace `overrides`. Don't bump them casually.
 
@@ -94,8 +94,19 @@ pnpm --filter mobile lint                # lint just the app
 pnpm test                                # jest (jest-expo) unit tests for the app
 pnpm --filter mobile test -- Button      # run matching test files
 pnpm --filter mobile test:coverage
+pnpm --filter mobile db:generate                # drizzle-kit: new forward-only migration in drizzle/
+pnpm --filter mobile db:bench                   # storage benchmark at 50k rows (BENCH_N to change)
 pnpm start | pnpm android | pnpm ios | pnpm web
 ```
+
+## Local data (`db/`, `services/storage`, `services/sync`)
+- Every write goes through `getDb().write(fn)`: one native op-sqlite transaction; live queries fire after COMMIT. Never call Drizzle's `db.transaction()` (for op-sqlite it doesn't await the callback or roll back) and never `orm.all(sql)` without fields (returns `[]` on op-sqlite): use typed `select`.
+- A mutation writes the domain row and its `outbox` row in the same transaction (`services/sync/Outbox.ts`), then `signalOutbox()`. The drain worker (`OutboxWorker` + `DrainScheduler`) is single-flight with backoff stored in `next_attempt_at`. Photos go through `attachments` + `AttachmentWorker` (chunked, resumable); files stay on disk.
+- Conflict policy lives only in `services/sync/ConflictResolver.ts` (field-level merge by vector clock, LWW fallback).
+- Screens read with `useLiveQuery` / `useKeysetWindow` (`db/LiveQuery.ts`): one page or aggregate, never a whole table. Keyset predicates use row values `(captured_at, id) < (?, ?)` so SQLite seeks the index.
+- In raw `sql` inside a correlated subquery, qualify outer columns by hand (`"captures"."id"`): Drizzle renders a single-table column as a bare name.
+- Schema changes: edit `db/schema.ts`, run `db:generate`, commit `drizzle/`. `LegacyImport.ts` moves pre-SQLite MMKV blobs in once.
+- Tests use `setupTestDatabase()` / `seedCaptures()` from `db/testing` (node:sqlite through Drizzle's proxy driver). Debug timings: `EXPO_PUBLIC_DB_TIMING=1`. On-device benchmark (mock builds): `mobile://dev-bench?n=50000`.
 
 ## Fake API (dev only)
 - `pnpm --filter mobile start:mock` runs the app against the in-app fake auth server in `mocks/` (axios-mock-adapter on `axiosClient`). Test users are in `mocks/fixtures.ts`: any non-empty password works, and `wrong` shows the error state.

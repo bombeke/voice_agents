@@ -1,42 +1,21 @@
+import { closeUserDatabase, openUserDatabase } from "@/db/Current";
+import { endMark, mark } from "@/db/Timing";
 import { getSecret, saveSecret } from "@/services/AuthHelpers";
+import { startSync, stopSync } from "@/services/sync/SyncRuntime";
 import type { Enumerator } from "@/types/Capture";
-import { batch, observable, type Observable } from "@legendapp/state";
+import { observable, type Observable } from "@legendapp/state";
 import { randomUUID } from "expo-crypto";
 import { Platform } from "react-native";
 import { createMMKV, type MMKV } from "react-native-mmkv";
 import { queryClient } from "../Api";
-import { CAPTURES_STORAGE_KEY, captures$ } from "./CaptureStore";
-import {
-  STORAGE_EVENTS_KEY,
-  STORAGE_OPS_KEY,
-  auditLog$,
-  eventsStore$,
-  failedOps$,
-  opQueue$,
-  poleVisionDB$,
-  poleVisionDBTracks$,
-  repairLegacyState,
-  settleUploads,
-} from "./LegendState";
-import { RECORDS_STORAGE_KEY, records$ } from "./RecordStore";
-import {
-  MY_REVIEWS_STORAGE_KEY,
-  REVIEW_BATCH_STORAGE_KEY,
-  REVIEW_DECISIONS_STORAGE_KEY,
-  REVIEW_QUEUE_STORAGE_KEY,
-  TEAM_RECORDS_STORAGE_KEY,
-  myReviewStatus$,
-  reviewBatch$,
-  reviewDecisions$,
-  reviewQueue$,
-  teamRecords$,
-} from "./ReviewStore";
+import { importLegacyData, LEGACY_KEYS } from "./LegacyImport";
+import { getDeviceId } from "./LegendState";
 import { SETTINGS_STORAGE_KEY, settings$ } from "./SettingsStore";
 
 /**
- * A store that belongs to the signed-in user. `legacy` is where builds before
- * per-user data kept it (Legend's MMKV plugin: one JSON value per key, in the
- * `obsPersist` instance unless another id was configured).
+ * A preference store that belongs to the signed-in user, persisted to their
+ * own encrypted MMKV. `legacy` is where builds before per-user data kept it.
+ * Records are not here: they live in the user's SQLite database (db/).
  */
 interface UserStore {
   key: string;
@@ -52,33 +31,35 @@ const store = (
   legacy: UserStore["legacy"] = { id: LEGACY_DEFAULT_ID, key },
 ): UserStore => ({ key, obs$, legacy });
 
+/** The user's preferences: small, hot, and fine to lose to a reinstall. */
+const USER_STORES: UserStore[] = [store(SETTINGS_STORAGE_KEY, settings$)];
+
 /**
- * Everything a user captured, queued or decided, plus their preferences.
- * Device-wide state (session, device id, model and storage status, the map's
- * asset cache and basemap) stays in `initPersistence()`.
+ * Record blobs builds before per-user data kept device-wide. Claimed into the
+ * signing-in user's MMKV first, then moved into SQLite by LegacyImport.
  */
-const USER_STORES: UserStore[] = [
-  store(CAPTURES_STORAGE_KEY, captures$),
-  store(RECORDS_STORAGE_KEY, records$),
-  store(REVIEW_QUEUE_STORAGE_KEY, reviewQueue$),
-  store(REVIEW_DECISIONS_STORAGE_KEY, reviewDecisions$),
-  // New with per-user data: nothing to migrate.
-  { key: REVIEW_BATCH_STORAGE_KEY, obs$: reviewBatch$ },
-  { key: TEAM_RECORDS_STORAGE_KEY, obs$: teamRecords$ },
-  { key: MY_REVIEWS_STORAGE_KEY, obs$: myReviewStatus$ },
-  store(SETTINGS_STORAGE_KEY, settings$),
-  store(STORAGE_OPS_KEY, opQueue$),
-  store("polevision_failed_ops_v1", failedOps$),
-  store(STORAGE_EVENTS_KEY, eventsStore$),
-  store("polevision_audit_log_v1", auditLog$),
-  store("polevision_app_db_v1", poleVisionDB$, {
-    id: "polevision_poles_db",
-    key: "polevision_app_db_v1",
-  }),
-  store("polevision_tracks", poleVisionDBTracks$, {
-    id: "polevision_tracks_db",
-    key: "polevision_tracks",
-  }),
+const LEGACY_RECORD_STORES: {
+  key: string;
+  legacy: { id: string; key: string };
+}[] = [
+  ...[
+    LEGACY_KEYS.captures,
+    LEGACY_KEYS.records,
+    LEGACY_KEYS.reviewQueue,
+    LEGACY_KEYS.reviewDecisions,
+    LEGACY_KEYS.opQueue,
+    LEGACY_KEYS.failedOps,
+    LEGACY_KEYS.events,
+    LEGACY_KEYS.auditLog,
+  ].map((key) => ({ key, legacy: { id: LEGACY_DEFAULT_ID, key } })),
+  {
+    key: LEGACY_KEYS.poles,
+    legacy: { id: "polevision_poles_db", key: LEGACY_KEYS.poles },
+  },
+  {
+    key: LEGACY_KEYS.tracks,
+    legacy: { id: "polevision_tracks_db", key: LEGACY_KEYS.tracks },
+  },
 ];
 
 /** Each store's value before anyone signs in: what sign-out returns it to. */
@@ -113,22 +94,23 @@ const parse = (raw: string | undefined): unknown => {
   }
 };
 
+const instances = new Map<string, MMKV>();
+const legacyStorage = (id: string) => {
+  let s = instances.get(id);
+  if (!s) {
+    s = createMMKV({ id });
+    instances.set(id, s);
+  }
+  return s;
+};
+
 /**
  * Moves data an older build kept device-wide into this user's space, once:
  * the old keys are removed, so the next user starts empty. On a personal
  * phone the first user to sign in after the update is its owner.
  */
 function claimLegacyData(storage: MMKV) {
-  const instances = new Map<string, MMKV>();
-  const legacyStorage = (id: string) => {
-    let s = instances.get(id);
-    if (!s) {
-      s = createMMKV({ id });
-      instances.set(id, s);
-    }
-    return s;
-  };
-  for (const { key, legacy } of USER_STORES) {
+  for (const { key, legacy } of [...USER_STORES, ...LEGACY_RECORD_STORES]) {
     if (!legacy) continue;
     const old = legacyStorage(legacy.id);
     const raw = old.getString(legacy.key);
@@ -148,13 +130,15 @@ interface OpenUser {
 }
 
 let current: OpenUser | null = null;
-let hooks: ((user: Enumerator) => void)[] = [];
+let hooks: ((user: Enumerator) => void | Promise<void>)[] = [];
 
 /** Whose data is open: stamped on every capture as `capturedBy`. */
 export const currentUser$ = observable<Enumerator | null>(null);
 
 /** Runs after a user's data is loaded, e.g. the dev mocks' seed. */
-export function onUserDataOpened(hook: (user: Enumerator) => void) {
+export function onUserDataOpened(
+  hook: (user: Enumerator) => void | Promise<void>,
+) {
   hooks.push(hook);
   return () => {
     hooks = hooks.filter((h) => h !== hook);
@@ -162,9 +146,10 @@ export function onUserDataOpened(hook: (user: Enumerator) => void) {
 }
 
 /**
- * Loads the user's stores and keeps them saved to their own encrypted
- * database. Another user's data is closed first. Web has no MMKV: the stores
- * only live in memory there.
+ * Opens the user's data: their preferences from their encrypted MMKV, and
+ * their records from their encrypted SQLite database (created and migrated
+ * if need be). Data from builds before SQLite is imported once. Another
+ * user's data is closed first.
  */
 export async function openUserData(user: Enumerator): Promise<void> {
   if (current?.user.id === user.id) {
@@ -172,6 +157,7 @@ export async function openUserData(user: Enumerator): Promise<void> {
     return;
   }
   await closeUserData();
+  mark("open-user-data");
   const userId = user.id;
 
   const storage =
@@ -183,13 +169,10 @@ export async function openUserData(user: Enumerator): Promise<void> {
         });
   if (storage) claimLegacyData(storage);
 
-  batch(() => {
-    for (const { key, obs$ } of USER_STORES) {
-      const saved = parse(storage?.getString(key));
-      obs$.set(saved ?? parse(EMPTY.get(key)));
-    }
-  });
-
+  for (const { key, obs$ } of USER_STORES) {
+    const saved = parse(storage?.getString(key));
+    obs$.set(saved ?? parse(EMPTY.get(key)));
+  }
   const unsubscribe = storage
     ? USER_STORES.map(({ key, obs$ }) =>
         obs$.onChange(({ value }) => {
@@ -197,26 +180,45 @@ export async function openUserData(user: Enumerator): Promise<void> {
         }),
       )
     : [];
+
+  const db = await openUserDatabase(userId);
+  if (storage) {
+    try {
+      const { imported, counts } = await importLegacyData(
+        db,
+        storage,
+        legacyStorage(LEGACY_DEFAULT_ID),
+        { deviceId: getDeviceId() },
+      );
+      if (imported && Object.values(counts).some((n) => n > 0)) {
+        console.log("[storage] imported legacy data", counts);
+      }
+    } catch (err) {
+      // The blobs stay in MMKV; the import runs again at the next sign-in.
+      console.error("[storage] legacy import failed", err);
+    }
+  }
   current = { user, storage, unsubscribe };
   currentUser$.set(user);
+  endMark("open-user-data");
 
-  repairLegacyState();
-  hooks.forEach((hook) => hook(user));
+  for (const hook of hooks) await hook(user);
+  startSync(db);
 }
 
 /**
- * Waits for an upload in flight, stops saving and empties the stores. The
- * user's unsent records stay in their database until they sign in again.
+ * Waits for an upload in flight, stops the workers, and closes the user's
+ * database and preferences. Unsent records stay in their database until they
+ * sign in again.
  */
 export async function closeUserData(): Promise<void> {
   if (!current) return;
-  await settleUploads();
+  await stopSync();
   current.unsubscribe.forEach((off) => off());
   current = null;
   currentUser$.set(null);
-  batch(() => {
-    for (const { key, obs$ } of USER_STORES) obs$.set(parse(EMPTY.get(key)));
-  });
+  for (const { key, obs$ } of USER_STORES) obs$.set(parse(EMPTY.get(key)));
+  await closeUserDatabase();
   // Server data fetched for this user must not show for the next one.
   queryClient.clear();
 }

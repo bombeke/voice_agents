@@ -2,7 +2,8 @@ import { API_URL } from "@/constants/Config";
 import { hostOf } from "@/helpers/settings";
 import { fakeCaptures } from "@/mocks/captures";
 import { fakeDeviceStatus } from "@/mocks/settings";
-import { replaceCaptures } from "@/services/storage/CaptureStore";
+import { captures } from "@/db/schema";
+import { seedCaptures, setupTestDatabase } from "@/db/testing/TestDb";
 import {
   deviceStatus$,
   replaceDeviceStatus,
@@ -29,9 +30,6 @@ jest.mock("@/providers/AuthProvider", () => ({
     logout: mockLogout,
   }),
 }));
-jest.mock("@/services/storage/LegendState", () => ({
-  isOnline$: require("@legendapp/state").observable(true),
-}));
 jest.mock("@/services/sync/CaptureSync", () => ({
   syncPendingCaptures: jest.fn(),
 }));
@@ -48,15 +46,17 @@ const pressAlertButton = (text: string) => {
   return buttons?.find((b) => b.text === text)?.onPress?.();
 };
 
+const getDb = setupTestDatabase();
+
 // Toggles animate their knob; run it to completion inside act.
-beforeEach(() => {
+beforeEach(async () => {
+  // 3 of the fake captures are waiting to sync.
+  await seedCaptures(getDb(), fakeCaptures(new Date(2026, 8, 23, 10, 14)));
   jest.useFakeTimers();
   jest.clearAllMocks();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   resetSettings();
   replaceDeviceStatus(fakeDeviceStatus());
-  // 3 of the fake captures are waiting to sync.
-  replaceCaptures(fakeCaptures(new Date(2026, 8, 23, 10, 14)));
 });
 afterEach(async () => {
   await act(() => jest.runOnlyPendingTimers());
@@ -128,7 +128,7 @@ describe("SettingsView", () => {
 
   it("syncs the waiting records and warns about them at sign-out", async () => {
     await render(<SettingsView />);
-    expect(screen.getByText("3 records waiting")).toBeOnTheScreen();
+    expect(await screen.findByText("3 records waiting")).toBeOnTheScreen();
     expect(screen.getByRole("alert")).toHaveTextContent(
       /3 records haven’t synced/,
     );
@@ -137,9 +137,9 @@ describe("SettingsView", () => {
   });
 
   it("says so when everything is synced", async () => {
-    replaceCaptures([]);
+    await getDb().write((tx) => tx.delete(captures));
     await render(<SettingsView />);
-    expect(screen.getByText("Everything is synced")).toBeOnTheScreen();
+    expect(await screen.findByText("Everything is synced")).toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Sync now" }),
     ).not.toBeOnTheScreen();

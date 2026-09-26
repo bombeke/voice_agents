@@ -1,21 +1,15 @@
-import { replaceCaptures } from "@/services/storage/CaptureStore";
-import { isOnline$ } from "@/services/storage/LegendState";
-import { setCaptureUploader } from "@/services/sync/CaptureSync";
-import { addTeamRecords, clearReviews } from "@/services/storage/ReviewStore";
+import { seedCaptures, setupTestDatabase } from "@/db/testing/TestDb";
+import { isOnline$ } from "@/services/storage/NetworkState";
+import { addTeamRecords } from "@/services/storage/ReviewStore";
 import type { CaptureSummary } from "@/types/Capture";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { RecordsView } from "../RecordsView";
-
-jest.mock("@/services/storage/LegendState", () => {
-  const { observable } = require("@legendapp/state");
-  return {
-    isOnline$: observable(true),
-    opQueue$: observable([]),
-    failedOps$: observable([]),
-    replayOpQueue: jest.fn(),
-    retryFailedOps: jest.fn(),
-  };
-});
 
 const hoursAgo = (h: number) =>
   new Date(Date.now() - h * 3_600_000).toISOString();
@@ -73,20 +67,31 @@ jest.mock("@/services/sync/ReviewSync", () => ({
 }));
 jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 
-const row = (title: string) =>
-  screen.getByLabelText(new RegExp(`^${title.replace(/[·]/g, ".")}, `));
+const label = (title: string) => new RegExp(`^${title.replace(/[·]/g, ".")}, `);
+const row = (title: string) => screen.getByLabelText(label(title));
+const findRow = (title: string) => screen.findByLabelText(label(title));
+
+const getDb = setupTestDatabase();
 
 beforeEach(() => {
   mockRefreshTeam.mockClear();
-  clearReviews();
-  setCaptureUploader(async () => ({ synced: [], failed: [] }));
   isOnline$.set(true);
-  replaceCaptures(RECORDS);
 });
+
+/** The list with the given records stored, once its first page is in. */
+async function renderList(
+  props: Parameters<typeof RecordsView>[0] = {},
+  records: CaptureSummary[] = RECORDS,
+) {
+  await seedCaptures(getDb(), records);
+  await render(<RecordsView {...props} />);
+  await screen.findByRole("tab", { name: `All · ${records.length}` });
+}
 
 describe("RecordsView", () => {
   it("groups records by day under the sync banner and tabs", async () => {
-    await render(<RecordsView />);
+    await renderList();
+    expect(await findRow("Concrete pole")).toBeOnTheScreen();
     expect(screen.getByRole("header", { name: "Records" })).toBeOnTheScreen();
     expect(screen.getByText("2 records waiting to upload")).toBeOnTheScreen();
     expect(screen.getByRole("tab", { name: "All · 4" })).toBeOnTheScreen();
@@ -102,68 +107,81 @@ describe("RecordsView", () => {
   });
 
   it("narrows the list with the tabs and shows an empty tab", async () => {
-    await render(<RecordsView />);
-    await fireEvent.press(screen.getByRole("tab", { name: "Pending · 2" }));
-    expect(row("Borehole · hand pump")).toBeOnTheScreen();
-    expect(screen.queryByText("Culvert · pipe")).toBeNull();
+    await renderList();
+    await fireEvent.press(
+      await screen.findByRole("tab", { name: "Pending · 2" }),
+    );
+    expect(await findRow("Borehole · hand pump")).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(screen.queryByText("Culvert · pipe")).toBeNull(),
+    );
 
     await fireEvent.press(screen.getByRole("tab", { name: "Flagged · 1" }));
-    expect(screen.getByText("Culvert · pipe")).toBeOnTheScreen();
+    expect(await screen.findByText("Culvert · pipe")).toBeOnTheScreen();
 
-    replaceCaptures(RECORDS.map((r) => ({ ...r, flagged: false })));
-    await act(async () => {});
-    expect(screen.getByText("No flagged records.")).toBeOnTheScreen();
+    await act(() =>
+      seedCaptures(
+        getDb(),
+        RECORDS.map((r) => ({ ...r, flagged: false })),
+      ),
+    );
+    expect(await screen.findByText("No flagged records.")).toBeOnTheScreen();
   });
 
   it("searches records and clears the search on close", async () => {
-    await render(<RecordsView />);
+    await renderList();
     await fireEvent.press(
       screen.getByRole("button", { name: "Search records" }),
     );
     const field = screen.getByLabelText("Search by name, ID or category");
     await fireEvent.changeText(field, "ep-00412");
+    await waitFor(() =>
+      expect(screen.queryByText("Culvert · pipe")).toBeNull(),
+    );
     expect(screen.getByText("Concrete pole")).toBeOnTheScreen();
-    expect(screen.queryByText("Culvert · pipe")).toBeNull();
     await fireEvent.changeText(field, "tower");
-    expect(screen.getByText("No records match your search.")).toBeOnTheScreen();
+    expect(
+      await screen.findByText("No records match your search."),
+    ).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole("button", { name: "Close search" }));
-    expect(screen.getByText("Culvert · pipe")).toBeOnTheScreen();
+    expect(await screen.findByText("Culvert · pipe")).toBeOnTheScreen();
   });
 
-  it("uploads with Sync now and hides the banner once all is synced", async () => {
-    setCaptureUploader(async (due) => ({
-      synced: due.map((c) => c.id),
-      failed: [],
-    }));
-    await render(<RecordsView />);
-    await fireEvent.press(screen.getByRole("button", { name: "Sync now" }));
-    expect(row("Concrete pole")).toHaveAccessibleName(/Synced$/);
+  it("settles with Sync now and hides the banner once all is synced", async () => {
+    // Nothing is left queued for these rows, so Sync now settles them.
+    await renderList();
+    await fireEvent.press(
+      await screen.findByRole("button", { name: "Sync now" }),
+    );
+    await waitFor(() =>
+      expect(row("Concrete pole")).toHaveAccessibleName(/Synced$/),
+    );
     expect(screen.queryByRole("button", { name: "Sync now" })).toBeNull();
     expect(screen.getByRole("tab", { name: "Pending · 0" })).toBeOnTheScreen();
   });
 
   it("keeps records pending and says so while offline", async () => {
     isOnline$.set(false);
-    await render(<RecordsView />);
+    await renderList();
     expect(
-      screen.getByText("No network · photos upload on Wi-Fi"),
+      await screen.findByText("No network · photos upload on Wi-Fi"),
     ).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole("button", { name: "Sync now" }));
-    expect(row("Concrete pole")).toHaveAccessibleName(/Pending$/);
+    expect(await findRow("Concrete pole")).toHaveAccessibleName(/Pending$/);
   });
 
   it("opens on the tab from the route", async () => {
-    await render(<RecordsView filter="flagged" />);
+    await renderList({ filter: "flagged" });
     expect(
-      screen.getByRole("tab", { name: "Flagged · 1", selected: true }),
+      await screen.findByRole("tab", { name: "Flagged · 1", selected: true }),
     ).toBeOnTheScreen();
   });
 
   it("opens a record's detail screen from its row", async () => {
-    await render(<RecordsView />);
+    await renderList();
     await fireEvent.press(
-      screen.getByRole("button", { name: /^Culvert · pipe, / }),
+      await screen.findByRole("button", { name: /^Culvert · pipe, / }),
     );
     expect(mockRouter.push).toHaveBeenCalledWith({
       pathname: "/(tabs)/records/[id]",
@@ -172,10 +190,9 @@ describe("RecordsView", () => {
   });
 
   it("points to Capture before the first record", async () => {
-    replaceCaptures([]);
-    await render(<RecordsView />);
+    await renderList({}, []);
     expect(
-      screen.getByText("No records yet. Captures you save appear here."),
+      await screen.findByText("No records yet. Captures you save appear here."),
     ).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Sync now" })).toBeNull();
     expect(screen.queryByRole("header", { name: "Today" })).toBeNull();
@@ -183,14 +200,14 @@ describe("RecordsView", () => {
   });
 
   it("has no Mine / Team switch for an enumerator", async () => {
-    await render(<RecordsView />);
+    await renderList();
     expect(screen.queryByRole("tab", { name: "Team" })).toBeNull();
     expect(mockRefreshTeam).not.toHaveBeenCalled();
   });
 
   it("switches a supervisor to the team's records", async () => {
     const enumerator = { id: "enumerator-04", name: "Enumerator 04" };
-    addTeamRecords([
+    await addTeamRecords([
       {
         summary: {
           ...record({
@@ -203,29 +220,31 @@ describe("RecordsView", () => {
         record: { id: "team-transformer" } as never,
       },
     ]);
-    await render(<RecordsView canSeeTeam />);
+    await renderList({ canSeeTeam: true });
     expect(screen.getByRole("tab", { name: "Mine" })).toBeSelected();
     expect(screen.queryByText("Transformer")).toBeNull();
 
     await fireEvent.press(screen.getByRole("tab", { name: "Team" }));
     expect(mockRefreshTeam).toHaveBeenCalled();
-    expect(row("Transformer")).toHaveAccessibleName(
+    expect(await findRow("Transformer")).toHaveAccessibleName(
       /^Transformer, Enumerator 04 · \d\d:\d\d · ±2\.8 m, Synced$/,
     );
-    expect(screen.queryByText("Concrete pole")).toBeNull();
+    await waitFor(() => expect(screen.queryByText("Concrete pole")).toBeNull());
     // Uploads stay about the supervisor's own records.
     expect(screen.queryByRole("button", { name: "Sync now" })).toBeNull();
     expect(screen.getByRole("tab", { name: "All · 1" })).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole("tab", { name: "Mine" }));
-    expect(screen.getByText("2 records waiting to upload")).toBeOnTheScreen();
+    expect(
+      await screen.findByText("2 records waiting to upload"),
+    ).toBeOnTheScreen();
   });
 
   it("says when no team records are downloaded yet", async () => {
-    await render(<RecordsView canSeeTeam />);
+    await renderList({ canSeeTeam: true });
     await fireEvent.press(screen.getByRole("tab", { name: "Team" }));
     expect(
-      screen.getByText(
+      await screen.findByText(
         "No team records here yet. Pull down to fetch them when online.",
       ),
     ).toBeOnTheScreen();

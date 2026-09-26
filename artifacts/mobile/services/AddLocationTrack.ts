@@ -1,4 +1,4 @@
-import { addTrackPoint } from "@/services/storage/LegendState";
+import { addTrackPoint } from "@/services/storage/CaptureStore";
 import * as Location from "expo-location";
 
 export const startTrackRecorder = () => {
@@ -14,6 +14,6 @@ export const startTrackRecorder = () => {
         lng: loc.coords.longitude,
         timestamp: Date.now(),
       });
-    }
+    },
   );
 };

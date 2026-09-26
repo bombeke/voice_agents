@@ -1,6 +1,7 @@
 import { fakeDetectionEstimator } from "@/mocks/detections";
 import { setDetectionEstimator } from "@/services/capture/AttributeEstimator";
-import { clearCaptures } from "@/services/storage/CaptureStore";
+import { observations } from "@/db/schema";
+import { setupTestDatabase } from "@/db/testing/TestDb";
 import {
   addPhoto,
   beginReview,
@@ -14,10 +15,6 @@ import { DetectionReviewView } from "../DetectionReviewView";
 const mockRouter = { back: jest.fn(), push: jest.fn(), dismissTo: jest.fn() };
 jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 
-const mockAddPole = jest.fn(async () => undefined);
-jest.mock("@/providers/UtilityStoreProvider", () => ({
-  useUtilityStorePoles: () => ({ addPole: mockAddPole, poles: [] }),
-}));
 jest.mock("@/hooks/Helpers", () => ({
   requestSavePermission: async () => true,
 }));
@@ -82,9 +79,10 @@ function seed(photos = 1) {
   beginReview();
 }
 
+const getDb = setupTestDatabase();
+
 beforeEach(() => {
   jest.clearAllMocks();
-  clearCaptures();
   setDetectionEstimator(fakeDetectionEstimator);
 });
 afterEach(() => setDetectionEstimator());
@@ -181,7 +179,8 @@ describe("DetectionReviewView", () => {
       statuses: ["inclined", "vegetation"],
       functional: "unknown",
     });
-    expect(mockAddPole).not.toHaveBeenCalled();
+    // Nothing is stored before the tagging form is saved.
+    expect(await getDb().orm.select().from(observations)).toEqual([]);
   });
 
   it("explains when nothing was detected", async () => {

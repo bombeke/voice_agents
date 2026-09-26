@@ -12,7 +12,9 @@ config.watchFolders = [workspaceRoot];
 
 // Exclude transient/non-source directories from file watching to prevent ENOENT crashes
 config.resolver.blockList = [
-  new RegExp(`${workspaceRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\/\\.local\\/.*`),
+  new RegExp(
+    `${workspaceRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\/\\.local\\/.*`,
+  ),
   /.*\/\.tmp-[^/].*$/,
 ];
 
@@ -22,25 +24,72 @@ config.resolver.nodeModulesPaths = [
 ];
 
 config.resolver.assetExts.push("tflite", "bin", "onnx", "ncnn", "pte");
+// Drizzle migrations (drizzle/*.sql), inlined as strings by babel-plugin-inline-import.
+config.resolver.sourceExts.push("sql");
 
 const WEB_STUBS = {
-  "react-native-vision-camera": path.resolve(projectRoot, "web-stubs/react-native-vision-camera.js"),
-  "react-native-vision-camera-resizer": path.resolve(projectRoot, "web-stubs/react-native-vision-camera-resizer.js"),
-  "react-native-worklets": path.resolve(projectRoot, "web-stubs/react-native-worklets.js"),
-  "react-native-reanimated": path.resolve(projectRoot, "web-stubs/react-native-reanimated.js"),
-  "react-native-mmkv": path.resolve(projectRoot, "web-stubs/react-native-mmkv.js"),
+  "react-native-vision-camera": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-vision-camera.js",
+  ),
+  "react-native-vision-camera-resizer": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-vision-camera-resizer.js",
+  ),
+  "react-native-worklets": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-worklets.js",
+  ),
+  "react-native-reanimated": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-reanimated.js",
+  ),
+  "react-native-mmkv": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-mmkv.js",
+  ),
   //"react-native-webrtc": path.resolve(projectRoot, "web-stubs/react-native-webrtc.js"),
   //"react-native-webrtc-web-shim": path.resolve(projectRoot, "web-stubs/react-native-webrtc-web-shim.js"),
-  "react-native-incall-manager": path.resolve(projectRoot, "web-stubs/react-native-incall-manager.js"),
-  "react-native-video": path.resolve(projectRoot, "web-stubs/react-native-video.js"),
-  "@lodev09/react-native-exify": path.resolve(projectRoot, "web-stubs/lodev09-react-native-exify.js"),
-  "@maplibre/maplibre-react-native": path.resolve(projectRoot, "web-stubs/maplibre-react-native.js"),
-  "@react-native-camera-roll/camera-roll": path.resolve(projectRoot, "web-stubs/react-native-camera-roll.js"),
-  "@react-native-community/netinfo": path.resolve(projectRoot, "web-stubs/react-native-community-netinfo.js"),
-  "@shopify/react-native-skia": path.resolve(projectRoot, "web-stubs/shopify-react-native-skia.js"),
-  "@signalwire/react-native": path.resolve(projectRoot, "web-stubs/signalwire-react-native.js"),
-  "expo-secure-store": path.resolve(projectRoot, "web-stubs/expo-secure-store.js"),
-  "react-native-executorch": path.resolve(projectRoot, "web-stubs/react-native-executorch.js"),
+  "react-native-incall-manager": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-incall-manager.js",
+  ),
+  "react-native-video": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-video.js",
+  ),
+  "@lodev09/react-native-exify": path.resolve(
+    projectRoot,
+    "web-stubs/lodev09-react-native-exify.js",
+  ),
+  "@maplibre/maplibre-react-native": path.resolve(
+    projectRoot,
+    "web-stubs/maplibre-react-native.js",
+  ),
+  "@react-native-camera-roll/camera-roll": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-camera-roll.js",
+  ),
+  "@react-native-community/netinfo": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-community-netinfo.js",
+  ),
+  "@shopify/react-native-skia": path.resolve(
+    projectRoot,
+    "web-stubs/shopify-react-native-skia.js",
+  ),
+  "@signalwire/react-native": path.resolve(
+    projectRoot,
+    "web-stubs/signalwire-react-native.js",
+  ),
+  "expo-secure-store": path.resolve(
+    projectRoot,
+    "web-stubs/expo-secure-store.js",
+  ),
+  "react-native-executorch": path.resolve(
+    projectRoot,
+    "web-stubs/react-native-executorch.js",
+  ),
 };
 
 // The dev-only fake API (mocks/) is bundled only when explicitly requested,

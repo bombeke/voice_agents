@@ -4,8 +4,9 @@ import { useCaptureSummary } from "@/hooks/useCaptureSummary";
 import { useAuth } from "@/providers/AuthProvider";
 import { MENU_CONFIG, MenuItem } from "@/services/auth/MenuConfig";
 import { filterMenu } from "@/services/auth/MenuFilter";
-import { myReviewStatus$, reviewQueue$ } from "@/services/storage/ReviewStore";
-import { useSelector } from "@legendapp/state/react";
+import { useLiveQuery } from "@/db/LiveQuery";
+import { TABLES } from "@/db/schema";
+import { reviewCounts } from "@/services/storage/repos/ReviewRepo";
 import {
   getFocusedRouteNameFromRoute,
   type RouteProp,
@@ -50,6 +51,8 @@ const badge = (tab: string, pending: number, toReview: number) => {
   return count > 0 ? count : undefined;
 };
 
+const REVIEW_TABLES = [TABLES.reviewItems, TABLES.reviewStatus] as const;
+
 const renderTabBar = (props: Parameters<typeof TabBar>[0]) => (
   <TabBar {...props} />
 );
@@ -59,11 +62,15 @@ export default function AppTabs() {
   const { stats } = useCaptureSummary();
   // Everything waiting on this user: the team queue, and own records a
   // supervisor rejected.
-  const reviewCount = useSelector(
-    () =>
-      reviewQueue$.get().length +
-      Object.values(myReviewStatus$.get()).filter((s) => s.state === "rejected")
-        .length,
+  const reviewCount = useLiveQuery(
+    REVIEW_TABLES,
+    async (orm) => {
+      const { queued, rejected } = await reviewCounts(orm);
+      return queued + rejected;
+    },
+    [],
+    0,
+    "tabs.review",
   );
 
   const visible = useMemo(() => {

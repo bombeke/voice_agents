@@ -3,23 +3,37 @@ import { jwtDecode } from "jwt-decode";
 import { DEV_MOCKS_MARKER, devMocks, FAKE_SSO_CODE } from "..";
 import { nearbyAssets } from "@/services/capture/NearbyAssets";
 import { speechToText } from "@/services/capture/SpeechToText";
-import { mapAssets$ } from "@/services/storage/AssetStore";
-import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
-import { decideReview, reviewQueue$ } from "@/services/storage/ReviewStore";
-import { records$ } from "@/services/storage/RecordStore";
-import { addCapture } from "@/services/storage/CaptureStore";
-import { closeUserData, openUserData } from "@/services/storage/UserData";
+import { peekDb, setDatabaseFactory } from "@/db/Current";
+import { captures, mapAssets, reviewItems } from "@/db/schema";
+import { openNodeDatabase } from "@/db/testing/NodeDatabase";
+import { seedCaptures } from "@/db/testing/TestDb";
+import { gnssStatus$ } from "@/services/storage/CaptureStore";
+import {
+  closeUserData,
+  openUserData,
+  userStorageId,
+} from "@/services/storage/UserData";
+import { eq } from "drizzle-orm";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { deviceStatus$ } from "@/services/storage/SettingsStore";
 import { syncPendingCaptures } from "@/services/sync/CaptureSync";
 import { accountStore } from "../AccountStore";
 import { resetReviewServer } from "../reviewServer";
-import { fakeCaptures } from "../captures";
+import { FAKE_CAPTURE_PREFIX, fakeCaptures } from "../captures";
 import { devMocks as stub } from "../stub";
 
 jest.mock("@/services/Api", () => ({
   axiosClient: require("axios").create({ baseURL: "https://api.test" }),
-  // The op queue behind "Sync now" builds a query on import.
   queryClient: new (require("@tanstack/react-query").QueryClient)(),
+}));
+// The upload workers need the device's files; these tests drive the fake
+// server through axios instead.
+jest.mock("@/services/sync/SyncRuntime", () => ({
+  ...jest.requireActual("@/services/sync/SyncRuntime"),
+  startSync: jest.fn(),
+  stopSync: jest.fn(async () => undefined),
 }));
 
 // The per-user database key lives in the keystore.
@@ -33,24 +47,36 @@ jest.mock("@/services/AuthHelpers", () => {
   };
 });
 
-let mockUuid = 0;
-jest.mock("expo-crypto", () => ({
-  randomUUID: () => `0000000${++mockUuid}-aaaa-bbbb-cccc-dddddddddddd`,
-}));
-
 const { axiosClient } = jest.requireMock("@/services/Api");
 
 const FIELD = { id: "field", name: "Field Enumerator" };
 const SUPERVISOR = { id: "supervisor", name: "Area Supervisor" };
 
+let dir: string;
 beforeAll(async () => {
   jest.spyOn(console, "warn").mockImplementation(() => {});
+  dir = mkdtempSync(join(tmpdir(), "devmocks-"));
+  setDatabaseFactory((userId) =>
+    openNodeDatabase(join(dir, `${userStorageId(userId)}.db`)),
+  );
   devMocks.install();
   await openUserData(FIELD);
 });
 beforeEach(() => accountStore.clear());
 // Also clears the query client, whose cache timers would keep Jest running.
-afterAll(() => closeUserData());
+afterAll(async () => {
+  await closeUserData();
+  setDatabaseFactory(null);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+const db = () => peekDb()!;
+const ownRows = async () =>
+  (
+    await db().orm.select().from(captures).where(eq(captures.scope, "mine"))
+  ).map((r) => r);
+const seededRows = async () =>
+  (await ownRows()).filter((r) => r.id.startsWith(FAKE_CAPTURE_PREFIX));
 
 const SIGN_UP = {
   name: "Grace Nakato",
@@ -73,37 +99,39 @@ describe("dev mocks", () => {
     expect(stub).toBeNull();
   });
 
-  it("seeds the signed-in enumerator's captures and the GNSS state", () => {
-    expect(captures$.get()).toHaveLength(14);
-    expect(captures$.get()[0].capturedBy).toEqual(FIELD);
-    expect(records$.get()["fake-capture-1"]).toBeDefined();
+  it("seeds the signed-in enumerator's captures, with details, and the GNSS state", async () => {
+    const seeded = await seededRows();
+    expect(seeded).toHaveLength(14);
+    expect(seeded[0].summary.capturedBy).toEqual(FIELD);
+    expect(seeded.find((r) => r.id === "fake-capture-1")?.record).toBeTruthy();
+    // Plus the earlier inspection in EP-00412's condition history.
+    expect(await ownRows()).toHaveLength(15);
     expect(gnssStatus$.get()).toEqual({ bands: "L1+L5", ok: true });
   });
 
-  it("links seeded records to the Map's assets", () => {
-    const assetIds = new Set(mapAssets$.get().map((a) => a.id));
-    const linked = captures$.get().filter((c) => c.assetId);
+  it("links seeded records to the Map's assets", async () => {
+    const assetIds = new Set(
+      (await db().orm.select({ id: mapAssets.id }).from(mapAssets)).map(
+        (a) => a.id,
+      ),
+    );
+    const linked = (await ownRows()).filter((r) => r.assetId);
     expect(linked.length).toBeGreaterThan(0);
-    for (const c of linked) expect(assetIds).toContain(c.assetId);
+    for (const r of linked) expect(assetIds).toContain(r.assetId);
   });
 
-  it("fakes the uploader behind Sync now", async () => {
-    jest.useFakeTimers();
-    try {
-      captures$.set(fakeCaptures());
-      const done = syncPendingCaptures();
-      await jest.runAllTimersAsync();
-      await done;
-      expect(captures$.get().every((c) => c.syncStatus === "synced")).toBe(
-        true,
-      );
-    } finally {
-      jest.useRealTimers();
-    }
+  it("settles the seeded pending rows with Sync now (nothing is queued for them)", async () => {
+    expect((await seededRows()).some((r) => r.syncStatus === "pending")).toBe(
+      true,
+    );
+    await syncPendingCaptures();
+    expect((await seededRows()).every((r) => r.syncStatus === "synced")).toBe(
+      true,
+    );
   });
 
-  it("gives an enumerator no review queue to decide", () => {
-    expect(reviewQueue$.get()).toEqual([]);
+  it("gives an enumerator no review queue to decide", async () => {
+    expect(await db().orm.select().from(reviewItems)).toEqual([]);
   });
 
   it("seeds the Settings screen's project, model update and storage", () => {
@@ -114,11 +142,10 @@ describe("dev mocks", () => {
     expect(deviceStatus$.storage.photosBytes.get()).toBeGreaterThan(0);
   });
 
-  it("seeds the Map tab's assets", () => {
-    expect(mapAssets$.get()).toHaveLength(25);
-    expect(mapAssets$.get()).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: "EP-00412" })]),
-    );
+  it("seeds the Map tab's assets", async () => {
+    const assets = await db().orm.select({ id: mapAssets.id }).from(mapAssets);
+    expect(assets).toHaveLength(25);
+    expect(assets).toContainEqual({ id: "EP-00412" });
   });
 
   it("fakes a nearby duplicate and voice input for the tagging form", () => {
@@ -130,23 +157,24 @@ describe("dev mocks", () => {
 
   it("seeds each user their own data, next to what they captured", async () => {
     const own = { ...fakeCaptures()[0], id: "own-capture", title: "My pole" };
-    addCapture(own);
+    await seedCaptures(db(), [own]);
     await closeUserData();
-    expect(captures$.get()).toEqual([]);
+    expect(peekDb()).toBeNull();
 
     // A supervisor captures less, under ids of their own, and gets the
     // review queue from the server rather than a seed.
     await openUserData(SUPERVISOR);
-    expect(captures$.get()).toHaveLength(3);
-    expect(captures$.get().every((c) => c.id.includes("supervisor"))).toBe(
-      true,
-    );
-    expect(reviewQueue$.get()).toEqual([]);
+    const theirs = await seededRows();
+    expect(theirs).toHaveLength(3);
+    expect(theirs.every((r) => r.id.includes("supervisor"))).toBe(true);
+    expect(await db().orm.select().from(reviewItems)).toEqual([]);
 
-    // The enumerator's own capture is still theirs.
+    // The enumerator's own capture is still theirs, and the seed isn't doubled.
     await openUserData(FIELD);
-    expect(captures$.get()).toHaveLength(15);
-    expect(captures$.get().find((c) => c.id === "own-capture")).toEqual(own);
+    expect(await seededRows()).toHaveLength(14);
+    expect(
+      (await ownRows()).find((r) => r.id === "own-capture")?.summary,
+    ).toEqual(own);
   });
 
   it("serves supervisors review batches and each user their verdicts", async () => {
@@ -241,6 +269,144 @@ describe("dev mocks", () => {
       },
     ]);
   }, 20_000); // Each fake response takes 400 ms.
+
+  it("round-trips observations through the fake sync API: push, delta pull, chunked photo", async () => {
+    const { outbox, observations } = require("@/db/schema");
+    const { saveCapture } = require("@/services/storage/CaptureStore");
+    const { drainOutbox } = require("@/services/sync/OutboxWorker");
+    const {
+      outboxHandlers,
+      fetchChangesPage,
+      uploadTransport,
+    } = require("@/services/sync/SyncTransport");
+    const { pullObservations } = require("@/services/sync/PullSync");
+    const { observationCount } = require("../syncServer");
+    const token = (
+      await post("/auth/login/password", { username: "field", password: "x" })
+    ).data.access_token as string;
+    axiosClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+    try {
+      const before = observationCount();
+      await saveCapture({
+        summary: { ...fakeCaptures()[0], id: "rt-1" },
+        record: { id: "rt-1", poleIds: ["rt-1"] } as never,
+        poles: [
+          {
+            pid: "rt-1",
+            latitude: 0.35,
+            longitude: 32.58,
+            comment: "round trip",
+          },
+        ],
+      });
+      const pushed = await drainOutbox(db(), outboxHandlers);
+      expect(pushed).toMatchObject({ sent: 1, failed: 0 });
+      expect(observationCount()).toBe(before + 1);
+      expect(await db().orm.select().from(outbox)).toEqual([]);
+
+      // A retry after a lost response reuses the key: the server applies it once.
+      const retry = (pid: string) =>
+        outboxHandlers.observation.send({
+          entity: "observation",
+          entityId: pid,
+          payload: { pid, latitude: 0.35, longitude: 32.58 },
+          idempotencyKey: "replayed-key",
+        });
+      await retry("rt-dup");
+      await retry("rt-dup-2"); // same key: ignored, even with another body
+      expect(observationCount()).toBe(before + 2);
+
+      // The delta pull brings the server's seeded observations down, a page at a time.
+      const pulled = await pullObservations({
+        db: db(),
+        fetchPage: fetchChangesPage,
+        deviceId: "dev-test",
+        batchSize: 10,
+      });
+      expect(pulled.pages).toBeGreaterThan(1);
+      const [{ n }] = await db().exec(
+        "SELECT count(*) AS n FROM observations WHERE pid LIKE 'srv-%'",
+      );
+      expect(n).toBe(25);
+      const [{ dup }] = await db().exec(
+        "SELECT count(*) AS dup FROM observations WHERE pid = 'rt-dup-2'",
+      );
+      expect(dup).toBe(0);
+      const [mine] = await db()
+        .orm.select()
+        .from(observations)
+        .where(eq(observations.pid, "rt-1"));
+      expect(mine).toMatchObject({ synced: true });
+
+      // A photo in 64 KB chunks, resumed after a cut, then deduplicated by hash.
+      const bytes = new Uint8Array(100_000).fill(7);
+      const sha = require("node:crypto")
+        .createHash("sha256")
+        .update(bytes)
+        .digest("hex");
+      const session = await uploadTransport.start({
+        entityId: "rt-1",
+        sha256: sha,
+        byteSize: bytes.length,
+        fileName: "a.jpg",
+      });
+      expect(session).toMatchObject({ offset: 0, chunkSize: 65_536 });
+      await uploadTransport.putChunk(
+        session.uploadId,
+        0,
+        bytes.slice(0, 65_536),
+        bytes.length,
+      );
+      // A chunk from the wrong offset is refused with the server's offset.
+      await expect(
+        uploadTransport.putChunk(
+          session.uploadId,
+          0,
+          bytes.slice(0, 10),
+          bytes.length,
+        ),
+      ).rejects.toMatchObject({
+        response: { status: 409, data: { offset: 65_536 } },
+      });
+      expect(await uploadTransport.status(session.uploadId)).toMatchObject({
+        offset: 65_536,
+      });
+      await uploadTransport.putChunk(
+        session.uploadId,
+        65_536,
+        bytes.slice(65_536),
+        bytes.length,
+      );
+      const { url } = await uploadTransport.complete(session.uploadId, sha);
+      expect(url).toContain(sha);
+      expect(
+        await uploadTransport.start({
+          entityId: "rt-2",
+          sha256: sha,
+          byteSize: bytes.length,
+          fileName: "b.jpg",
+        }),
+      ).toMatchObject({ complete: true, url });
+    } finally {
+      delete axiosClient.defaults.headers.common.Authorization;
+    }
+  }, 30_000); // Each fake response takes 400 ms.
+
+  it("reseeds the mock data on dev-reset and keeps the user's own captures", async () => {
+    const own = { ...fakeCaptures()[0], id: "kept-capture", title: "Mine" };
+    await seedCaptures(db(), [own]);
+    // Mock rows changed or lost since the seed.
+    await db().write(async (tx) => {
+      await tx.delete(captures).where(eq(captures.id, "fake-capture-2"));
+      await tx.delete(mapAssets);
+    });
+
+    await devMocks.reseed();
+
+    expect(await seededRows()).toHaveLength(14);
+    expect((await ownRows()).some((r) => r.id === "kept-capture")).toBe(true);
+    expect(await db().orm.select({ id: mapAssets.id }).from(mapAssets)).toHaveLength(25);
+  });
 
   it("announces itself with the marker the release check looks for", () => {
     expect(console.warn).toHaveBeenCalledWith(

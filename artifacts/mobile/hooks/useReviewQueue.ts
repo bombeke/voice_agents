@@ -1,22 +1,33 @@
-import {
-  countUnsent,
-  filterReviews,
-  type ReviewFilter,
-} from "@/helpers/reviewQueue";
+import { useLiveQuery } from "@/db/LiveQuery";
+import { TABLES } from "@/db/schema";
+import type { ReviewFilter } from "@/helpers/reviewQueue";
 import { isOnline$ } from "@/services/storage/NetworkState";
 import {
-  decideReview,
-  reviewBatch$,
-  reviewDecisions$,
-  reviewQueue$,
-} from "@/services/storage/ReviewStore";
+  lastReviewBatch,
+  reviewCounts,
+  reviewQueue,
+} from "@/services/storage/repos/ReviewRepo";
+import { decideReview } from "@/services/storage/ReviewStore";
 import {
   downloadReviewBatch,
   type DownloadResult,
 } from "@/services/sync/ReviewSync";
-import type { RejectReason, ReviewItem } from "@/types/Review";
+import type { RejectReason, ReviewBatch, ReviewItem } from "@/types/Review";
 import { useSelector } from "@legendapp/state/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
+
+const TABLES_READ = [
+  TABLES.reviewItems,
+  TABLES.reviewDecisions,
+  TABLES.syncState,
+] as const;
+
+const EMPTY = {
+  items: [] as ReviewItem[],
+  total: 0,
+  unsent: 0,
+  batch: null as ReviewBatch | null,
+};
 
 /**
  * The supervisor's Review state: the reason filter, the downloaded queue it
@@ -25,16 +36,25 @@ import { useCallback, useMemo, useState } from "react";
  * memoised cards skip re-rendering.
  */
 export function useReviewQueue() {
-  const queue = useSelector(reviewQueue$);
-  const batchInfo = useSelector(reviewBatch$);
-  const decisions = useSelector(reviewDecisions$);
   const online = useSelector(isOnline$);
   const [filter, setFilter] = useState<ReviewFilter>("all");
   const [downloading, setDownloading] = useState(false);
   const [lastDownload, setLastDownload] = useState<DownloadResult | null>(null);
 
-  const items = useMemo(() => filterReviews(queue, filter), [queue, filter]);
-  const unsent = useMemo(() => countUnsent(decisions), [decisions]);
+  const data = useLiveQuery(
+    TABLES_READ,
+    async (orm) => {
+      const [items, counts, batch] = await Promise.all([
+        reviewQueue(orm, filter),
+        reviewCounts(orm),
+        lastReviewBatch(orm),
+      ]);
+      return { items, total: counts.queued, unsent: counts.unsent, batch };
+    },
+    [filter],
+    EMPTY,
+    "review",
+  );
 
   const approve = useCallback(
     ({ id }: ReviewItem) => decideReview(id, "approved"),
@@ -56,14 +76,14 @@ export function useReviewQueue() {
   }, []);
 
   return {
-    items,
-    total: queue.length,
+    items: data.items,
+    total: data.total,
     filter,
     setFilter,
     approve,
     reject,
-    batch: batchInfo,
-    unsent,
+    batch: data.batch,
+    unsent: data.unsent,
     online,
     downloading,
     lastDownload,

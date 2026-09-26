@@ -47,6 +47,7 @@ export function RecordsView({
     counts,
     ownCounts,
     sections,
+    loadMore,
     online,
     syncing,
     sync,
@@ -93,6 +94,9 @@ export function RecordsView({
       sections={sections}
       keyExtractor={(item) => item.id}
       stickySectionHeadersEnabled={false}
+      // Keyset pages: the next one loads before the user reaches the end.
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.5}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       refreshControl={

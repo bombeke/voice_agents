@@ -13,16 +13,16 @@ import {
   LOCATE_ZOOM,
 } from "@/constants/Map";
 import { strings } from "@/constants/Strings";
-import { assetBounds } from "@/helpers/mapAssets";
+import { peekDb } from "@/db/Current";
 import { useLastKnownPosition } from "@/hooks/useLastKnownPosition";
 import { useMapAssets } from "@/hooks/useMapAssets";
 import { Routes } from "@/services/Routes";
 import {
-  mapAssets$,
   mapPreferences$,
   setMapPreferences,
 } from "@/services/storage/AssetStore";
-import { isOnline$ } from "@/services/storage/LegendState";
+import { isOnline$ } from "@/services/storage/NetworkState";
+import { assetExtent, getAsset } from "@/services/storage/repos/MapAssetRepo";
 import { useSelector } from "@legendapp/state/react";
 import {
   Camera,
@@ -42,15 +42,40 @@ const StyledMap = withUniwind(Map, { style: { fromClassName: "className" } });
 /** Keeps pins clear of the search bar and chips when fitting them. */
 const FIT_PADDING = { top: 190, right: 40, bottom: 60, left: 40 };
 
-/** Frame every recorded asset on open; the default centre when there are none. */
-function initialView(): InitialViewState {
-  const bounds = assetBounds(mapAssets$.peek());
-  if (!bounds) return { center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM };
-  const [west, south, east, north] = bounds;
-  if (west === east && south === north) {
-    return { center: [west, south], zoom: LOCATE_ZOOM };
+const DEFAULT_VIEW: InitialViewState = {
+  center: DEFAULT_CENTER,
+  zoom: DEFAULT_ZOOM,
+};
+
+type Focus = { id: string; latitude: number; longitude: number };
+
+/**
+ * Where the map opens: on the linked asset, else framing every recorded
+ * asset (an indexed min/max, not a scan), else the default centre. Read
+ * before the map mounts so the camera starts there: no camera command is
+ * sent while the native map is still loading.
+ */
+async function openingView(
+  focusId: string | undefined,
+): Promise<{ view: InitialViewState; focus: Focus | null }> {
+  const db = peekDb();
+  if (!db) return { view: DEFAULT_VIEW, focus: null };
+  if (focusId) {
+    const asset = await getAsset(db.orm, focusId);
+    if (asset) {
+      return {
+        view: { center: [asset.longitude, asset.latitude], zoom: LOCATE_ZOOM },
+        focus: asset,
+      };
+    }
   }
-  return { bounds, padding: FIT_PADDING };
+  const extent = await assetExtent(db.orm);
+  if (!extent) return { view: DEFAULT_VIEW, focus: null };
+  const [west, south, east, north] = extent;
+  if (west === east && south === north) {
+    return { view: { center: [west, south], zoom: LOCATE_ZOOM }, focus: null };
+  }
+  return { view: { bounds: extent, padding: FIT_PADDING }, focus: null };
 }
 
 /**
@@ -69,6 +94,7 @@ export function AssetMapView({ focusId }: { focusId?: string } = {}) {
     setCategory,
     query,
     setQuery,
+    setBounds,
     selected,
     select,
   } = useMapAssets();
@@ -77,7 +103,13 @@ export function AssetMapView({ focusId }: { focusId?: string } = {}) {
   const online = useSelector(isOnline$);
 
   const camera = useRef<CameraRef>(null);
-  const [initialViewState] = useState(initialView);
+  const [initialViewState, setInitialViewState] =
+    useState<InitialViewState | null>(null);
+  // Camera commands wait for the native map: before it has loaded, the
+  // camera's view doesn't exist yet and the command is rejected.
+  const mapReady = useRef(false);
+  const pendingFocus = useRef<Focus | null>(null);
+  const openedOn = useRef<string | undefined>(undefined);
   const [profileOpen, setProfileOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
 
@@ -88,7 +120,7 @@ export function AssetMapView({ focusId }: { focusId?: string } = {}) {
 
   const locate = async () => {
     const at = position ?? (await refresh());
-    if (!at) return;
+    if (!at || !mapReady.current) return;
     camera.current?.flyTo({
       center: [at.longitude, at.latitude],
       zoom: LOCATE_ZOOM,
@@ -96,24 +128,64 @@ export function AssetMapView({ focusId }: { focusId?: string } = {}) {
     });
   };
 
-  // Once per link: later store updates don't re-select or move the map.
-  useEffect(() => {
-    if (!focusId) return;
-    const asset = mapAssets$.peek().find((a) => a.id === focusId);
-    if (!asset) return;
-    setCategory("all");
-    setQuery("");
-    setProfileOpen(false);
-    select(asset.id);
+  const flyToFocus = (focus: Focus) =>
     camera.current?.flyTo({
-      center: [asset.longitude, asset.latitude],
+      center: [focus.longitude, focus.latitude],
       zoom: LOCATE_ZOOM,
       duration: 800,
     });
-  }, [focusId, select, setCategory, setQuery]);
 
-  const zoomTo = (center: [number, number], zoom: number) =>
-    camera.current?.easeTo({ center, zoom, duration: 500 });
+  const showFocus = (focus: Focus) => {
+    setCategory("all");
+    setQuery("");
+    setProfileOpen(false);
+    select(focus.id);
+  };
+
+  // Once, before the map mounts: where it opens (and the linked pin, selected).
+  useEffect(() => {
+    let cancelled = false;
+    openingView(focusId).then(({ view, focus }) => {
+      if (cancelled) return;
+      openedOn.current = focusId;
+      if (focus) showFocus(focus);
+      setInitialViewState(view);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // The opening view is decided once; later links fly there (below).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // A later link (the map already open): select the pin and fly to it. Once
+  // per link: later store updates don't re-select or move the map.
+  useEffect(() => {
+    const db = peekDb();
+    if (!focusId || !db || !initialViewState || focusId === openedOn.current) {
+      return;
+    }
+    openedOn.current = focusId;
+    let cancelled = false;
+    getAsset(db.orm, focusId).then((asset) => {
+      if (cancelled || !asset) return;
+      showFocus(asset);
+      if (mapReady.current) flyToFocus(asset);
+      else pendingFocus.current = asset;
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, initialViewState]);
+
+  const zoomTo = (center: [number, number], zoom: number) => {
+    if (mapReady.current)
+      camera.current?.easeTo({ center, zoom, duration: 500 });
+  };
+
+  // A few ms reading where to open; the map mounts already there.
+  if (!initialViewState) return <View className="flex-1 bg-background" />;
 
   return (
     <View className="flex-1 bg-background">
@@ -127,6 +199,14 @@ export function AssetMapView({ focusId }: { focusId?: string } = {}) {
           selectAsset(null);
         }}
         compass={false}
+        // Only the assets in view are read from the database.
+        onRegionDidChange={(event) => setBounds(event.nativeEvent.bounds)}
+        onDidFinishLoadingMap={() => {
+          mapReady.current = true;
+          const focus = pendingFocus.current;
+          pendingFocus.current = null;
+          if (focus) flyToFocus(focus);
+        }}
       >
         <Camera ref={camera} initialViewState={initialViewState} />
         <AssetLayers

@@ -41,3 +41,5 @@ allowBuilds:
   dtrace-provider: true
   # postinstall fetches the prebuilt ExecuTorch native libs (GitHub release).
   react-native-executorch: true
+  # esbuild (dev: bundles the kill test's child process) works without its postinstall.
+  esbuild: false

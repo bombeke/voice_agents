@@ -1,7 +1,9 @@
-import { countRecords } from "@/helpers/records";
+import { useLiveQuery } from "@/db/LiveQuery";
+import { TABLES } from "@/db/schema";
+import type { RecordCounts } from "@/helpers/records";
 import { storageBreakdown } from "@/helpers/settings";
-import { captures$ } from "@/services/storage/CaptureStore";
-import { isOnline$ } from "@/services/storage/LegendState";
+import { isOnline$ } from "@/services/storage/NetworkState";
+import { captureCounts } from "@/services/storage/repos/CaptureRepo";
 import {
   applyModelUpdate,
   clearSyncedPhotos,
@@ -10,8 +12,18 @@ import {
   settings$,
 } from "@/services/storage/SettingsStore";
 import { syncPendingCaptures } from "@/services/sync/CaptureSync";
+import { syncActivity$ } from "@/services/sync/SyncRuntime";
 import { useSelector } from "@legendapp/state/react";
 import { useMemo } from "react";
+
+const TABLES_READ = [TABLES.captures] as const;
+const NO_COUNTS: RecordCounts = {
+  all: 0,
+  pending: 0,
+  flagged: 0,
+  uploading: 0,
+  failed: 0,
+};
 
 /**
  * The Settings screen's state: the user's choices and a setter, the device
@@ -21,10 +33,18 @@ import { useMemo } from "react";
 export function useSettings() {
   const settings = useSelector(settings$);
   const status = useSelector(deviceStatus$);
-  const captures = useSelector(captures$);
   const online = useSelector(isOnline$);
+  const busy = useSelector(
+    () => syncActivity$.outbox.get() || syncActivity$.photos.get(),
+  );
+  const counts = useLiveQuery(
+    TABLES_READ,
+    (orm) => captureCounts(orm, "mine"),
+    [],
+    NO_COUNTS,
+    "settings.counts",
+  );
 
-  const counts = useMemo(() => countRecords(captures), [captures]);
   const storage = useMemo(
     () => storageBreakdown(status.storage),
     [status.storage],
@@ -36,7 +56,7 @@ export function useSettings() {
     status,
     storage,
     pending: counts.pending,
-    syncing: counts.uploading > 0,
+    syncing: busy && counts.pending > 0,
     online,
     sync: syncPendingCaptures,
     downloadModel: applyModelUpdate,

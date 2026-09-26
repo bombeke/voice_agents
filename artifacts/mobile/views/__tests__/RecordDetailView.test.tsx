@@ -1,17 +1,15 @@
 import { fakeMapAssets } from "@/mocks/assets";
 import { fakeCaptures } from "@/mocks/captures";
-import { fakeRecords } from "@/mocks/records";
-import { replaceCaptures } from "@/services/storage/CaptureStore";
-import { replaceRecords } from "@/services/storage/RecordStore";
-import { addTeamRecords, clearReviews } from "@/services/storage/ReviewStore";
-import { fakeRecordFor } from "@/mocks/records";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fakeRecords, fakeRecordFor } from "@/mocks/records";
+import { seedCaptures, setupTestDatabase } from "@/db/testing/TestDb";
+import { addTeamRecords } from "@/services/storage/ReviewStore";
+import {
+  fireEvent,
+  render as rntlRender,
+  screen,
+} from "@testing-library/react-native";
+import type { ReactElement } from "react";
 import { RecordDetailView } from "../RecordDetailView";
-
-// mocks/captures reads the network flag; the real module opens sync timers.
-jest.mock("@/services/storage/LegendState", () => ({
-  isOnline$: require("@legendapp/state").observable(true),
-}));
 
 const mockRouter = {
   push: jest.fn(),
@@ -24,12 +22,34 @@ jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 const NOW = new Date(2026, 8, 22, 10, 14);
 const CAPTURES = fakeCaptures(NOW);
 
-beforeEach(() => {
+const getDb = setupTestDatabase();
+
+beforeEach(async () => {
   jest.clearAllMocks();
-  replaceCaptures(CAPTURES);
-  replaceRecords(fakeRecords(CAPTURES, fakeMapAssets(NOW)));
-  clearReviews();
+  const records = fakeRecords(CAPTURES, fakeMapAssets(NOW));
+  const byId = Object.fromEntries(records.map((r) => [r.id, r]));
+  await seedCaptures(getDb(), CAPTURES, { records: byId });
+  const previous = byId["fake-record-ep-00412-previous"];
+  await seedCaptures(
+    getDb(),
+    [
+      {
+        ...CAPTURES[0],
+        id: previous.id,
+        capturedAt: previous.capturedAt,
+        syncStatus: "synced",
+      },
+    ],
+    { records: { [previous.id]: previous } },
+  );
 });
+
+/** Renders once the record has been read (the loading state is blank). */
+async function render(ui: ReactElement) {
+  const r = await rntlRender(ui);
+  await screen.findByRole("button", { name: /Back|Back to records/ });
+  return r;
+}
 
 describe("RecordDetailView", () => {
   it("shows the mockup's pole", async () => {
@@ -120,7 +140,7 @@ describe("RecordDetailView", () => {
       capturedBy,
     };
     const { assetId: _assetId, ...noAsset } = summary;
-    addTeamRecords([
+    await addTeamRecords([
       {
         summary: noAsset,
         record: {

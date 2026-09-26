@@ -44,8 +44,12 @@ jest.mock("react-native-mmkv", () => {
 });
 
 // Worklets and Reanimated ship their own JS-thread mocks.
-jest.mock("react-native-worklets", () => require("react-native-worklets/src/mock"));
-jest.mock("react-native-reanimated", () => require("react-native-reanimated/mock"));
+jest.mock("react-native-worklets", () =>
+  require("react-native-worklets/src/mock"),
+);
+jest.mock("react-native-reanimated", () =>
+  require("react-native-reanimated/mock"),
+);
 
 // On-device inference is native; tests get the registry shape and a detector
 // that never loads. Tests that need detections override useObjectDetector.
@@ -58,7 +62,13 @@ jest.mock("react-native-executorch", () => ({
             DEFAULT: {
               modelPath: "https://example.test/yolo26n_384_xnnpack_fp32.pte",
               modelOpts: {
-                labels: ["person", "car", "traffic light", "fire hydrant", "pole"],
+                labels: [
+                  "person",
+                  "car",
+                  "traffic light",
+                  "fire hydrant",
+                  "pole",
+                ],
                 boxFormat: "xyxy",
                 resizeMode: "letterbox",
                 interpolation: "linear",
@@ -112,4 +122,25 @@ jest.mock("@reactvision/react-viro", () => {
 jest.mock("@lodev09/react-native-exify", () => ({
   read: jest.fn(async () => null),
   write: jest.fn(async () => ({})),
+}));
+
+// expo-crypto is native; tests get Node's crypto. Tests that need
+// predictable ids override it with their own jest.mock.
+jest.mock("expo-crypto", () => {
+  const crypto = jest.requireActual("node:crypto");
+  return {
+    randomUUID: () => crypto.randomUUID(),
+    getRandomBytes: (n) => new Uint8Array(crypto.randomBytes(n)),
+    digestStringAsync: async (_algo, data) =>
+      crypto.createHash("sha256").update(data).digest("hex"),
+    CryptoDigestAlgorithm: { SHA256: "SHA-256" },
+  };
+});
+
+// The on-device database is native. Tests use db/testing (node:sqlite) via
+// setDatabase / setDatabaseFactory; opening op-sqlite here is a bug.
+jest.mock("@op-engineering/op-sqlite", () => ({
+  open: () => {
+    throw new Error("op-sqlite is native: use db/testing in tests");
+  },
 }));

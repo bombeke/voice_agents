@@ -2,7 +2,6 @@ import { MAX_PHOTOS } from "@/constants/Capture";
 import { DETECTOR_MODEL_VERSION } from "@/constants/DetectorModel";
 import { strings } from "@/constants/Strings";
 import {
-  applyTagEdit,
   buildRecord,
   buildRecords,
   buildSummary,
@@ -10,9 +9,13 @@ import {
 import { assetFromPole } from "@/helpers/duplicateCheck";
 import { tagFormProblem } from "@/helpers/tagForm";
 import { requestSavePermission } from "@/hooks/Helpers";
-import { useUtilityStorePoles } from "@/providers/UtilityStoreProvider";
 import { checkPhotoQuality } from "@/services/capture/PhotoQuality";
-import { addCapture, captures$ } from "@/services/storage/CaptureStore";
+import { peekDb } from "@/db/Current";
+import {
+  persistPoleImages,
+  saveCapture,
+  saveCaptureEdit,
+} from "@/services/storage/CaptureStore";
 import {
   addPhoto,
   beginTagging,
@@ -21,16 +24,14 @@ import {
   resetSession,
 } from "@/services/storage/CaptureSessionStore";
 import { persistCaptureImage, toFileUri } from "@/services/storage/ImageStore";
-import type { SyncedUtilityPole } from "@/services/storage/LegendState";
-import { records$, upsertRecord } from "@/services/storage/RecordStore";
+import { nearbyObservations } from "@/services/storage/repos/ObservationRepo";
+import type { SyncedUtilityPole } from "@/types/Observation";
 import { currentUser$ } from "@/services/storage/UserData";
-import type { AssetCategory } from "@/constants/Colors";
 import type {
   CaptureLocation,
   CaptureMetadata,
   CapturedDetection,
   NearbyAsset,
-  TagForm,
 } from "@/types/Capture";
 import { useSelector } from "@legendapp/state/react";
 import { randomUUID } from "expo-crypto";
@@ -90,8 +91,8 @@ async function takePhoto({ shoot, location, heading }: TakePhotoArgs) {
 }
 
 /**
- * Where the record detail screen finds the photos: the copies the op queue
- * made (see ImageStore), else a fresh durable copy of each shot.
+ * Where the record detail screen finds the photos: the copies
+ * persistPoleImages made (see ImageStore), else a fresh durable copy of each shot.
  */
 function storedPhotoUris(
   shots: readonly { imageUri: string }[],
@@ -108,54 +109,41 @@ function storedPhotoUris(
 }
 
 /**
- * "Edit record": writes the changed form to the saved record, sends the
- * change through the op queue for the records it made, and puts the row
- * back to pending.
+ * Stored records within this distance of the fix are duplicate candidates;
+ * wide enough for assets ranged well away from the phone.
  */
-async function saveEdit(
-  id: string,
-  form: TagForm & { category: AssetCategory },
-  addPole: (poles: SyncedUtilityPole[]) => Promise<unknown>,
-  known: ReadonlySet<string>,
-): Promise<boolean> {
-  const record = records$[id].peek();
-  const summary = captures$.peek().find((c) => c.id === id);
-  if (!record || !summary) return false;
-  const edit = applyTagEdit(record, summary, form);
-  const queued = record.poleIds.filter((pid) => known.has(pid));
-  if (queued.length) {
-    // setPoleVision merges by pid, so only the changed fields are needed.
-    await addPole(
-      queued.map((pid) => ({ pid, ...edit.poleFields })) as SyncedUtilityPole[],
-    );
-  }
-  upsertRecord(edit.record);
-  addCapture(edit.summary);
-  return true;
-}
+const NEARBY_QUERY_RADIUS_M = 250;
 
 /**
  * Up to three shots of one asset, reviewed and then tagged. The session lives
  * in CaptureSessionStore so the camera, review and tagging routes share it.
- * Saving writes one record per accepted detection to the offline op queue and
- * a summary row for Home; nothing is stored before that.
+ * Saving writes one record per accepted detection, its outbox rows and a
+ * summary row for Home in one SQLite transaction; nothing is stored before.
  */
 export function useCaptureSession() {
-  const { addPole, poles } = useUtilityStorePoles();
   const photos = useSelector(captureSession$.photos);
   const location = useSelector(captureSession$.location);
   const isCapturing = useSelector(captureSession$.isCapturing);
   const isSaving = useSelector(captureSession$.isSaving);
   const editingId = useSelector(captureSession$.editingId);
 
-  /** Opens the tagging form, checking the stored records for duplicates. */
-  const startTagging = useCallback(() => {
+  /**
+   * Opens the tagging form, checking stored records near the fix for
+   * duplicates (an indexed box query, not every record).
+   */
+  const startTagging = useCallback(async () => {
+    const at = captureSession$.location.peek();
+    const db = peekDb();
+    const poles =
+      at && db
+        ? await nearbyObservations(db.orm, at, NEARBY_QUERY_RADIUS_M).catch(
+            () => [],
+          )
+        : [];
     beginTagging(
-      (poles ?? [])
-        .map(assetFromPole)
-        .filter((a): a is NearbyAsset => a !== null),
+      poles.map(assetFromPole).filter((a): a is NearbyAsset => a !== null),
     );
-  }, [poles]);
+  }, []);
 
   /**
    * Saves the tagging form: a finished record, or a draft that only needs a
@@ -177,15 +165,10 @@ export function useCaptureSession() {
       captureSession$.isSaving.set(true);
       try {
         if (editingId) {
-          const known = new Set(
-            (poles ?? []).map((p) => p.pid).filter(Boolean) as string[],
-          );
-          const saved = await saveEdit(
-            editingId,
-            { ...form, category: form.category },
-            addPole,
-            known,
-          );
+          const saved = await saveCaptureEdit(editingId, {
+            ...form,
+            category: form.category,
+          });
           if (saved) resetSession();
           return saved;
         }
@@ -200,18 +183,19 @@ export function useCaptureSession() {
           capturedBy: currentUser$.peek() ?? undefined,
         };
         const records = buildRecords(input);
-        const saved = (await addPole(records)) as
-          { imageUri?: string }[] | undefined;
-        const summary = buildSummary(records, input);
-        addCapture(summary);
-        upsertRecord(
-          buildRecord(
+        // File copies first: IO stays out of the transaction.
+        const persisted = persistPoleImages(records);
+        const summary = buildSummary(persisted, input);
+        await saveCapture({
+          summary,
+          record: buildRecord(
             summary,
-            records,
+            persisted,
             input,
-            storedPhotoUris(shots, records, saved),
+            storedPhotoUris(shots, records, persisted),
           ),
-        );
+          poles: persisted,
+        });
         resetSession();
         return true;
       } catch (e) {
@@ -225,7 +209,7 @@ export function useCaptureSession() {
         captureSession$.isSaving.set(false);
       }
     },
-    [addPole, poles],
+    [],
   );
 
   return {

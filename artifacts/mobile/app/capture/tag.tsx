@@ -1,5 +1,6 @@
+import { peekDb } from "@/db/Current";
 import { editRecord } from "@/services/storage/CaptureSessionStore";
-import { records$ } from "@/services/storage/RecordStore";
+import { getOwnRecord } from "@/services/storage/repos/CaptureRepo";
 import { TaggingView } from "@/views/TaggingView";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -11,9 +12,15 @@ export default function TaggingScreen() {
 
   // Fresh from the store each time, so an edit left unsaved is dropped.
   useEffect(() => {
-    if (!recordId) return;
-    const record = records$[recordId].peek();
-    if (record) editRecord(record);
+    const db = peekDb();
+    if (!recordId || !db) return;
+    let cancelled = false;
+    getOwnRecord(db.orm, recordId).then((own) => {
+      if (own && !cancelled) editRecord(own.record);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [recordId]);
 
   return (

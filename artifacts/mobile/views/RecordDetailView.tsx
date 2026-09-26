@@ -28,6 +28,9 @@ export function RecordDetailView({ id }: { id: string }) {
   const back = () =>
     router.canGoBack() ? router.back() : router.navigate(Routes.RECORDS);
 
+  // Still reading from the database: a blank screen, not "not found".
+  if (detail === undefined) return <View className="flex-1 bg-background" />;
+
   if (!detail) {
     return (
       <View className="flex-1 bg-background pt-safe-offset-6 px-5 gap-4">

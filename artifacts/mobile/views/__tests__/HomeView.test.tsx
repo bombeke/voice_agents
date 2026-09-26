@@ -1,8 +1,5 @@
-import {
-  clearCaptures,
-  gnssStatus$,
-  replaceCaptures,
-} from "@/services/storage/CaptureStore";
+import { seedCaptures, setupTestDatabase } from "@/db/testing/TestDb";
+import { gnssStatus$ } from "@/services/storage/CaptureStore";
 import type { CaptureSummary } from "@/types/Capture";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { HomeView } from "../HomeView";
@@ -40,15 +37,23 @@ const CAPTURES: CaptureSummary[] = [
   },
 ];
 
+const getDb = setupTestDatabase();
+
 beforeEach(() => {
   jest.clearAllMocks();
-  replaceCaptures(CAPTURES);
   gnssStatus$.set({ bands: "L1+L5", ok: true });
 });
 
+/** Home with the captures stored, once the stats have been read. */
+async function renderHome(captures: CaptureSummary[] = CAPTURES) {
+  await seedCaptures(getDb(), captures);
+  await render(<HomeView />);
+  await screen.findByLabelText(`Captured today: ${captures.length}`);
+}
+
 describe("HomeView", () => {
   it("renders the stats, categories and last capture from the store", async () => {
-    await render(<HomeView />);
+    await renderHome();
 
     expect(screen.getByText("IIP · Pilot Zone 3")).toBeOnTheScreen();
     expect(screen.getByText("1 pending")).toBeOnTheScreen();
@@ -67,12 +72,14 @@ describe("HomeView", () => {
       expect(screen.getByRole("button", { name })).toBeOnTheScreen();
     }
     expect(
-      screen.getByRole("button", { name: /Concrete pole · inclined 7°/ }),
+      await screen.findByRole("button", {
+        name: /Concrete pole · inclined 7°/,
+      }),
     ).toBeOnTheScreen();
   });
 
   it("starts a capture for the chosen category", async () => {
-    await render(<HomeView />);
+    await renderHome();
     await fireEvent.press(
       screen.getByRole("button", { name: "Water & Sanitation" }),
     );
@@ -83,7 +90,7 @@ describe("HomeView", () => {
   });
 
   it("lets the AI pick the category", async () => {
-    await render(<HomeView />);
+    await renderHome();
     await fireEvent.press(
       screen.getByRole("button", {
         name: "Not sure? Let AI pick the category",
@@ -96,9 +103,9 @@ describe("HomeView", () => {
   });
 
   it("opens pending records from the sync pill and profile from the avatar", async () => {
-    await render(<HomeView />);
+    await renderHome();
     await fireEvent.press(
-      screen.getByRole("button", { name: /records waiting to sync/ }),
+      await screen.findByRole("button", { name: /records waiting to sync/ }),
     );
     expect(mockRouter.navigate).toHaveBeenCalledWith({
       pathname: "/(tabs)/records",
@@ -111,9 +118,11 @@ describe("HomeView", () => {
   });
 
   it("opens the last capture's record", async () => {
-    await render(<HomeView />);
+    await renderHome();
     await fireEvent.press(
-      screen.getByRole("button", { name: /Concrete pole · inclined 7°/ }),
+      await screen.findByRole("button", {
+        name: /Concrete pole · inclined 7°/,
+      }),
     );
     expect(mockRouter.push).toHaveBeenCalledWith({
       pathname: "/(tabs)/records/[id]",
@@ -122,8 +131,7 @@ describe("HomeView", () => {
   });
 
   it("shows an empty state before the first capture", async () => {
-    clearCaptures();
-    await render(<HomeView />);
+    await renderHome([]);
     expect(screen.getByLabelText("Captured today: 0")).toBeOnTheScreen();
     expect(screen.queryByText(/pending/)).toBeNull();
     expect(screen.getByText(/Nothing captured yet/)).toBeOnTheScreen();

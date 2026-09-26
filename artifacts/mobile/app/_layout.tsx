@@ -4,12 +4,12 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { devMocks } from "@/mocks";
 import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { DetectorModelProvider } from "@/providers/DetectorModelProvider";
-import { UtilityStoreProvider } from "@/providers/UtilityStoreProvider";
 import { queryClient } from "@/services/Api";
 import { installSessionRefresh } from "@/services/auth/SessionRefresh";
 import { BackendSyncObserver } from "@/services/storage/BackendSyncObserver";
+import { COLD_START_MARK } from "@/constants/Config";
+import { mark } from "@/db/Timing";
 import { initPersistence } from "@/services/storage/LegendState";
-import { OpQueueReplayObserver } from "@/services/storage/OpQueueReplayObserver";
 import { createUserStorage } from "@/services/storage/Storage";
 import { ReviewSyncObserver } from "@/services/sync/ReviewSyncObserver";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -54,12 +54,13 @@ function SignedInSync() {
   return (
     <>
       <BackendSyncObserver />
-      <OpQueueReplayObserver />
       <ReviewSyncObserver />
     </>
   );
 }
 
+// Debug timing (EXPO_PUBLIC_DB_TIMING=1): cold start to the first painted list.
+mark(COLD_START_MARK);
 const userId = "mmkv_user_app";
 const storage = createUserStorage(userId);
 initPersistence();
@@ -87,19 +88,17 @@ export default function RootLayout() {
       <GestureHandlerRootView className="flex-1 bg-background">
         <MMKVProvider storage={storage}>
           <AuthProvider>
-            <UtilityStoreProvider>
-              <DetectorModelProvider>
-                <SafeAreaProvider>
-                  {/* Feeds insets to uniwind's `*-safe` utilities. */}
-                  <SafeAreaListener
-                    onChange={({ insets }) => Uniwind.updateInsets(insets)}
-                  >
-                    <SignedInSync />
-                    <RootLayoutNav />
-                  </SafeAreaListener>
-                </SafeAreaProvider>
-              </DetectorModelProvider>
-            </UtilityStoreProvider>
+            <DetectorModelProvider>
+              <SafeAreaProvider>
+                {/* Feeds insets to uniwind's `*-safe` utilities. */}
+                <SafeAreaListener
+                  onChange={({ insets }) => Uniwind.updateInsets(insets)}
+                >
+                  <SignedInSync />
+                  <RootLayoutNav />
+                </SafeAreaListener>
+              </SafeAreaProvider>
+            </DetectorModelProvider>
           </AuthProvider>
         </MMKVProvider>
       </GestureHandlerRootView>

@@ -6,7 +6,7 @@ import {
   formatLabel,
   shouldFlag,
 } from "@/helpers/detectionReview";
-import type { SyncedUtilityPole } from "@/services/storage/LegendState";
+import type { SyncedUtilityPole } from "@/types/Observation";
 import type {
   CaptureFlag,
   CaptureLocation,

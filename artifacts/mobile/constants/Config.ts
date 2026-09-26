@@ -23,3 +23,6 @@ export const TERMS_URL: string | undefined = process.env.EXPO_PUBLIC_TERMS_URL;
 
 /** Records a supervisor downloads to review at a time (and can do offline). */
 export const REVIEW_BATCH_SIZE = 20;
+
+/** Timing span from app start to the first list painted from the database. */
+export const COLD_START_MARK = "cold-start.first-list";

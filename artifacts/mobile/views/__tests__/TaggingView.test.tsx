@@ -6,7 +6,9 @@ import {
   setSpeechToText,
   type SpeechToText,
 } from "@/services/capture/SpeechToText";
-import { captures$, clearCaptures } from "@/services/storage/CaptureStore";
+import { captures, observations } from "@/db/schema";
+import { seedCaptures, setupTestDatabase } from "@/db/testing/TestDb";
+import { asc } from "drizzle-orm";
 import {
   addPhoto,
   beginReview,
@@ -15,7 +17,6 @@ import {
   editRecord,
   startSession,
 } from "@/services/storage/CaptureSessionStore";
-import { records$, upsertRecord } from "@/services/storage/RecordStore";
 import type { CapturedPhoto } from "@/types/Capture";
 import {
   fireEvent,
@@ -28,16 +29,19 @@ import { TaggingView } from "../TaggingView";
 const mockRouter = { back: jest.fn(), push: jest.fn(), dismissTo: jest.fn() };
 jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 
-const mockAddPole = jest.fn(async (_records: unknown) => undefined);
-jest.mock("@/providers/UtilityStoreProvider", () => ({
-  useUtilityStorePoles: () => ({ addPole: mockAddPole, poles: [] }),
+jest.mock("@/services/storage/ImageStore", () => ({
+  ...jest.requireActual("@/services/storage/ImageStore"),
+  persistCaptureImage: (uri?: string) => uri,
 }));
 jest.mock("@/hooks/Helpers", () => ({
   requestSavePermission: async () => true,
 }));
 jest.mock("expo-media-library", () => ({ createAssetAsync: jest.fn() }));
 let mockUuid = 0;
-jest.mock("expo-crypto", () => ({ randomUUID: () => `uuid-${++mockUuid}` }));
+// Zero-padded, so ids sort in the order they were made.
+jest.mock("expo-crypto", () => ({
+  randomUUID: () => `uuid-${String(++mockUuid).padStart(4, "0")}`,
+}));
 
 const photo: CapturedPhoto = {
   id: "photo-1",
@@ -67,12 +71,16 @@ function seed({ duplicate = true } = {}) {
 }
 
 type Record = { trackId: number; statuses: string[]; draft: boolean };
-const savedRecords = () =>
-  (mockAddPole.mock.calls[0] as unknown[])[0] as Record[];
+const getDb = setupTestDatabase();
+
+/** The poles the save stored, in the order they were made. */
+const savedRecords = async () =>
+  (
+    await getDb().orm.select().from(observations).orderBy(asc(observations.pid))
+  ).map((r) => r.data as unknown as Record);
 
 beforeEach(() => {
   jest.clearAllMocks();
-  clearCaptures();
   setDetectionEstimator(fakeDetectionEstimator);
 });
 afterEach(() => {
@@ -136,7 +144,7 @@ describe("TaggingView", () => {
     await waitFor(() =>
       expect(mockRouter.dismissTo).toHaveBeenCalledWith("/(tabs)"),
     );
-    const records = savedRecords();
+    const records = await savedRecords();
     expect(records.map((r) => r.trackId)).toEqual([-1, -3]);
     expect(records[0]).toMatchObject({
       statuses: ["inclined", "vegetation"],
@@ -145,7 +153,8 @@ describe("TaggingView", () => {
       linkedAssetId: "EP-00412",
       draft: false,
     });
-    expect(captures$.get()[0]).toMatchObject({ title: "Pole", flagged: false });
+    const [row] = await getDb().orm.select().from(captures);
+    expect(row.summary).toMatchObject({ title: "Pole", flagged: false });
   });
 
   it("needs a status for a record but not for a draft", async () => {
@@ -162,8 +171,12 @@ describe("TaggingView", () => {
 
     await fireEvent.press(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(mockRouter.dismissTo).toHaveBeenCalled());
-    expect(savedRecords()[0]).toMatchObject({ statuses: [], draft: true });
-    expect(captures$.get()[0].flagged).toBe(true);
+    expect((await savedRecords())[0]).toMatchObject({
+      statuses: [],
+      draft: true,
+    });
+    const [row] = await getDb().orm.select().from(captures);
+    expect(row.flagged).toBe(true);
   });
 
   it("switches category to that category's statuses", async () => {
@@ -240,18 +253,21 @@ describe("TaggingView", () => {
       comment: "",
       poleIds: [],
     };
-    upsertRecord(record);
-    captures$.set([
-      {
-        id: "r1",
-        category: "energy",
-        title: "Concrete pole",
-        capturedAt: record.capturedAt,
-        accuracyM: 2.8,
-        syncStatus: "synced",
-        flagged: false,
-      },
-    ]);
+    await seedCaptures(
+      getDb(),
+      [
+        {
+          id: "r1",
+          category: "energy",
+          title: "Concrete pole",
+          capturedAt: record.capturedAt,
+          accuracyM: 2.8,
+          syncStatus: "synced",
+          flagged: false,
+        },
+      ],
+      { records: { r1: record } },
+    );
     editRecord(record);
     await render(<TaggingView />);
 
@@ -269,8 +285,9 @@ describe("TaggingView", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
     expect(mockRouter.dismissTo).not.toHaveBeenCalled();
-    expect(records$.r1.comment.get()).toBe("Leaning more");
-    expect(captures$.get()[0].syncStatus).toBe("pending");
+    const [row] = await getDb().orm.select().from(captures);
+    expect(row.record?.comment).toBe("Leaning more");
+    expect(row.syncStatus).toBe("pending");
     expect(captureSession$.editingId.get()).toBeNull();
   });
 });

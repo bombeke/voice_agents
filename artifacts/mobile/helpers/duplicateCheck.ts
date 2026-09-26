@@ -1,6 +1,6 @@
 import { DUPLICATE_RADIUS_M } from "@/constants/Capture";
 import type { AssetCategory } from "@/constants/Colors";
-import type { LocalPole } from "@/services/storage/LegendState";
+import type { LocalPole } from "@/types/Observation";
 import type { DuplicateCandidate, NearbyAsset } from "@/types/Capture";
 
 interface Point {

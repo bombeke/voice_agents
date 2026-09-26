@@ -1,15 +1,11 @@
-import {
-  addCapture,
-  clearCaptures,
-  gnssStatus$,
-} from "@/services/storage/CaptureStore";
-import { act, renderHook } from "@testing-library/react-native";
+import { seedCaptures, setupTestDatabase } from "@/db/testing/TestDb";
+import { gnssStatus$ } from "@/services/storage/CaptureStore";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { useCaptureSummary } from "../useCaptureSummary";
 
-beforeEach(() => {
-  clearCaptures();
-  gnssStatus$.set(null);
-});
+const getDb = setupTestDatabase();
+
+beforeEach(() => gnssStatus$.set(null));
 
 describe("useCaptureSummary", () => {
   it("updates when a capture is saved", async () => {
@@ -18,22 +14,37 @@ describe("useCaptureSummary", () => {
     expect(result.current.latest).toBeUndefined();
 
     await act(async () => {
-      addCapture({
-        id: "a",
-        category: "roads",
-        title: "Culvert · blocked",
-        capturedAt: new Date().toISOString(),
-        accuracyM: 3.2,
-        syncStatus: "pending",
-        flagged: false,
-      });
+      await seedCaptures(getDb(), [
+        {
+          id: "a",
+          category: "roads",
+          title: "Culvert · blocked",
+          capturedAt: new Date().toISOString(),
+          accuracyM: 3.2,
+          syncStatus: "pending",
+          flagged: false,
+        },
+        {
+          id: "old",
+          category: "roads",
+          title: "Drain",
+          capturedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+          accuracyM: 3.2,
+          syncStatus: "pending",
+          flagged: true,
+        },
+      ]);
       gnssStatus$.set({ bands: "L1+L5", ok: true });
     });
 
-    expect(result.current.stats).toMatchObject({
-      capturedToday: 1,
-      pending: 1,
-    });
+    await waitFor(() =>
+      expect(result.current.stats).toEqual({
+        capturedToday: 1,
+        synced: 0,
+        flagged: 0,
+        pending: 2,
+      }),
+    );
     expect(result.current.latest?.title).toBe("Culvert · blocked");
     expect(result.current.gnss).toEqual({ bands: "L1+L5", ok: true });
   });

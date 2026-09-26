@@ -1,11 +1,12 @@
 import { BASEMAP_STYLES } from "@/constants/Map";
 import { fakeMapAssets } from "@/mocks/assets";
+import { setupTestDatabase } from "@/db/testing/TestDb";
 import {
   DEFAULT_MAP_PREFERENCES,
   mapPreferences$,
-  replaceAssets,
 } from "@/services/storage/AssetStore";
-import { isOnline$ } from "@/services/storage/LegendState";
+import { isOnline$ } from "@/services/storage/NetworkState";
+import { upsertAssets } from "@/services/storage/repos/MapAssetRepo";
 import {
   act,
   fireEvent,
@@ -24,10 +25,18 @@ const mockMap = {
   style: undefined as unknown,
   cluster: undefined as boolean | undefined,
   features: [] as { properties: { id: string; category: string } }[],
-  camera: { flyTo: jest.fn(), easeTo: jest.fn() },
+  camera: {
+    flyTo: jest.fn(),
+    easeTo: jest.fn(),
+    jumpTo: jest.fn(),
+    fitBounds: jest.fn(),
+  },
   source: { getClusterExpansionZoom: jest.fn(async () => 14) },
   /** The Map's onPress, which a source press bubbles up to. */
   mapPress: undefined as undefined | ((event: object) => void),
+  /** The Camera's starting view, and whether the map reported it had loaded. */
+  initialViewState: undefined as unknown,
+  loaded: false,
 };
 
 /**
@@ -50,9 +59,15 @@ jest.mock("@maplibre/maplibre-react-native", () => {
     mockMap.mapPress?.(event);
   };
   return {
-    Map: ({ children, mapStyle, onPress }: any) => {
+    Map: ({ children, mapStyle, onPress, onDidFinishLoadingMap }: any) => {
       mockMap.style = mapStyle;
       mockMap.mapPress = onPress;
+      // Like the native map: loads after it has mounted.
+      React.useEffect(() => {
+        mockMap.loaded = true;
+        onDidFinishLoadingMap?.({ nativeEvent: null });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
       return h(
         View,
         null,
@@ -63,7 +78,8 @@ jest.mock("@maplibre/maplibre-react-native", () => {
         children,
       );
     },
-    Camera: ({ ref }: any) => {
+    Camera: ({ ref, initialViewState }: any) => {
+      mockMap.initialViewState = initialViewState;
       React.useImperativeHandle(ref, () => mockMap.camera);
       return null;
     },
@@ -127,11 +143,17 @@ async function renderMap(focusId?: string) {
     ).toHaveBeenCalled(),
   );
   await act(async () => {});
+  // The pins are read from the database.
+  await waitFor(() => expect(mockMap.features.length).toBeGreaterThan(0));
 }
 
-beforeEach(() => {
+const getDb = setupTestDatabase();
+
+beforeEach(async () => {
   jest.clearAllMocks();
-  replaceAssets(ASSETS);
+  mockMap.initialViewState = undefined;
+  mockMap.loaded = false;
+  await getDb().write((tx) => upsertAssets(tx, ASSETS));
   mapPreferences$.set({ ...DEFAULT_MAP_PREFERENCES });
   isOnline$.set(true);
 });
@@ -159,21 +181,23 @@ describe("AssetMapView", () => {
   it("filters pins by category and search", async () => {
     await renderMap();
     await fireEvent.press(screen.getByRole("radio", { name: "Water" }));
-    expect(new Set(mockMap.features.map((f) => f.properties.category))).toEqual(
-      new Set(["water"]),
+    await waitFor(() =>
+      expect(
+        new Set(mockMap.features.map((f) => f.properties.category)),
+      ).toEqual(new Set(["water"])),
     );
 
     await fireEvent.changeText(
       screen.getByLabelText("Search assets or IDs"),
       "borehole",
     );
-    expect(shownIds()).toEqual(["WS-00128"]);
+    await waitFor(() => expect(shownIds()).toEqual(["WS-00128"]));
 
     await fireEvent.changeText(
       screen.getByLabelText("Search assets or IDs"),
       "no such asset",
     );
-    expect(shownIds()).toEqual([]);
+    await waitFor(() => expect(shownIds()).toEqual([]));
     expect(
       screen.getByText("No assets match. Try another search or category."),
     ).toBeOnTheScreen();
@@ -280,15 +304,53 @@ describe("AssetMapView", () => {
     expect(screen.getByText("Offline map · cached tiles")).toBeOnTheScreen();
   });
 
+  it("opens framing every recorded asset (an indexed extent, not a scan)", async () => {
+    await renderMap();
+    expect(mockMap.initialViewState).toMatchObject({
+      bounds: [
+        Math.min(...ASSETS.map((a) => a.longitude)),
+        Math.min(...ASSETS.map((a) => a.latitude)),
+        Math.max(...ASSETS.map((a) => a.longitude)),
+        Math.max(...ASSETS.map((a) => a.latitude)),
+      ],
+    });
+    // The start is declarative: no camera command while the map loads.
+    expect(mockMap.camera.fitBounds).not.toHaveBeenCalled();
+    expect(mockMap.camera.jumpTo).not.toHaveBeenCalled();
+  });
+
   it("selects and centres the asset linked from a record", async () => {
     const asset = ASSETS.find((a) => a.id === "EP-00412")!;
     await renderMap("EP-00412");
-    const card = screen.getByLabelText("Selected asset");
+    const card = await screen.findByLabelText("Selected asset");
     expect(
       within(card).getByRole("header", { name: "Concrete pole" }),
     ).toBeOnTheScreen();
-    expect(mockMap.camera.flyTo).toHaveBeenCalledWith(
+    // It opens already centred on the asset.
+    expect(mockMap.initialViewState).toEqual({
+      center: [asset.longitude, asset.latitude],
+      zoom: 16,
+    });
+    expect(mockMap.camera.flyTo).not.toHaveBeenCalledWith(
       expect.objectContaining({ center: [asset.longitude, asset.latitude] }),
     );
+  });
+
+  it("flies to a record linked while the map is already open, once it has loaded", async () => {
+    const asset = ASSETS.find((a) => a.id === "WS-00128")!;
+    const view = await render(<AssetMapView />);
+    await waitFor(() => expect(mockMap.features.length).toBeGreaterThan(0));
+    await view.rerender(<AssetMapView focusId="WS-00128" />);
+    await waitFor(() =>
+      expect(mockMap.camera.flyTo).toHaveBeenCalledWith(
+        expect.objectContaining({ center: [asset.longitude, asset.latitude] }),
+      ),
+    );
+    expect(
+      within(await screen.findByLabelText("Selected asset")).getByRole(
+        "header",
+        { name: asset.title },
+      ),
+    ).toBeOnTheScreen();
   });
 });

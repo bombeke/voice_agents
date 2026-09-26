@@ -27,9 +27,6 @@ jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 jest.mock("@shopify/react-native-skia", () => ({ Skia: {} }));
 jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 
-jest.mock("@/providers/UtilityStoreProvider", () => ({
-  useUtilityStorePoles: () => ({ addPole: jest.fn() }),
-}));
 jest.mock("@/hooks/Helpers", () => ({
   requestSavePermission: async () => true,
 }));

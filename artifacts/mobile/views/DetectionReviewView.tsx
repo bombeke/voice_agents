@@ -100,8 +100,8 @@ export function DetectionReviewView() {
       return next;
     });
 
-  const continueToTagging = () => {
-    session.startTagging();
+  const continueToTagging = async () => {
+    await session.startTagging();
     router.push(Routes.CAPTURE_TAG);
   };
 

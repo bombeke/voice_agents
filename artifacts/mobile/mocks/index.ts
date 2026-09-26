@@ -8,16 +8,29 @@ import { setNearbyAssetSource } from "@/services/capture/NearbyAssets";
 import { setPhotoQualityChecker } from "@/services/capture/PhotoQuality";
 import { setSpeechToText } from "@/services/capture/SpeechToText";
 import { setGnssSource } from "@/services/location/GnssSource";
-import { mapAssets$ } from "@/services/storage/AssetStore";
-import { captures$, gnssStatus$ } from "@/services/storage/CaptureStore";
-import { records$ } from "@/services/storage/RecordStore";
+import { getDb } from "@/db/Current";
+import {
+  captures as capturesTable,
+  mapAssets as mapAssetsTable,
+  observations as observationsTable,
+  syncState as syncStateTable,
+} from "@/db/schema";
+import { OBSERVATIONS_COLLECTION } from "@/services/sync/PullSync";
+import { eq, like, or } from "drizzle-orm";
+import { gnssStatus$ } from "@/services/storage/CaptureStore";
+import { captureRow } from "@/services/storage/repos/CaptureRepo";
+import { upsertAssets } from "@/services/storage/repos/MapAssetRepo";
 import {
   deviceStatus$,
   replaceDeviceStatus,
 } from "@/services/storage/SettingsStore";
-import { onUserDataOpened } from "@/services/storage/UserData";
+import { currentUser$, onUserDataOpened } from "@/services/storage/UserData";
 import { PERMISSIONS, effectivePermissions } from "@/services/auth/Roles";
-import { setCaptureUploader } from "@/services/sync/CaptureSync";
+import {
+  OBSERVATIONS_CHANGES_URL,
+  OBSERVATIONS_PUSH_URL,
+  UPLOADS_URL,
+} from "@/services/sync/Endpoints";
 import type { Enumerator } from "@/types/Capture";
 import type { RejectReason, ReviewOutcome } from "@/types/Review";
 import { REVIEW_BATCH_SIZE } from "@/constants/Config";
@@ -28,12 +41,7 @@ import {
 } from "@/services/sync/ReviewSync";
 import { accountStore } from "./AccountStore";
 import { fakeMapAssets } from "./assets";
-import {
-  FAKE_CAPTURE_PREFIX,
-  FAKE_GNSS,
-  fakeCaptureUploader,
-  fakeCaptures,
-} from "./captures";
+import { FAKE_CAPTURE_PREFIX, FAKE_GNSS, fakeCaptures } from "./captures";
 import { fakeDetectionEstimator } from "./detections";
 import { fakeRecords } from "./records";
 import {
@@ -43,7 +51,21 @@ import {
   teamRecords,
 } from "./reviewServer";
 import { fakeDeviceStatus } from "./settings";
+import { DbBenchView } from "./bench/DbBenchView";
 import { fakeGnssSource, fakePhotoQuality } from "./gnss";
+import {
+  bodyLength,
+  changesAfter,
+  completeUpload,
+  metadataOf,
+  pushObservation,
+  putChunk,
+  rangeStart,
+  resetSyncServer,
+  seedRemoteObservations,
+  startUpload,
+  uploadStatus,
+} from "./syncServer";
 import { fakeNearbyAssetSource, fakeSpeechToText } from "./tagging";
 import { FAKE_SSO_USER, type FakeUser, REJECTED_PASSWORD } from "./fixtures";
 import { FAKE_TOKEN_TTL, fakeClaims, fakeToken } from "./token";
@@ -74,26 +96,17 @@ function body(data: unknown): Record<string, unknown> {
   return typeof data === "string" ? JSON.parse(data) : ((data ?? {}) as never);
 }
 
-/** `current` plus the seed rows it lacks (by id); null when none are missing. */
-function withMissing<T extends { id: string }>(
-  current: readonly T[],
-  seed: readonly T[],
-): T[] | null {
-  const have = new Set(current.map((row) => row.id));
-  const missing = seed.filter((row) => !have.has(row.id));
-  return missing.length > 0 ? [...current, ...missing] : null;
-}
-
 /** Supervisors and admins also capture, just less than the field team. */
 const OWN_CAPTURES_FOR_REVIEWERS = 3;
 
 /**
- * Home, Records and record details for the user who just signed in. Adds
- * whichever seed rows are missing, so a user with real captures still gets
- * the mockups' records next to their own. Reviewers get their queue from
- * `GET /review/v1/batch`, like a real server.
+ * Home, Records, record details and the Map for the user who just signed
+ * in, written to their database. Adds whichever seed rows are missing (by
+ * id), so a user with real captures still gets the mockups' records next to
+ * their own. Reviewers get their queue from `GET /review/v1/batch`, like a
+ * real server.
  */
-function seedUser(user: Enumerator) {
+async function seedUser(user: Enumerator) {
   const reviewer = effectivePermissions(accountStore.find(user.id)).includes(
     PERMISSIONS.REVIEW_DECIDE,
   );
@@ -109,21 +122,43 @@ function seedUser(user: Enumerator) {
         ),
       }))
     : seed;
-  const captures = withMissing(captures$.get(), own);
-  if (captures) captures$.set(captures);
-
-  // Record detail screens for the fake captures, never for real ones.
-  const records = records$.get();
-  const missingRecords = fakeRecords(
-    captures$.get().filter((c) => c.id.startsWith(FAKE_CAPTURE_PREFIX)),
-    mapAssets$.get(),
-  ).filter((r) => !records[r.id]);
-  if (missingRecords.length > 0) {
-    records$.set({
-      ...records,
-      ...Object.fromEntries(missingRecords.map((r) => [r.id, r])),
-    });
-  }
+  const assets = fakeMapAssets();
+  const records = fakeRecords(own, assets);
+  const summaries = new Map(own.map((c) => [c.id, c]));
+  const now = Date.now();
+  // Record detail screens for the fake captures (and the earlier
+  // inspection of EP-00412 in their history), never for real ones.
+  const rows = records.map((record) =>
+    captureRow(
+      summaries.get(record.id) ?? {
+        id: record.id,
+        category: record.category,
+        title: record.title,
+        ...(record.assetId ? { assetId: record.assetId } : {}),
+        capturedAt: record.capturedAt,
+        accuracyM: record.location.accuracy ?? 0,
+        syncStatus: "synced",
+        flagged: false,
+        ...(record.capturedBy ? { capturedBy: record.capturedBy } : {}),
+      },
+      record,
+      "mine",
+      now,
+    ),
+  );
+  await getDb().write(async (tx) => {
+    const [anyAsset] = await tx
+      .select({ id: mapAssetsTable.id })
+      .from(mapAssetsTable)
+      .limit(1);
+    if (!anyAsset) await upsertAssets(tx, assets);
+    for (let i = 0; i < rows.length; i += 100) {
+      await tx
+        .insert(capturesTable)
+        .values(rows.slice(i, i + 100))
+        .onConflictDoNothing();
+    }
+  });
 }
 
 /** The signed-in user a request came from (its bearer token's `sub`). */
@@ -146,6 +181,35 @@ const canReview = (userId: string | null) =>
 let adapter: MockAdapter | null = null;
 
 export const devMocks: DevMocks = {
+  BenchView: DbBenchView,
+
+  async reseed() {
+    const user = currentUser$.peek();
+    if (!user) throw new Error("Sign in first: the mock data is per user.");
+    // Only what the seed and the fake server made; the user's own captures stay.
+    await getDb().write(async (tx) => {
+      await tx
+        .delete(capturesTable)
+        .where(
+          or(
+            like(capturesTable.id, `${FAKE_CAPTURE_PREFIX}%`),
+            like(capturesTable.id, "fake-record-%"),
+          ),
+        );
+      await tx.delete(mapAssetsTable);
+      await tx
+        .delete(observationsTable)
+        .where(like(observationsTable.pid, "srv-%"));
+      // Pull the fresh fake server from the start.
+      await tx
+        .delete(syncStateTable)
+        .where(eq(syncStateTable.collection, OBSERVATIONS_COLLECTION));
+    });
+    resetSyncServer();
+    seedRemoteObservations(fakeMapAssets());
+    await seedUser(user);
+  },
+
   install() {
     if (!__DEV__) {
       throw new Error("Dev mocks must never run in a release build.");
@@ -153,16 +217,14 @@ export const devMocks: DevMocks = {
     if (adapter) return;
     console.warn(`${DEV_MOCKS_MARKER} Fake API enabled for auth endpoints.`);
 
-    // Device-wide: the Map's assets and the GNSS state.
+    // Device-wide: the GNSS state.
     if (!gnssStatus$.get()) gnssStatus$.set(FAKE_GNSS);
-    const assets = withMissing(mapAssets$.get(), fakeMapAssets());
-    if (assets) mapAssets$.set(assets);
-    // Each user's own data, when their database opens at sign-in.
+    // Each user's own data and the Map's assets, when their database opens.
     onUserDataOpened(seedUser);
+    // Other enumerators' observations for the first delta pull to bring down.
+    seedRemoteObservations(fakeMapAssets());
     // Settings: the mockup's model update and storage, until a project is set.
     if (!deviceStatus$.get().project) replaceDeviceStatus(fakeDeviceStatus());
-    // Records tab: "Sync now" uploads to nowhere.
-    setCaptureUploader(fakeCaptureUploader);
 
     // Capture screen: converging GPS fixes and passing quality checks.
     setGnssSource(fakeGnssSource);
@@ -184,7 +246,7 @@ export const devMocks: DevMocks = {
     adapter.onGet(REVIEW_BATCH_URL).reply((config) => {
       if (!canReview(requester(config.headers))) return [403, {}];
       const limit = Number(config.params?.limit) || REVIEW_BATCH_SIZE;
-      return [200, nextReviewBatch(limit, mapAssets$.peek())];
+      return [200, nextReviewBatch(limit, fakeMapAssets())];
     });
     adapter
       .onPatch(/\/observations\/v1\/stream\/[^/]+\/review$/)
@@ -205,13 +267,71 @@ export const devMocks: DevMocks = {
       });
     adapter.onGet(TEAM_RECORDS_URL).reply((config) => {
       if (!canReview(requester(config.headers))) return [403, {}];
-      return [200, teamRecords(mapAssets$.peek())];
+      return [200, teamRecords(fakeMapAssets())];
     });
     adapter.onGet(MY_REVIEWS_URL).reply((config) => {
       const userId = requester(config.headers);
       if (!userId) return [401, {}];
       return [200, myReviewStatuses(userId)];
     });
+
+    // Sync: delta pull, idempotent push, resumable chunked photo uploads.
+    adapter.onGet(OBSERVATIONS_CHANGES_URL).reply((config) => {
+      if (!requester(config.headers)) return [401, {}];
+      const cursor = config.params?.cursor
+        ? String(config.params.cursor)
+        : null;
+      return [200, changesAfter(cursor, Number(config.params?.limit) || 500)];
+    });
+    adapter.onPost(OBSERVATIONS_PUSH_URL).reply((config) => {
+      if (!requester(config.headers)) return [401, {}];
+      const key = (config.headers as Record<string, unknown> | undefined)?.[
+        "Idempotency-Key"
+      ];
+      return [
+        pushObservation(metadataOf(config.data), key ? String(key) : undefined),
+        {},
+      ];
+    });
+    adapter.onPost(UPLOADS_URL).reply((config) => {
+      const { entityId, sha256, byteSize } = body(config.data);
+      return [
+        200,
+        startUpload({
+          entityId: String(entityId),
+          sha256: String(sha256),
+          byteSize: Number(byteSize),
+        }),
+      ];
+    });
+    const uploadId = (url?: string) =>
+      decodeURIComponent(
+        String(url).split(`${UPLOADS_URL}/`)[1]?.split("/")[0] ?? "",
+      );
+    adapter.onGet(new RegExp(`${UPLOADS_URL}/[^/]+$`)).reply((config) => {
+      const status = uploadStatus(uploadId(config.url));
+      return status ? [200, status] : [404, {}];
+    });
+    adapter
+      .onPut(new RegExp(`${UPLOADS_URL}/[^/]+/chunks$`))
+      .reply((config) => {
+        const headers = config.headers as Record<string, unknown> | undefined;
+        const { status, offset } = putChunk(
+          uploadId(config.url),
+          rangeStart(headers?.["Content-Range"]),
+          bodyLength(config.data),
+        );
+        return [status, { offset }];
+      });
+    adapter
+      .onPost(new RegExp(`${UPLOADS_URL}/[^/]+/complete$`))
+      .reply((config) => {
+        const { status, url } = completeUpload(
+          uploadId(config.url),
+          String(body(config.data).sha256),
+        );
+        return [status, url ? { url } : {}];
+      });
 
     adapter.onPost("/auth/login/password").reply((config) => {
       const { username, password } = body(config.data);

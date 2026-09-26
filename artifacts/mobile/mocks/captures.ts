@@ -1,6 +1,4 @@
 import type { AssetCategory } from "@/constants/Colors";
-import { isOnline$ } from "@/services/storage/LegendState";
-import type { CaptureUploader } from "@/services/sync/CaptureSync";
 import type {
   CaptureSummary,
   CaptureSyncStatus,
@@ -163,13 +161,3 @@ export function fakeCaptures(
     ...(capturedBy ? { capturedBy } : {}),
   }));
 }
-
-/**
- * "Sync now" in `start:mock`: a short upload that succeeds while online and
- * leaves everything pending while offline, as the real queue would.
- */
-export const fakeCaptureUploader: CaptureUploader = async (captures) => {
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-  if (!isOnline$.peek()) return { synced: [], failed: [] };
-  return { synced: captures.map((c) => c.id), failed: [] };
-};
