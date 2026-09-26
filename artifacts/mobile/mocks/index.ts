@@ -103,7 +103,7 @@ const OWN_CAPTURES_FOR_REVIEWERS = 3;
  * Home, Records, record details and the Map for the user who just signed
  * in, written to their database. Adds whichever seed rows are missing (by
  * id), so a user with real captures still gets the mockups' records next to
- * their own. Reviewers get their queue from `GET /review/v1/batch`, like a
+ * their own. Reviewers get their queue from `GET /observations/v1/review/batch`, like a
  * real server.
  */
 async function seedUser(user: Enumerator) {

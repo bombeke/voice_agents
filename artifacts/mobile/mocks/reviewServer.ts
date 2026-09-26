@@ -174,7 +174,7 @@ function teamRecord(
 const itemId = (i: number) => `fake-review-${i + 1}`;
 
 /**
- * `GET /review/v1/batch`: the next routed records not yet sent, at most
+ * `GET /observations/v1/review/batch`: the next routed records not yet sent, at most
  * `limit` (and a page of MOCK_BATCH_PAGE), with their details.
  */
 export function nextReviewBatch(
@@ -217,7 +217,7 @@ export function decideOnServer(id: string, decision: ServerDecision): boolean {
   return true;
 }
 
-/** `GET /review/v1/mine`: the verdict on each of this user's routed records. */
+/** `GET /observations/v1/records/mine`: the verdict on each of this user's routed records. */
 export function myReviewStatuses(
   userId: string,
   now: Date = new Date(),
@@ -240,7 +240,7 @@ export function myReviewStatuses(
 }
 
 /**
- * `GET /records/v1/team`: every record of the supervisor's enumerators, the
+ * `GET /observations/v1/records/team`: every record of the supervisor's enumerators, the
  * field user's captures included, as the server holds them (synced).
  */
 export function teamRecords(

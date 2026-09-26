@@ -21,16 +21,16 @@ export interface ChangesPage {
 
 /**
  * Resumable, chunked photo upload:
- * - POST `/uploads/v1` `{ entityId, sha256, byteSize, fileName, contentType }`
+ * - POST `/observations/v1/uploads` `{ entityId, sha256, byteSize, fileName, contentType }`
  *   → `UploadSession` (`complete` when the server already has this hash);
- * - GET `/uploads/v1/:id` → `{ offset, chunkSize }`: the bytes the server
+ * - GET `/observations/v1/uploads/:id` → `{ offset, chunkSize }`: the bytes the server
  *   holds, to resume from;
- * - PUT `/uploads/v1/:id/chunks` with `Content-Range: bytes a-b/total` and
+ * - PUT `/observations/v1/uploads/:id/chunks` with `Content-Range: bytes a-b/total` and
  *   the raw bytes → `{ offset }`;
- * - POST `/uploads/v1/:id/complete` `{ sha256 }` → `{ url }`, after the
+ * - POST `/observations/v1/uploads/:id/complete` `{ sha256 }` → `{ url }`, after the
  *   server checked the hash.
  */
-export const UPLOADS_URL = "/uploads/v1";
+export const UPLOADS_URL = "/observations/v1/uploads";
 
 export const uploadUrl = (id: string) =>
   `${UPLOADS_URL}/${encodeURIComponent(id)}`;

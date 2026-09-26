@@ -63,7 +63,7 @@ export interface TeamRecord {
   record: CaptureRecord;
 }
 
-/** `GET /review/v1/batch`: queue items and the records they review. */
+/** `GET /observations/v1/review/batch`: queue items and the records they review. */
 export interface ReviewBatchResponse {
   batchId: string;
   items: ReviewItem[];
@@ -73,7 +73,7 @@ export interface ReviewBatchResponse {
 /** Where one of the user's own records stands with the supervisor. */
 export type MyReviewState = "waiting" | "approved" | "rejected";
 
-/** `GET /review/v1/mine`: the server's view of the user's routed records. */
+/** `GET /observations/v1/records/mine`: the server's view of the user's routed records. */
 export interface MyReviewStatus {
   captureId: string;
   state: MyReviewState;

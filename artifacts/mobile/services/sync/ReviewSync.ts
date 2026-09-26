@@ -13,10 +13,10 @@ import type {
   TeamRecord,
 } from "@/types/Review";
 
-export const REVIEW_BATCH_URL = "/review/v1/batch";
-export const MY_REVIEWS_URL = "/review/v1/mine";
+export const REVIEW_BATCH_URL = "/observations/v1/review/batch";
+export const MY_REVIEWS_URL = "/observations/v1/records/mine";
 /** Records of the enumerators assigned to this supervisor. */
-export const TEAM_RECORDS_URL = "/records/v1/team";
+export const TEAM_RECORDS_URL = "/observations/v1/records/team";
 /** Design-doc §8: supervisor approve or reject. */
 export const reviewDecisionUrl = (recordId: string) =>
   `/observations/v1/stream/${encodeURIComponent(recordId)}/review`;

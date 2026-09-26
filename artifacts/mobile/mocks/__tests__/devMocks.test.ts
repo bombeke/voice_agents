@@ -190,10 +190,10 @@ describe("dev mocks", () => {
 
     // Enumerators can't download the team's queue.
     await expect(
-      axiosClient.get("/review/v1/batch", as(field)),
+      axiosClient.get("/observations/v1/review/batch", as(field)),
     ).rejects.toMatchObject({ response: { status: 403 } });
 
-    const first = (await axiosClient.get("/review/v1/batch", as(supervisor)))
+    const first = (await axiosClient.get("/observations/v1/review/batch", as(supervisor)))
       .data;
     expect(first.items.map((i: { title: string }) => i.title)).toEqual([
       "Culvert · pipe",
@@ -213,15 +213,15 @@ describe("dev mocks", () => {
       name: "Field Enumerator",
     });
 
-    const second = (await axiosClient.get("/review/v1/batch", as(supervisor)))
+    const second = (await axiosClient.get("/observations/v1/review/batch", as(supervisor)))
       .data;
     expect(second.items).toHaveLength(3);
-    const third = (await axiosClient.get("/review/v1/batch", as(supervisor)))
+    const third = (await axiosClient.get("/observations/v1/review/batch", as(supervisor)))
       .data;
     expect(third.items).toEqual([]);
 
     const mine = async () =>
-      (await axiosClient.get("/review/v1/mine", as(field))).data;
+      (await axiosClient.get("/observations/v1/records/mine", as(field))).data;
     expect(await mine()).toEqual([
       { captureId: fieldCulvert.id, state: "waiting" },
     ]);
@@ -244,9 +244,9 @@ describe("dev mocks", () => {
 
     // The supervisor's team: every field capture plus the other enumerators'.
     await expect(
-      axiosClient.get("/records/v1/team", as(field)),
+      axiosClient.get("/observations/v1/records/team", as(field)),
     ).rejects.toMatchObject({ response: { status: 403 } });
-    const team = (await axiosClient.get("/records/v1/team", as(supervisor)))
+    const team = (await axiosClient.get("/observations/v1/records/team", as(supervisor)))
       .data as { summary: { capturedBy: { name: string } } }[];
     expect(
       team.filter((r) => r.summary.capturedBy.name === "Field Enumerator"),

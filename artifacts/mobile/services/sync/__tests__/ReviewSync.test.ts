@@ -74,7 +74,7 @@ describe("downloadReviewBatch", () => {
       ok: true,
       added: 2,
     });
-    expect(mockApi.get).toHaveBeenCalledWith("/review/v1/batch", {
+    expect(mockApi.get).toHaveBeenCalledWith("/observations/v1/review/batch", {
       params: { limit: 20 },
     });
     expect((await reviewQueue(orm(), "all")).map((i) => i.id).sort()).toEqual([
